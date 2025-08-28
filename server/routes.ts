@@ -319,6 +319,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const examData = insertExamSchema.parse(processedData);
       const exam = await storage.createExam(examData);
       
+      // Create a default question based on the exam content
+      if (exam.questionContent) {
+        const questionData = {
+          examId: exam.id,
+          questionText: `${exam.title} - ${exam.examType.toUpperCase()} Exam`,
+          questionType: exam.examType,
+          questionImage: exam.questionSource === 'image_upload' ? exam.questionContent : null,
+          driveLink: exam.questionSource === 'drive_link' ? exam.questionContent : null,
+          marks: exam.totalMarks || 100,
+          orderIndex: 1,
+          options: exam.examType === 'mcq' ? {
+            "A": "Option A",
+            "B": "Option B", 
+            "C": "Option C",
+            "D": "Option D"
+          } : null,
+          correctAnswer: exam.examType === 'mcq' ? "A" : null
+        };
+        
+        await storage.createQuestion(questionData);
+      }
+      
       // Log activity
       await storage.logActivity({
         type: 'exam_created',
@@ -2071,12 +2093,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           orderIndex: questions.orderIndex
         })
         .from(questions)
-        .where(eq(questions.examId, examId))
-        .orderBy(asc(questions.orderIndex));
+        .where(eq(questions.examId, examId));
 
       // Check if student has submission for this exam
       const submission = await db
-        .select()
+        .select({
+          id: examSubmissions.id,
+          examId: examSubmissions.examId,
+          studentId: examSubmissions.studentId,
+          score: examSubmissions.score,
+          totalMarks: examSubmissions.totalMarks
+        })
         .from(examSubmissions)
         .where(and(
           eq(examSubmissions.examId, examId),
@@ -2117,41 +2144,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'User ID required' });
       }
 
-      // Use temporary stats data to show subject-specific information
-      const tempStudentStats = {
-        "student-rashid": {
-          totalExams: 2,
-          completedExams: 1,
-          averageScore: 85,
-          upcomingExams: 1,
-          subject: "chemistry",
-          batchName: "HSC Chemistry Batch 2025"
-        },
-        "student-fatema": {
-          totalExams: 2,
-          completedExams: 0,
-          averageScore: 0,
-          upcomingExams: 2,
-          subject: "chemistry", 
-          batchName: "HSC Chemistry Batch 2025"
-        },
-        "student-karim": {
-          totalExams: 2,
-          completedExams: 1,
-          averageScore: 92,
-          upcomingExams: 1,
-          subject: "ict",
-          batchName: "HSC ICT Batch 2025"
-        }
-      };
-
-      const stats = tempStudentStats[userId as keyof typeof tempStudentStats];
-      
-      if (!stats) {
-        return res.status(404).json({ error: 'Student stats not found' });
+      // Get real student data from database
+      const student = await storage.getUser(userId);
+      if (!student || !student.batchId) {
+        return res.status(404).json({ error: 'Student not found' });
       }
 
-      res.json(stats);
+      // Get all exams for student's batch
+      const batchExams = await db
+        .select()
+        .from(exams)
+        .where(eq(exams.batchId, student.batchId));
+
+      // Get student's submissions
+      const submissions = await db
+        .select({
+          id: examSubmissions.id,
+          examId: examSubmissions.examId,
+          studentId: examSubmissions.studentId,
+          totalMarks: examSubmissions.totalMarks,
+          score: examSubmissions.score
+        })
+        .from(examSubmissions)
+        .where(eq(examSubmissions.studentId, userId));
+
+      const totalExams = batchExams.length;
+      const completedExams = submissions.length;
+      
+      // Calculate average score from submissions
+      let averageScore = 0;
+      if (submissions.length > 0) {
+        const totalScore = submissions.reduce((sum, sub) => sum + (sub.totalMarks || 0), 0);
+        averageScore = Math.round(totalScore / submissions.length);
+      }
+
+      res.json({
+        totalExams,
+        completedExams,
+        pendingExams: totalExams - completedExams,
+        averageScore,
+        upcomingExams: batchExams.filter(exam => new Date(exam.examDate) > new Date()).length,
+        subject: student.batch?.subject || 'general'
+      });
     } catch (error) {
       console.error('Error fetching student stats:', error);
       res.status(500).json({ error: 'Failed to fetch stats' });

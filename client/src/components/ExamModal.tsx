@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Upload, Users, Link, Image } from 'lucide-react';
+import { X, Upload, Link, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +23,6 @@ const examSchema = z.object({
   examType: z.enum(['mcq', 'written', 'mixed']),
   examMode: z.enum(['online', 'offline']),
   batchId: z.string().min(1, 'Batch selection is required'),
-  targetStudents: z.array(z.string()).optional(),
   questionSource: z.enum(['drive_link', 'image_upload']),
   questionContent: z.string().min(1, 'Question content is required'),
   totalMarks: z.number().min(1, 'Total marks must be at least 1'),
@@ -40,7 +38,6 @@ interface ExamModalProps {
 
 export function ExamModal({ isOpen, onClose }: ExamModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -63,7 +60,6 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
       examType: 'mcq',
       examMode: 'online',
       batchId: undefined,
-      targetStudents: [],
       questionSource: 'drive_link',
       questionContent: '',
       totalMarks: 100,
@@ -81,7 +77,6 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
         examType: data.examType,
         examMode: data.examMode,
         batchId: data.batchId || null,
-        targetStudents: selectedStudents.length > 0 ? selectedStudents : null,
         questionSource: data.questionSource,
         questionContent: data.questionContent,
         totalMarks: data.totalMarks,
@@ -102,7 +97,6 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
         examId: result.id,
         examTitle: result.title,
         examDate: result.examDate,
-        targetStudents: selectedStudents.length > 0 ? selectedStudents : null,
         batchId: result.batchId,
       }).catch(console.error);
       
@@ -111,7 +105,6 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
         description: "Exam created successfully and SMS notifications sent!",
       });
       form.reset();
-      setSelectedStudents([]);
       onClose();
     },
     onError: (error) => {
@@ -409,38 +402,6 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
               )}
             />
 
-            {/* Target Students */}
-            {selectedBatch && batchStudents.length > 0 && (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Target Specific Students (Optional)
-                </FormLabel>
-                <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                  {batchStudents.map((student: any) => (
-                    <div key={student.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`student-${student.id}`}
-                        checked={selectedStudents.includes(student.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedStudents([...selectedStudents, student.id]);
-                          } else {
-                            setSelectedStudents(selectedStudents.filter(id => id !== student.id));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`student-${student.id}`} className="text-sm">
-                        {student.firstName} {student.lastName} - {student.studentId}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500">
-                  Leave unselected to target all students in the batch
-                </p>
-              </FormItem>
-            )}
             
             <FormField
               control={form.control}
@@ -463,7 +424,7 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
             
             <div className="flex justify-between items-center pt-4 border-t">
               <div className="text-sm text-gray-600">
-                📱 SMS notifications will be sent to {selectedStudents.length > 0 ? `${selectedStudents.length} selected students` : 'all students in batch'}
+📱 SMS notifications will be sent to all students in batch
               </div>
               <div className="flex space-x-4">
                 <Button 

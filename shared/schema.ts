@@ -496,7 +496,7 @@ export const insertExamSchema = createInsertSchema(exams).omit({
 }).extend({
   subject: z.enum(['chemistry', 'ict']),
   examMode: z.enum(['online', 'offline']).default('online'),
-  questionSource: z.enum(['drive_link', 'png_upload']).default('drive_link'),
+  questionSource: z.enum(['drive_link', 'image_upload']).default('drive_link'),
   examDate: z.string().transform((str) => new Date(str)),
   targetStudents: z.array(z.string()).nullable().optional(),
 });

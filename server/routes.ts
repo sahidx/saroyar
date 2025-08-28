@@ -302,9 +302,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: 'teacher-belal-sir',
         // Handle batch selection (convert 'all' to null)
         batchId: (!req.body.batchId || req.body.batchId === 'all') ? null : req.body.batchId,
-        // Handle target students (ensure it's always an array or null)
-        targetStudents: Array.isArray(req.body.targetStudents) ? req.body.targetStudents : 
-                       req.body.targetStudents ? [req.body.targetStudents] : null,
         // Ensure examDate is ISO string that can be parsed
         examDate: req.body.examDate || new Date().toISOString(),
         // Set defaults for required fields
@@ -345,16 +342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SMS notifications for exams
   app.post("/api/sms/send", async (req: any, res) => {
     try {
-      const { type, examId, examTitle, examDate, targetStudents, batchId } = req.body;
+      const { type, examId, examTitle, examDate, batchId } = req.body;
       
       let recipients: any[] = [];
       
-      if (targetStudents && targetStudents.length > 0) {
-        // Send to specific students
-        recipients = await Promise.all(
-          targetStudents.map((studentId: string) => storage.getUser(studentId))
-        );
-      } else if (batchId) {
+      if (batchId) {
         // Send to all students in batch
         recipients = await storage.getStudentsByBatch(batchId);
       } else {
@@ -1978,13 +1970,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const studentBatchId = (student as any).batchId || 'batch-1'; // fallback for existing students
       
       // Get batch details
-      const batch = await storage.getBatch(studentBatchId);
+      const batch = await storage.getBatchById(studentBatchId);
       if (!batch) {
         return res.status(404).json({ error: 'Student batch not found' });
       }
 
       // Get all exams for this specific batch only (teacher-created exams)
-      const allExams = await storage.getAllExams();
+      const allExams = await storage.getExamsByBatch(studentBatchId);
       const batchExams = allExams.filter(exam => 
         exam.batchId === studentBatchId && exam.isActive
       );

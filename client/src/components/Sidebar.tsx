@@ -48,13 +48,13 @@ const studentMenuItems = [
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems = (user as any)?.role === 'teacher' ? teacherMenuItems : studentMenuItems;
 
   const handleLogout = () => {
-    window.location.href = '/api/logout';
+    logout();
   };
 
   const SidebarContent = () => (

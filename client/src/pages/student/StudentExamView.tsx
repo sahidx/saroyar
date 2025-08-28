@@ -173,7 +173,7 @@ export default function StudentExamView({ params }: ExamViewProps) {
                 </div>
               )}
 
-              {exam.questionSource === 'png_upload' && exam.questionContent && (
+              {exam.questionSource === 'image_upload' && exam.questionContent && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <ImageIcon className="w-5 h-5 text-green-600" />

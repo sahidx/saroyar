@@ -108,8 +108,8 @@ export const exams = pgTable("exams", {
   examMode: varchar("exam_mode").notNull(), // online, offline
   batchId: varchar("batch_id").references(() => batches.id),
   targetStudents: jsonb("target_students"), // Array of student IDs for specific targeting
-  questionSource: varchar("question_source").notNull(), // drive_link, png_upload
-  questionContent: text("question_content"), // Google Drive link or base64 PNG data
+  questionSource: varchar("question_source").notNull(), // drive_link, image_upload  
+  questionContent: text("question_content"), // Google Drive link or base64 image data (PNG/JPG)
   totalMarks: integer("total_marks").default(0),
   isActive: boolean("is_active").default(true),
   createdBy: varchar("created_by").notNull().references(() => users.id),

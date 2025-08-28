@@ -23,9 +23,9 @@ const examSchema = z.object({
   duration: z.number().min(1, 'Duration must be at least 1 minute'),
   examType: z.enum(['mcq', 'written', 'mixed']),
   examMode: z.enum(['online', 'offline']),
-  batchId: z.string().optional(),
+  batchId: z.string().min(1, 'Batch selection is required'),
   targetStudents: z.array(z.string()).optional(),
-  questionSource: z.enum(['drive_link', 'png_upload']),
+  questionSource: z.enum(['drive_link', 'image_upload']),
   questionContent: z.string().min(1, 'Question content is required'),
   totalMarks: z.number().min(1, 'Total marks must be at least 1'),
   instructions: z.string().optional(),
@@ -62,7 +62,7 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
       duration: 90,
       examType: 'mcq',
       examMode: 'online',
-      batchId: '',
+      batchId: undefined,
       targetStudents: [],
       questionSource: 'drive_link',
       questionContent: '',
@@ -353,10 +353,10 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="png_upload" id="png_upload" />
-                        <Label htmlFor="png_upload" className="flex items-center gap-2">
+                        <RadioGroupItem value="image_upload" id="image_upload" />
+                        <Label htmlFor="image_upload" className="flex items-center gap-2">
                           <Image className="w-4 h-4" />
-                          PNG Image Upload
+                          Image Upload (PNG/JPG)
                         </Label>
                       </div>
                     </RadioGroup>
@@ -375,7 +375,7 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                   <FormLabel>
                     {questionSource === 'drive_link' 
                       ? 'Google Drive Shareable Link' 
-                      : 'Upload PNG Image'
+                      : 'Upload Image (PNG/JPG)'
                     }
                   </FormLabel>
                   <FormControl>
@@ -400,7 +400,7 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                             reader.readAsDataURL(file);
                           }
                         }}
-                        data-testid="input-png-upload"
+                        data-testid="input-image-upload"
                       />
                     )}
                   </FormControl>

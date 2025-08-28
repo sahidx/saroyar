@@ -1960,7 +1960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Student exams endpoints
+  // Student exams endpoints - Show only teacher-created exams for student's batch
   app.get('/api/student/exams', async (req, res) => {
     try {
       const userId = req.query.userId as string;
@@ -1968,105 +1968,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'User ID required' });
       }
 
-      // Use temporary data for subject-based filtering
-      const tempStudentBatches = {
-        "student-rashid": {
-          id: "batch-1",
-          name: "HSC Chemistry Batch 2025",
-          subject: "chemistry",
-          batchCode: "CHEM25A"
-        },
-        "student-fatema": {
-          id: "batch-1", 
-          name: "HSC Chemistry Batch 2025",
-          subject: "chemistry",
-          batchCode: "CHEM25A"
-        },
-        "student-karim": {
-          id: "batch-2",
-          name: "HSC ICT Batch 2025", 
-          subject: "ict",
-          batchCode: "ICT25B"
-        }
-      };
+      // Get student's batch information
+      const student = await storage.getUser(userId);
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      // Get student's batch ID from students table or user profile
+      const studentBatchId = (student as any).batchId || 'batch-1'; // fallback for existing students
       
-      const studentBatch = tempStudentBatches[userId as keyof typeof tempStudentBatches];
-      
-      if (!studentBatch) {
+      // Get batch details
+      const batch = await storage.getBatch(studentBatchId);
+      if (!batch) {
         return res.status(404).json({ error: 'Student batch not found' });
       }
-      
-      // Create temporary subject-specific exams
-      const tempExams = [
-        {
-          id: 'exam-chem-1',
-          title: 'রসায়ন মডেল টেস্ট ১',
-          subject: 'chemistry',
-          description: 'অজৈব রসায়ন থেকে প্রশ্ন',
-          examDate: new Date('2025-01-30'),
-          duration: 120,
-          examType: 'mcq',
-          totalMarks: 50,
-          isActive: true,
-          batchId: 'batch-1'
-        },
-        {
-          id: 'exam-chem-2',
-          title: 'রসায়ন মডেল টেস্ট ২',
-          subject: 'chemistry', 
-          description: 'জৈব রসায়ন থেকে প্রশ্ন',
-          examDate: new Date('2025-02-05'),
-          duration: 120,
-          examType: 'mcq',
-          totalMarks: 50,
-          isActive: true,
-          batchId: 'batch-1'
-        },
-        {
-          id: 'exam-ict-1',
-          title: 'ICT মডেল টেস্ট ১',
-          subject: 'ict',
-          description: 'প্রোগ্রামিং ভাষা ও ডেটাবেস',
-          examDate: new Date('2025-01-28'),
-          duration: 90,
-          examType: 'mcq',
-          totalMarks: 40,
-          isActive: true,
-          batchId: 'batch-2'
-        },
-        {
-          id: 'exam-ict-2',
-          title: 'ICT মডেল টেস্ট ২',
-          subject: 'ict',
-          description: 'ওয়েব ডিজাইন ও নেটওয়ার্কিং',
-          examDate: new Date('2025-02-02'),
-          duration: 90,
-          examType: 'mcq',
-          totalMarks: 40,
-          isActive: true,
-          batchId: 'batch-2'
-        }
-      ];
-      
-      // Filter exams by student's subject
-      const subjectExams = tempExams.filter(exam => 
-        exam.subject === studentBatch.subject
+
+      // Get all exams for this specific batch only (teacher-created exams)
+      const allExams = await storage.getAllExams();
+      const batchExams = allExams.filter(exam => 
+        exam.batchId === studentBatchId && exam.isActive
       );
+
+      // Get submissions for this student to show completion status
+      const submissions = [];
+      for (const exam of batchExams) {
+        try {
+          const submission = await storage.getSubmissionByUserAndExam(userId, exam.id);
+          if (submission) {
+            submissions.push(submission);
+          }
+        } catch (error) {
+          // No submission found, continue
+        }
+      }
 
       res.json({ 
         student: {
-          id: userId,
-          firstName: userId.includes('rashid') ? 'Rashid' : userId.includes('karim') ? 'Karim' : 'Fatema',
-          lastName: userId.includes('rashid') ? 'Ahmed' : userId.includes('karim') ? 'Uddin' : 'Khatun',
-          studentId: userId.includes('rashid') ? 'ST001' : userId.includes('karim') ? 'ST003' : 'ST002',
-          batchId: studentBatch.id
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          studentId: (student as any).studentId || 'ST001',
+          batchId: studentBatchId
         },
-        batch: studentBatch,
-        exams: subjectExams.map(exam => ({
-          ...exam,
-          hasSubmission: false,
-          submission: null
-        }))
+        batch: {
+          id: batch.id,
+          name: batch.name,
+          subject: batch.subject,
+          batchCode: batch.batchCode
+        },
+        exams: batchExams.map(exam => {
+          const submission = submissions.find(s => s.examId === exam.id);
+          return {
+            ...exam,
+            hasSubmission: !!submission,
+            submission: submission
+          };
+        })
       });
     } catch (error) {
       console.error('Error fetching student exams:', error);

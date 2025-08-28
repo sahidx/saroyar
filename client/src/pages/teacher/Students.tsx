@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Users, Plus, Search, Phone, Eye, EyeOff, Edit2, Trash2, Key, GraduationCap, Clock } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Search, Phone, Eye, EyeOff, Edit2, Trash2, Key, GraduationCap, Clock, Monitor, Beaker, ArrowRightLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -329,6 +329,8 @@ export default function Students() {
   const [editingPassword, setEditingPassword] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [transferringBatch, setTransferringBatch] = useState<string | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState('');
   const { toast } = useToast();
 
   // Fetch students data
@@ -419,6 +421,31 @@ export default function Students() {
     }
   });
 
+  const transferBatchMutation = useMutation({
+    mutationFn: async ({ studentId, batchId }: { studentId: string; batchId: string }) => {
+      const response = await apiRequest('PATCH', `/api/students/${studentId}/batch`, { batchId });
+      return await response.json();
+    },
+    onSuccess: () => {
+      studentsQuery.refetch();
+      toast({
+        title: '✅ Batch Transfer Completed',
+        description: 'Student has been transferred to the new batch successfully.',
+        variant: 'default',
+      });
+      setTransferringBatch(null);
+      setSelectedBatch('');
+    },
+    onError: (error) => {
+      console.error('Error transferring student batch:', error);
+      toast({
+        title: '❌ Transfer Failed',
+        description: 'Failed to transfer student. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  });
+
   const createBatchMutation = useMutation({
     mutationFn: async (batchData: any) => {
       const response = await apiRequest('POST', '/api/batches', batchData);
@@ -469,6 +496,51 @@ export default function Students() {
 
   const handleDeleteStudent = (studentId: string) => {
     deleteStudentMutation.mutate(studentId);
+  };
+
+  const handleBatchTransfer = (studentId: string) => {
+    if (!selectedBatch) {
+      toast({
+        title: '❌ No Batch Selected',
+        description: 'Please select a batch before transferring.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    transferBatchMutation.mutate({ studentId, batchId: selectedBatch });
+  };
+
+  const startBatchTransfer = (studentId: string) => {
+    setTransferringBatch(studentId);
+    setSelectedBatch('');
+  };
+
+  const cancelBatchTransfer = () => {
+    setTransferringBatch(null);
+    setSelectedBatch('');
+  };
+
+  const getSubjectIcon = (subject: string) => {
+    return subject === 'chemistry' ? <Beaker className="w-4 h-4" /> : <Monitor className="w-4 h-4" />;
+  };
+
+  const getSubjectTheme = (subject: string, isDarkMode: boolean) => {
+    if (subject === 'chemistry') {
+      return {
+        bgColor: isDarkMode ? 'bg-green-900/30' : 'bg-green-100',
+        borderColor: isDarkMode ? 'border-green-400/50' : 'border-green-300',
+        textColor: isDarkMode ? 'text-green-300' : 'text-green-700',
+        badgeColor: isDarkMode ? 'bg-green-800 text-green-200' : 'bg-green-200 text-green-800'
+      };
+    } else {
+      return {
+        bgColor: isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100',
+        borderColor: isDarkMode ? 'border-blue-400/50' : 'border-blue-300',
+        textColor: isDarkMode ? 'text-blue-300' : 'text-blue-700',
+        badgeColor: isDarkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-200 text-blue-800'
+      };
+    }
   };
 
   const filteredStudents = (studentsData || []).filter((student: any) =>
@@ -591,6 +663,84 @@ export default function Students() {
                         {student.classLevel && (
                           <div className="mt-1">
                             <span>Class: {student.classLevel}</span>
+                          </div>
+                        )}
+                        
+                        {/* Batch Information */}
+                        {student.batch && (
+                          <div className={`mt-3 p-3 border rounded-lg ${getSubjectTheme(student.batch.subject, isDarkMode).bgColor} ${getSubjectTheme(student.batch.subject, isDarkMode).borderColor}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                {getSubjectIcon(student.batch.subject)}
+                                <span className={`text-sm font-medium ${getSubjectTheme(student.batch.subject, isDarkMode).textColor}`}>
+                                  Current Batch:
+                                </span>
+                              </div>
+                              {transferringBatch !== student.id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startBatchTransfer(student.id)}
+                                  className={`h-6 px-2 ${getSubjectTheme(student.batch.subject, isDarkMode).textColor} hover:bg-black/10`}
+                                  data-testid={`button-transfer-batch-${student.studentId}`}
+                                >
+                                  <ArrowRightLeft className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                            
+                            {transferringBatch === student.id ? (
+                              <div className="space-y-2">
+                                <Select onValueChange={setSelectedBatch} value={selectedBatch}>
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select new batch" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(batchesData || []).filter((batch: any) => batch.id !== student.batchId).map((batch: any) => (
+                                      <SelectItem key={batch.id} value={batch.id}>
+                                        <div className="flex items-center space-x-2">
+                                          {getSubjectIcon(batch.subject)}
+                                          <span>{batch.name}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleBatchTransfer(student.id)}
+                                    disabled={transferBatchMutation.isPending}
+                                    className="h-7 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
+                                    data-testid={`button-confirm-transfer-${student.studentId}`}
+                                  >
+                                    Transfer
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={cancelBatchTransfer}
+                                    className="h-7 px-3 text-xs"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className={`flex items-center justify-between`}>
+                                  <span className={`text-sm font-medium ${getSubjectTheme(student.batch.subject, isDarkMode).textColor}`}>
+                                    {student.batch.name}
+                                  </span>
+                                  <Badge className={`text-xs ${getSubjectTheme(student.batch.subject, isDarkMode).badgeColor}`}>
+                                    {student.batch.batchCode}
+                                  </Badge>
+                                </div>
+                                <div className={`text-xs ${getSubjectTheme(student.batch.subject, isDarkMode).textColor} opacity-80`}>
+                                  Subject: {student.batch.subject === 'chemistry' ? 'Chemistry' : 'ICT'}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         

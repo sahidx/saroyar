@@ -99,7 +99,7 @@ export const users = pgTable("users", {
 export const exams = pgTable("exams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
-  subject: varchar("subject").notNull(), // Chemistry or ICT
+  subject: subjectEnum("subject").notNull(), // Chemistry or ICT
   description: text("description"),
   instructions: text("instructions"),
   examDate: timestamp("exam_date").notNull(),
@@ -494,7 +494,7 @@ export const insertExamSchema = createInsertSchema(exams).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  subject: z.enum(['Chemistry', 'ICT']),
+  subject: z.enum(['chemistry', 'ict']),
   examMode: z.enum(['online', 'offline']).default('online'),
   questionSource: z.enum(['drive_link', 'png_upload']).default('drive_link'),
   examDate: z.string().transform((str) => new Date(str)),
@@ -551,7 +551,7 @@ export const insertQuestionBankSchema = createInsertSchema(questionBank).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  subject: z.enum(['Chemistry', 'ICT']),
+  subject: z.enum(['chemistry', 'ict']),
   category: z.enum(['Academic', 'Admission']),
   subCategory: z.enum(['Board', 'Test Paper', 'Admission']),
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),

@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Users, 
   LogOut, 
   GraduationCap, 
   Moon, 
   Sun,
-  ArrowLeft
+  ArrowLeft,
+  FlaskConical,
+  Monitor
 } from 'lucide-react';
 import { MobileWrapper } from '@/components/MobileWrapper';
 import { ResponsiveIconGrid, getStudentIcons } from '@/components/ResponsiveIconGrid';
@@ -23,6 +27,23 @@ export default function StudentHome() {
 
   const { logout } = useAuth();
   
+  // Fetch student's batch information including subject
+  const { data: batchData, isLoading: batchLoading } = useQuery<{
+    batch: {
+      id: string;
+      name: string;
+      subject: 'chemistry' | 'ict';
+      batchCode: string;
+      classTime: string;
+      classDays: string;
+    } | null;
+    subject: 'chemistry' | 'ict' | null;
+    message?: string;
+  }>({
+    queryKey: ['/api/student/batch'],
+    enabled: !!user && (user as any)?.role === 'student',
+  });
+  
   const handleLogout = async () => {
     try {
       await logout();
@@ -30,6 +51,26 @@ export default function StudentHome() {
       console.error('Logout error:', error);
     }
   };
+
+  // Get subject display info
+  const getSubjectInfo = () => {
+    if (batchLoading) return { name: 'লোড হচ্ছে...', icon: GraduationCap };
+    
+    if (!batchData?.subject) {
+      return { name: 'Chemistry & ICT Care', icon: GraduationCap };
+    }
+
+    switch (batchData.subject) {
+      case 'chemistry':
+        return { name: 'রসায়ন বিভাগ', icon: FlaskConical };
+      case 'ict':
+        return { name: 'ICT বিভাগ', icon: Monitor };
+      default:
+        return { name: 'Chemistry & ICT Care', icon: GraduationCap };
+    }
+  };
+
+  const subjectInfo = getSubjectInfo();
 
   return (
     <MobileWrapper>
@@ -48,17 +89,28 @@ export default function StudentHome() {
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode 
                   ? 'bg-gradient-to-r from-emerald-500 to-cyan-400' 
-                  : 'bg-gradient-to-r from-orange-500 to-red-400'
+                  : batchData?.subject === 'chemistry' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-400'
+                    : batchData?.subject === 'ict'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-400'
+                    : 'bg-gradient-to-r from-orange-500 to-red-400'
                 } shadow-lg`}>
-                  <GraduationCap className="w-5 h-5 text-white" />
+                  {React.createElement(subjectInfo.icon, { className: "w-5 h-5 text-white" })}
                 </div>
                 <div>
                   <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {user?.firstName || 'Student'} ছাত্র/ছাত্রী
+                    {(user as any)?.firstName || 'Student'} ছাত্র/ছাত্রী
                   </h1>
-                  <p className={`text-sm ${isDarkMode ? 'text-emerald-400' : 'text-orange-600'}`}>
-                    Chemistry & ICT Care
-                  </p>
+                  <div className="flex items-center space-x-2">
+                    <p className={`text-sm ${isDarkMode ? 'text-emerald-400' : batchData?.subject === 'chemistry' ? 'text-green-600' : batchData?.subject === 'ict' ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {subjectInfo.name}
+                    </p>
+                    {batchData?.batch && (
+                      <Badge variant="outline" className={`text-xs ${isDarkMode ? 'border-emerald-400 text-emerald-400' : 'border-gray-300 text-gray-600'}`} data-testid="batch-info">
+                        {batchData.batch.name}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -126,7 +178,7 @@ export default function StudentHome() {
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <h2 className={`text-2xl font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  স্বাগতম, {user?.firstName || 'ছাত্র/ছাত্রী'}!
+                  স্বাগতম, {(user as any)?.firstName || 'ছাত্র/ছাত্রী'}!
                 </h2>
                 <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-6`}>
                   Chemistry & ICT Care এ আপনাকে স্বাগতম

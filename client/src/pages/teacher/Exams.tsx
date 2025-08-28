@@ -79,8 +79,8 @@ export default function Exams() {
     const matchesSubject = filterSubject === 'all' || 
                           exam.subject.toLowerCase() === filterSubject.toLowerCase();
     
-    // Only show Chemistry and ICT exams
-    const validSubject = ['Chemistry', 'ICT'].includes(exam.subject);
+    // Only show Chemistry and ICT exams (case-insensitive)
+    const validSubject = ['chemistry', 'ict'].includes(exam.subject.toLowerCase());
     
     return matchesSearch && matchesSubject && validSubject;
   });
@@ -95,9 +95,9 @@ export default function Exams() {
   };
 
   const getSubjectIcon = (subject: string) => {
-    switch (subject) {
-      case 'Chemistry': return '🧪';
-      case 'ICT': return '💻';
+    switch (subject.toLowerCase()) {
+      case 'chemistry': return '🧪';
+      case 'ict': return '💻';
       default: return '📚';
     }
   };
@@ -233,7 +233,7 @@ export default function Exams() {
                             variant="secondary" 
                             className="bg-orange-100 text-orange-700 border-orange-200"
                           >
-                            {exam.subject}
+                            {exam.subject === 'chemistry' ? 'Chemistry' : 'ICT'}
                           </Badge>
                           <Badge 
                             className={`${status.color} text-white`}

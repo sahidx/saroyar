@@ -206,8 +206,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real data routes - no fake/demo data
   app.get("/api/exams", async (req: any, res) => {
     try {
-      const exams = await storage.getAllActiveExams();
-      res.json(exams);
+      // Check if user is authenticated and get their role
+      const user = req.session?.user;
+      
+      if (user && user.role === 'teacher') {
+        // Teacher should see only their own created exams
+        const teacherExams = await storage.getExamsByTeacher(user.id);
+        res.json(teacherExams);
+      } else {
+        // For non-authenticated or students, return all active exams
+        const exams = await storage.getAllActiveExams();
+        res.json(exams);
+      }
     } catch (error) {
       console.error("Error fetching exams:", error);
       res.status(500).json({ message: "Failed to fetch exams" });

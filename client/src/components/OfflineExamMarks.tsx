@@ -33,6 +33,7 @@ interface SMSOptions {
 
 export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProps) {
   const [studentMarks, setStudentMarks] = useState<StudentMark[]>([]);
+  const [searchFilter, setSearchFilter] = useState('');
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
     sendSMS: true,
     targetRecipients: 'student',
@@ -132,6 +133,17 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
       .replace('{feedback}', studentMark.feedback)
       .replace('{teacher_phone}', '01712345678');
   };
+
+  // Filter students based on search
+  const filteredStudents = examStudents.filter((student: any) => {
+    if (!searchFilter) return true;
+    return (
+      student.studentId?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      student.firstName?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      student.lastName?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      student.phoneNumber?.includes(searchFilter)
+    );
+  });
 
   // Calculate SMS cost based on options
   const getActiveSMSCount = () => {
@@ -284,27 +296,43 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
 
           {/* Student Marks Entry */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Enter Student Marks
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Enter Student Marks ({filteredStudents.length} students)
+              </h3>
+              <div className="flex items-center gap-2 max-w-xs">
+                <Label className="text-sm">🔍 Search:</Label>
+                <Input
+                  placeholder="Student ID, Name, or Phone"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+            </div>
             
             <div className="grid gap-4">
-              {examStudents.map((student: any, index: number) => {
+              {filteredStudents.map((student: any, index: number) => {
                 const studentMark = studentMarks.find(mark => mark.studentId === student.id);
                 return (
                   <Card key={student.id} className="border-gray-200">
                     <CardContent className="pt-4">
                       <div className="grid md:grid-cols-5 gap-4 items-start">
                         <div className="md:col-span-1">
-                          <Label className="font-semibold text-gray-700">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-blue-600 text-white text-xs font-mono">
+                              {student.studentId}
+                            </Badge>
+                          </div>
+                          <Label className="font-semibold text-gray-700 text-sm">
                             {student.firstName} {student.lastName}
                           </Label>
                           <p className="text-xs text-gray-500">
                             📱 {student.phoneNumber || 'No phone'}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            🆔 {student.studentId}
+                          <p className="text-xs text-green-600">
+                            🏫 Batch: {exam?.subject?.toUpperCase() || 'N/A'}
                           </p>
                         </div>
                         

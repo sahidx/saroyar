@@ -410,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: message,
           status: 'sent',
           credits: 1,
-          sentBy: 'teacher-belal-sir'
+          sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
         });
       });
 
@@ -511,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: finalMessage,
               status: 'sent',
               credits: 1,
-              sentBy: 'teacher-belal-sir'
+              sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
             }));
           }
           
@@ -532,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: parentMessage,
               status: 'sent',
               credits: 1,
-              sentBy: 'teacher-belal-sir'
+              sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
             }));
           }
           

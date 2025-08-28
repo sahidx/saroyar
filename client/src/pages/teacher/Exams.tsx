@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Clock, Users, Calendar, FileText, Search, Eye, Edit, T
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExamModal } from '@/components/ExamModal';
 import { OfflineExamMarks } from '@/components/OfflineExamMarks';
+import { QuestionViewer } from '@/components/QuestionViewer';
 import { formatDistanceToNow } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +28,7 @@ export default function Exams() {
   const [, navigate] = useLocation();
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   const [selectedExamForMarks, setSelectedExamForMarks] = useState<any>(null);
+  const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('all');
   const [examToDelete, setExamToDelete] = useState<any>(null);
@@ -312,6 +314,7 @@ export default function Exams() {
                         variant="outline" 
                         className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
                         data-testid={`button-view-exam-${exam.id}`}
+                        onClick={() => setSelectedExamForViewing(exam)}
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View
@@ -366,6 +369,15 @@ export default function Exams() {
           exam={selectedExamForMarks}
           isOpen={!!selectedExamForMarks}
           onClose={() => setSelectedExamForMarks(null)}
+        />
+      )}
+
+      {/* Question Viewer Modal */}
+      {selectedExamForViewing && (
+        <QuestionViewer
+          exam={selectedExamForViewing}
+          isOpen={!!selectedExamForViewing}
+          onClose={() => setSelectedExamForViewing(null)}
         />
       )}
 

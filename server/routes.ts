@@ -697,12 +697,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Finally, delete the exam itself
       await storage.deleteExam(examId);
       
-      // Log activity
-      await storage.logActivity({
-        type: 'exam_deleted',
-        message: `Exam "${exam.title}" and its ${questions.length} questions have been deleted`,
-        icon: '🗑️'
-      });
+      // Log activity with user context
+      const user = req.session?.user;
+      if (user) {
+        await storage.logActivity({
+          type: 'exam_deleted',
+          message: `Exam "${exam.title}" and its ${questions.length} questions have been deleted`,
+          icon: '🗑️',
+          userId: user.id
+        });
+      }
       
       res.json({ message: "Exam and all associated data deleted successfully" });
     } catch (error) {

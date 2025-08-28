@@ -18,11 +18,13 @@ import {
 import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { QuestionViewer } from '@/components/QuestionViewer';
 
 export default function StudentExams() {
   const { user } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [, setLocation] = useLocation();
+  const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
 
   const handleLogout = () => {
     window.location.href = '/api/logout';
@@ -202,15 +204,25 @@ export default function StudentExams() {
                         </div>
                       )}
                       <div className="mt-3 space-y-2">
-                        <Button 
-                          className="w-full" 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setLocation(`/student/exam/${exam.id}/view`)}
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          প্রশ্ন ও উত্তর দেখুন
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedExamForViewing(exam)}
+                            className={isDarkMode ? 'border-orange-400 text-orange-300' : 'border-orange-500 text-orange-700'}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            প্রশ্নপত্র দেখুন
+                          </Button>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setLocation(`/student/exam/${exam.id}/view`)}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            উত্তর দিন
+                          </Button>
+                        </div>
                         {!exam.hasSubmission && (
                           <Button className="w-full" size="sm">
                             <Play className="w-4 h-4 mr-2" />
@@ -292,6 +304,15 @@ export default function StudentExams() {
             </Card>
           </div>
         </main>
+
+        {/* Question Viewer Modal */}
+        {selectedExamForViewing && (
+          <QuestionViewer
+            exam={selectedExamForViewing}
+            isOpen={!!selectedExamForViewing}
+            onClose={() => setSelectedExamForViewing(null)}
+          />
+        )}
       </div>
     </MobileWrapper>
   );

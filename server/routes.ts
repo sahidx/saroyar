@@ -56,6 +56,26 @@ async function getRecentActivitiesForDashboard() {
   }
 }
 
+// Utility function for consistent temporary data logging
+const logTemporaryEndpoint = (feature: string) => {
+  const emoji: Record<string, string> = {
+    'teacher stats': '📊',
+    'students': '👥', 
+    'batches': '📚',
+    'courses': '📝',
+    'profile': '👤',
+    'profile update': '✏️',
+    'picture upload': '📸',
+    'picture delete': '🗑️',
+    'teacher profiles': '👥',
+    'course creation': '📚',
+    'course update': '📝',
+    'course deletion': '🗑️'
+  };
+  const icon = emoji[feature] || '🔧';
+  console.log(`${icon} Using temporary ${feature} - database endpoint disabled`);
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with real data - handle errors gracefully
   try {
@@ -181,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         res.json(realStats);
       } catch (dbError) {
-        console.log('📊 Using temporary teacher stats - database endpoint disabled');
+        logTemporaryEndpoint('teacher stats');
         const fallbackStats = {
           totalStudents: 3,
           totalExams: 5,
@@ -232,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const students = await storage.getAllStudents();
         res.json(students);
       } catch (dbError) {
-        console.log('👥 Using temporary students with batch information - database endpoint disabled');
+        logTemporaryEndpoint('students');
         
         // Create batch lookup for subject-specific batches
         const batches = {
@@ -1406,7 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const batches = await storage.getAllBatches();
         res.json(batches);
       } catch (dbError) {
-        console.log('📚 Using temporary batches - database endpoint disabled');
+        logTemporaryEndpoint('batches');
         const fallbackBatches = [
           {
             id: "batch-1",
@@ -1910,30 +1930,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get current user endpoint (protected)
-  app.get('/api/auth/user', requireAuth, async (req, res) => {
-    try {
-      const sessionUser = (req as any).session.user;
-      const user = await storage.getUser(sessionUser.id);
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      res.json({
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        studentId: user.studentId,
-        smsCredits: user.smsCredits || 0
-      });
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      res.status(500).json({ error: 'Failed to fetch user' });
-    }
-  });
 
   // Legacy endpoint for compatibility
   app.get('/api/users/:id', requireAuth, async (req, res) => {
@@ -2462,7 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all courses (public endpoint for landing page)
   app.get('/api/courses', async (req, res) => {
     try {
-      console.log('📝 Using temporary courses - database endpoint disabled');
+      logTemporaryEndpoint('courses');
       res.json(tempCourses.filter(c => c.isActive));
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -2473,7 +2469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all courses for teacher management (bypass auth for now)
   app.get('/api/teacher/courses', async (req, res) => {
     try {
-      console.log('📝 Using temporary courses for teacher - database endpoint disabled');
+      logTemporaryEndpoint('courses');
       res.json(tempCourses);
     } catch (error) {
       console.error('Error fetching courses for teacher:', error);
@@ -2484,7 +2480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new course (bypass auth for demo)
   app.post('/api/teacher/courses', async (req, res) => {
     try {
-      console.log('📚 Using temporary course creation - database endpoint disabled');
+      logTemporaryEndpoint('course creation');
       
       // Create new temporary course
       const newCourse = {
@@ -2512,7 +2508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update course (bypass auth for demo)
   app.put('/api/teacher/courses/:id', async (req, res) => {
     try {
-      console.log('📝 Using temporary course update - database endpoint disabled');
+      logTemporaryEndpoint('course update');
       
       const courseId = req.params.id;
       const updateData = req.body;
@@ -2548,7 +2544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete course (bypass auth for demo)
   app.delete('/api/teacher/courses/:id', async (req, res) => {
     try {
-      console.log('🗑️ Using temporary course deletion - database endpoint disabled');
+      logTemporaryEndpoint('course deletion');
       
       const courseId = req.params.id;
       
@@ -2605,7 +2601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get teacher profile (bypass auth for demo)
   app.get('/api/teacher/profile', async (req, res) => {
     try {
-      console.log('👤 Using temporary teacher profile - database endpoint disabled');
+      logTemporaryEndpoint('profile');
       res.json(tempTeacherProfile);
     } catch (error) {
       console.error('Error fetching teacher profile:', error);
@@ -2616,7 +2612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create or update teacher profile (bypass auth for demo)
   app.put('/api/teacher/profile', async (req, res) => {
     try {
-      console.log('✏️ Using temporary teacher profile update - database endpoint disabled');
+      logTemporaryEndpoint('profile update');
       
       // Update the temporary profile with new data
       tempTeacherProfile = {
@@ -2639,7 +2635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile picture upload endpoint
   app.post('/api/teacher/profile/upload-picture', async (req, res) => {
     try {
-      console.log('📸 Using temporary profile picture upload - database endpoint disabled');
+      logTemporaryEndpoint('picture upload');
       
       const { imageData } = req.body;
       
@@ -2684,7 +2680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile picture delete endpoint
   app.delete('/api/teacher/profile/delete-picture', async (req, res) => {
     try {
-      console.log('🗑️ Using temporary profile picture delete - database endpoint disabled');
+      logTemporaryEndpoint('picture delete');
       
       // Remove from temporary storage
       const userId = 'teacher-belal-sir';
@@ -2748,7 +2744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get public teacher profiles (for landing page)
   app.get('/api/teacher-profiles', async (req, res) => {
     try {
-      console.log('👥 Using temporary public teacher profiles - database endpoint disabled');
+      logTemporaryEndpoint('teacher profiles');
       
       // Return public profiles only
       const publicProfiles = tempTeacherProfile.isPublic ? [tempTeacherProfile] : [];

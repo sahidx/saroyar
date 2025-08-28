@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const examSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  subject: z.enum(['Chemistry', 'ICT']),
+  subject: z.enum(['chemistry', 'ict']),
   examDate: z.string().min(1, 'Exam date is required'),
   duration: z.number().min(1, 'Duration must be at least 1 minute'),
   examType: z.enum(['mcq', 'written', 'mixed']),
@@ -57,7 +57,7 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
     resolver: zodResolver(examSchema),
     defaultValues: {
       title: '',
-      subject: 'Chemistry',
+      subject: 'chemistry',
       examDate: '',
       duration: 90,
       examType: 'mcq',
@@ -179,8 +179,8 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Chemistry">🧪 Chemistry</SelectItem>
-                        <SelectItem value="ICT">💻 ICT</SelectItem>
+                        <SelectItem value="chemistry">🧪 Chemistry</SelectItem>
+                        <SelectItem value="ict">💻 ICT</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -499,11 +499,6 @@ export default function SMS() {
                   <p className="text-gray-500 dark:text-gray-400">
                     No SMS transactions found. Purchase your first SMS package to get started.
                   </p>
-                  <Button className="mt-4" asChild>
-                    <a href="/teacher/sms-purchase">
-                      Purchase SMS Credits
-                    </a>
-                  </Button>
                 </div>
               )}
             </CardContent>

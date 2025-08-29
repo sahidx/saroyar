@@ -1701,6 +1701,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SMS Usage Statistics API
+  app.get("/api/sms/usage-stats", requireAuth, async (req: any, res) => {
+    try {
+      const userId = (req as any).session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can view SMS usage statistics" });
+      }
+
+      // Get SMS logs for statistics
+      const smsStats = await storage.getSmsUsageStats(userId);
+      
+      res.json(smsStats);
+    } catch (error) {
+      console.error("Error fetching SMS usage stats:", error);
+      res.status(500).json({ message: "Failed to fetch SMS usage statistics" });
+    }
+  });
+
   // Get SMS delivery report (DISABLED AUTH FOR TESTING)
   /* app.get("/api/sms/delivery-report", async (req: any, res) => {
     try {
@@ -1882,6 +1902,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     };
     res.json(mockReport);
+  });
+
+  // Get SMS usage statistics
+  app.get("/api/sms/usage-stats", async (req, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      
+      const stats = await storage.getSmsUsageStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting SMS usage stats:', error);
+      res.status(500).json({ error: 'Failed to get SMS usage statistics' });
+    }
   });
 
   // Notes sharing endpoints - Students can share PDF files or Google Drive links

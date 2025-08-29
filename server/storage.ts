@@ -76,6 +76,13 @@ export interface IStorage {
   // SMS operations
   createSmsLog(smsLog: InsertSmsLog): Promise<SmsLog>;
   getSmsLogs(userId?: string): Promise<SmsLog[]>;
+  getSmsUsageStats(userId: string): Promise<{
+    totalSent: number;
+    totalCost: number;
+    smsByType: Array<{ type: string; count: number; cost: number }>;
+    recentLogs: SmsLog[];
+    monthlyStats: Array<{ month: string; count: number; cost: number }>;
+  }>;
   
   // Exam operations
   getExamsByTeacher(teacherId: string): Promise<Exam[]>;
@@ -714,6 +721,69 @@ export class DatabaseStorage implements IStorage {
     
     return await db.select().from(smsLogs)
       .orderBy(desc(smsLogs.sentAt));
+  }
+
+  async getSmsUsageStats(userId: string): Promise<{
+    totalSent: number;
+    totalCost: number;
+    smsByType: Array<{ type: string; count: number; cost: number }>;
+    recentLogs: SmsLog[];
+    monthlyStats: Array<{ month: string; count: number; cost: number }>;
+  }> {
+    const logs = await db.select().from(smsLogs)
+      .where(eq(smsLogs.sentBy, userId))
+      .orderBy(desc(smsLogs.sentAt));
+
+    const totalSent = logs.length;
+    const totalCost = logs.reduce((sum, log) => sum + (log.costPaisa || 39), 0);
+
+    // Group by SMS type
+    const typeGroups = logs.reduce((acc, log) => {
+      const type = log.smsType || 'general';
+      if (!acc[type]) {
+        acc[type] = { count: 0, cost: 0 };
+      }
+      acc[type].count++;
+      acc[type].cost += log.costPaisa || 39;
+      return acc;
+    }, {} as Record<string, { count: number; cost: number }>);
+
+    const smsByType = Object.entries(typeGroups).map(([type, stats]) => ({
+      type,
+      count: stats.count,
+      cost: stats.cost
+    }));
+
+    // Group by month for the last 6 months
+    const monthlyGroups = logs.reduce((acc, log) => {
+      const date = new Date(log.sentAt || log.createdAt || new Date());
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!acc[monthKey]) {
+        acc[monthKey] = { count: 0, cost: 0 };
+      }
+      acc[monthKey].count++;
+      acc[monthKey].cost += log.costPaisa || 39;
+      return acc;
+    }, {} as Record<string, { count: number; cost: number }>);
+
+    const monthlyStats = Object.entries(monthlyGroups)
+      .map(([month, stats]) => ({
+        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        count: stats.count,
+        cost: stats.cost
+      }))
+      .sort((a, b) => new Date(b.month).getTime() - new Date(a.month).getTime())
+      .slice(0, 6);
+
+    const recentLogs = logs.slice(0, 10);
+
+    return {
+      totalSent,
+      totalCost,
+      smsByType,
+      recentLogs,
+      monthlyStats
+    };
   }
 
 

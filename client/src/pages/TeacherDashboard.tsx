@@ -289,188 +289,190 @@ function AIQuestionMaker({ isDarkMode }: AIQuestionMakerProps) {
   );
 }
 
-// Bulk SMS Purchase Component
-interface BulkSMSPurchaseProps {
+// SMS Usage Statistics Component
+interface SMSStatsProps {
   isDarkMode: boolean;
-  currentCredits: number;
-  onPurchaseSuccess: () => void;
 }
 
-function BulkSMSPurchase({ isDarkMode, currentCredits, onPurchaseSuccess }: BulkSMSPurchaseProps) {
-  const [selectedPackage, setSelectedPackage] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const smsPackages = [
-    { name: 'Starter Pack', count: 100, price: 500, description: 'Perfect for small announcements' },
-    { name: 'Standard Pack', count: 500, price: 2000, description: 'Good for regular updates' },
-    { name: 'Professional Pack', count: 1000, price: 3500, description: 'Best value for frequent communication' },
-    { name: 'Premium Pack', count: 2500, price: 8000, description: 'For extensive SMS campaigns' },
-  ];
-
-  const purchaseMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/sms/purchase', data);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setIsProcessing(false);
-      onPurchaseSuccess();
-      setSelectedPackage(null);
-      setPaymentMethod('');
-      setPhoneNumber('');
-    },
-    onError: (error) => {
-      console.error('Error purchasing SMS package:', error);
-      setIsProcessing(false);
-    }
+function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
+  const { data: smsStats, isLoading } = useQuery({
+    queryKey: ['/api/sms/usage-stats'],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const handlePurchase = () => {
-    if (!selectedPackage || !paymentMethod || !phoneNumber) return;
-    
-    setIsProcessing(true);
-    purchaseMutation.mutate({
-      packageName: selectedPackage.name,
-      smsCount: selectedPackage.count,
-      price: selectedPackage.price,
-      paymentMethod,
-      phoneNumber
-    });
-  };
+  if (isLoading) {
+    return (
+      <Card className={`${isDarkMode 
+        ? 'bg-slate-800/50 border-cyan-400/30' 
+        : 'bg-white border-gray-200 shadow-sm'
+      }`}>
+        <CardHeader>
+          <CardTitle className={`flex items-center gap-2 ${isDarkMode ? 'text-cyan-300' : 'text-gray-800'}`}>
+            <BarChart3 className="w-5 h-5" />
+            SMS Usage Statistics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-pulse">Loading statistics...</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!smsStats) {
+    return (
+      <Card className={`${isDarkMode 
+        ? 'bg-slate-800/50 border-cyan-400/30' 
+        : 'bg-white border-gray-200 shadow-sm'
+      }`}>
+        <CardHeader>
+          <CardTitle className={`flex items-center gap-2 ${isDarkMode ? 'text-cyan-300' : 'text-gray-800'}`}>
+            <BarChart3 className="w-5 h-5" />
+            SMS Usage Statistics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+              No SMS usage data available
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`${isDarkMode 
-      ? 'bg-slate-800/50 border-green-400/30' 
-      : 'bg-white border-green-200 shadow-sm'
+      ? 'bg-slate-800/50 border-cyan-400/30' 
+      : 'bg-white border-gray-200 shadow-sm'
     }`}>
       <CardHeader>
-        <CardTitle className={`flex items-center gap-2 ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-          <Smartphone className="w-5 h-5" />
-          Bulk SMS Purchase
+        <CardTitle className={`flex items-center gap-2 ${isDarkMode ? 'text-cyan-300' : 'text-gray-800'}`}>
+          <BarChart3 className="w-5 h-5" />
+          SMS Usage Statistics
         </CardTitle>
         <CardDescription className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-          Buy SMS credits to send notifications to students. Current Credits: {currentCredits}
+          Overview of your SMS usage and costs
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         
-        {/* SMS Packages Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {smsPackages.map((pkg, index) => (
-            <div
-              key={index}
-              onClick={() => setSelectedPackage(pkg)}
-              className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                selectedPackage?.name === pkg.name
-                  ? isDarkMode 
-                    ? 'border-green-400 bg-green-900/30' 
-                    : 'border-green-500 bg-green-50'
-                  : isDarkMode 
-                    ? 'border-slate-600 hover:border-green-400/50' 
-                    : 'border-gray-200 hover:border-green-300'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  {pkg.name}
-                </h3>
-                <Badge variant="secondary">{pkg.count} SMS</Badge>
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-slate-900/50' : 'bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-cyan-600/20' : 'bg-cyan-100'}`}>
+                <Send className={`w-5 h-5 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
               </div>
-              <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {pkg.description}
-              </p>
-              <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>
-                ৳{pkg.price}
-              </div>
-              <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                ৳{(pkg.price / pkg.count).toFixed(2)} per SMS
+              <div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Sent</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                  {smsStats.totalSent}
+                </p>
               </div>
             </div>
-          ))}
+          </div>
+          
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-slate-900/50' : 'bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-600/20' : 'bg-green-100'}`}>
+                <CreditCard className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Cost</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                  ৳{(smsStats.totalCost / 100).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-slate-900/50' : 'bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-orange-600/20' : 'bg-orange-100'}`}>
+                <TrendingUp className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg. Cost/SMS</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                  ৳{smsStats.totalSent > 0 ? ((smsStats.totalCost / smsStats.totalSent) / 100).toFixed(2) : '0.39'}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Payment Form */}
-        {selectedPackage && (
-          <div className="space-y-4 pt-4 border-t border-gray-600">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger className={isDarkMode 
-                    ? 'bg-slate-900/50 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300'
-                  }>
-                    <SelectValue placeholder="Select method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bkash">bKash</SelectItem>
-                    <SelectItem value="nagad">Nagad</SelectItem>
-                    <SelectItem value="rocket">Rocket</SelectItem>
-                    <SelectItem value="bank">Bank Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>Your Phone Number</Label>
-                <Input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="01XXXXXXXXX"
-                  className={isDarkMode 
-                    ? 'bg-slate-900/50 border-gray-600 text-white placeholder-gray-400' 
-                    : 'bg-white border-gray-300'
-                  }
-                />
-              </div>
+        {/* SMS by Type */}
+        {smsStats.smsByType && smsStats.smsByType.length > 0 && (
+          <div>
+            <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              SMS by Type
+            </h4>
+            <div className="space-y-3">
+              {smsStats.smsByType.map((typeData: any, index: number) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className={isDarkMode ? 'border-cyan-400/30 text-cyan-300' : 'border-gray-300'}>
+                      {typeData.type.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {typeData.count} messages
+                    </span>
+                  </div>
+                  <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                    ৳{(typeData.cost / 100).toFixed(2)}
+                  </span>
+                </div>
+              ))}
             </div>
+          </div>
+        )}
 
-            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-slate-900/50' : 'bg-gray-50'}`}>
-              <h4 className={`font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Purchase Summary
-              </h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Package:</span>
-                  <span className={isDarkMode ? 'text-white' : 'text-gray-800'}>{selectedPackage.name}</span>
+        {/* Recent SMS Logs */}
+        {smsStats.recentLogs && smsStats.recentLogs.length > 0 && (
+          <div>
+            <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              Recent SMS Activity
+            </h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {smsStats.recentLogs.slice(0, 5).map((log: any, index: number) => (
+                <div 
+                  key={index} 
+                  className={`p-3 rounded-lg border ${isDarkMode 
+                    ? 'bg-slate-900/30 border-slate-700' 
+                    : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                      {log.recipientName || 'Unknown'}
+                    </span>
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {new Date(log.sentAt || log.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {log.message?.slice(0, 80)}...
+                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <Badge 
+                      variant={log.status === 'sent' ? 'default' : 'destructive'}
+                      className="text-xs"
+                    >
+                      {log.status}
+                    </Badge>
+                    <span className={`text-xs ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>
+                      ৳{((log.costPaisa || 39) / 100).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>SMS Credits:</span>
-                  <span className={isDarkMode ? 'text-white' : 'text-gray-800'}>{selectedPackage.count}</span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>Total:</span>
-                  <span className={isDarkMode ? 'text-green-300' : 'text-green-600'}>৳{selectedPackage.price}</span>
-                </div>
-              </div>
+              ))}
             </div>
-
-            <Button 
-              onClick={handlePurchase}
-              disabled={isProcessing || !paymentMethod || !phoneNumber}
-              className={`w-full ${isDarkMode 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : 'bg-green-600 hover:bg-green-700'
-              }`}
-            >
-              {isProcessing ? (
-                <>
-                  <CreditCard className="w-4 h-4 mr-2 animate-pulse" />
-                  Processing Payment...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Purchase {selectedPackage.name}
-                </>
-              )}
-            </Button>
-
-            <p className={`text-xs text-center ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-              After clicking purchase, you'll receive payment instructions. Credits will be added after payment confirmation.
-            </p>
           </div>
         )}
       </CardContent>
@@ -665,7 +667,7 @@ export default function TeacherDashboard() {
   const [location, setLocation] = useLocation();
 
   // Fetch real teacher stats instead of hardcoded values
-  const { data: teacherStats, isLoading: statsLoading } = useQuery({
+  const { data: teacherStats = {}, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/teacher/stats'],
     retry: false,
   });
@@ -676,14 +678,14 @@ export default function TeacherDashboard() {
     retry: false,
   });
 
-  const { data: studentsData, isLoading: studentsLoading } = studentsQuery;
+  const { data: studentsData = [], isLoading: studentsLoading } = studentsQuery;
 
   const batchesQuery = useQuery({
     queryKey: ['/api/batches'],
     retry: false,
   });
   
-  const { data: batchesData } = batchesQuery;
+  const { data: batchesData = [] } = batchesQuery;
 
   const addStudentMutation = useMutation({
     mutationFn: async (studentData: any) => {
@@ -724,10 +726,6 @@ export default function TeacherDashboard() {
     setIsDarkMode(!isDarkMode);
   };
 
-  const handleSMSPurchaseSuccess = () => {
-    // Refresh SMS credits - in a real app you'd fetch from API
-    setSmsCredits(prev => prev + 100); // Placeholder increment
-  };
 
   return (
     <div className={`min-h-screen ${isDarkMode 
@@ -853,7 +851,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div>
                       <div className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-cyan-800'}`}>
-                        {statsLoading ? '...' : teacherStats?.totalStudents || 0}
+                        {statsLoading ? '...' : (teacherStats as any)?.totalStudents || 0}
                       </div>
                       <p className={`text-xs font-medium ${isDarkMode ? 'text-cyan-200' : 'text-cyan-600'}`}>Total Students</p>
                     </div>
@@ -872,7 +870,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div>
                       <div className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-green-800'}`}>
-                        {statsLoading ? '...' : teacherStats?.totalExams || 0}
+                        {statsLoading ? '...' : (teacherStats as any)?.totalExams || 0}
                       </div>
                       <p className={`text-xs font-medium ${isDarkMode ? 'text-green-200' : 'text-green-600'}`}>Active Exams</p>
                     </div>
@@ -891,7 +889,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div>
                       <div className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-purple-800'}`}>
-                        {statsLoading ? '...' : teacherStats?.totalQuestions || 0}
+                        {statsLoading ? '...' : (teacherStats as any)?.totalQuestions || 0}
                       </div>
                       <p className={`text-xs font-medium ${isDarkMode ? 'text-purple-200' : 'text-purple-600'}`}>Question Bank</p>
                     </div>
@@ -965,14 +963,6 @@ export default function TeacherDashboard() {
             <AIQuestionMaker isDarkMode={isDarkMode} />
           </TabsContent>
 
-          {/* SMS Purchase Tab */}
-          <TabsContent value="sms-purchase" className="space-y-6">
-            <BulkSMSPurchase 
-              isDarkMode={isDarkMode} 
-              currentCredits={smsCredits}
-              onPurchaseSuccess={handleSMSPurchaseSuccess}
-            />
-          </TabsContent>
 
           {/* SMS/Notifications Tab */}
           <TabsContent value="sms" className="space-y-6">
@@ -1217,8 +1207,8 @@ export default function TeacherDashboard() {
                     <div className="text-center py-8">
                       <span className="text-gray-400">Loading students...</span>
                     </div>
-                  ) : studentsData && studentsData.length > 0 ? (
-                    studentsData.map((student: any, index: number) => (
+                  ) : studentsData && (studentsData as any[]).length > 0 ? (
+                    (studentsData as any[]).map((student: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-600">
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
@@ -1263,6 +1253,9 @@ export default function TeacherDashboard() {
                 Export Reports
               </Button>
             </div>
+
+            {/* SMS Usage Statistics */}
+            <SMSUsageStats isDarkMode={isDarkMode} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className={`${isDarkMode ? 'bg-card border-2 border-primary/30' : 'bg-card border-2 border-primary/20 shadow-lg'}`}>
@@ -1340,7 +1333,7 @@ export default function TeacherDashboard() {
           <AddStudentForm 
             isDarkMode={isDarkMode} 
             onSubmit={(data) => addStudentMutation.mutate(data)}
-            batches={batchesData || []}
+            batches={batchesData as any[] || []}
             isLoading={addStudentMutation.isPending}
           />
         </DialogContent>

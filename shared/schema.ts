@@ -218,6 +218,7 @@ export const smsLogs = pgTable("sms_logs", {
   message: text("message").notNull(),
   status: varchar("status").notNull().default('sent'), // sent, delivered, failed
   credits: integer("credits").default(1), // Credits used for this SMS
+  costPaisa: integer("cost_paisa").default(39), // Cost in paisa (0.39 Tk = 39 paisa)
   sentBy: varchar("sent_by").notNull().references(() => users.id),
   sentAt: timestamp("sent_at").defaultNow(),
   deliveredAt: timestamp("delivered_at"),

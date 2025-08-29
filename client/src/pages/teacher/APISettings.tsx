@@ -46,6 +46,8 @@ export default function APISettings() {
           console.log('✅ Loaded API keys:', response.filter((k: any) => k.hasKey).length, 'active');
         } else if (response) {
           console.log('⚠️ Unexpected response format:', response);
+          // Handle non-array response by showing default keys
+          setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive' })));
         }
       } catch (error) {
         console.error('Error loading API keys:', error);
@@ -112,9 +114,19 @@ export default function APISettings() {
       }
     } catch (error: any) {
       console.error('API key save error:', error);
+      
+      let errorMessage = "API keys সংরক্ষণে সমস্যা হয়েছে।";
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "সংরক্ষণ ত্রুটি",
-        description: error.message || error.response?.data?.error || "API keys সংরক্ষণে সমস্যা হয়েছে।",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

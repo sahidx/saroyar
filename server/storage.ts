@@ -1011,6 +1011,24 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(praggoAIKeys.isEnabled, true), eq(praggoAIKeys.status, 'active')))
       .orderBy(praggoAIKeys.keyIndex);
   }
+
+  async getRecentSmsLogs(userId: string, limit: number = 50): Promise<SmsLog[]> {
+    return await db
+      .select()
+      .from(smsLogs)
+      .where(eq(smsLogs.sentBy, userId))
+      .orderBy(desc(smsLogs.sentAt))
+      .limit(limit);
+  }
+
+  async getBatch(batchId: string): Promise<Batch | undefined> {
+    const batchData = await db
+      .select()
+      .from(batches)
+      .where(eq(batches.id, batchId))
+      .limit(1);
+    return batchData[0];
+  }
 }
 
 export const storage = new DatabaseStorage();

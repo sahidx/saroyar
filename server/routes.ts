@@ -1879,29 +1879,479 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(mockPurchase);
   });
 
-  // SMS Sending endpoints
-  app.post("/api/sms/send", async (req, res) => {
-    const { message, recipients } = req.body;
-    const mockResponse = {
-      sent: recipients.length,
-      failed: 0,
-      messageId: 'MSG' + Date.now(),
-      timestamp: new Date().toISOString()
-    };
-    res.json(mockResponse);
+  // SMS Sending endpoints - Real implementation with BulkSMS API
+  app.post("/api/sms/send", requireAuth, async (req: any, res) => {
+    try {
+      const { message, recipients, smsType = 'notice', recipientType = 'mixed' } = req.body;
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can send SMS' });
+      }
+
+      if (!message || !recipients || recipients.length === 0) {
+        return res.status(400).json({ error: 'Message and recipients are required' });
+      }
+
+      // Calculate SMS character count and cost
+      const smsCharacterLimit = 160; // Standard SMS limit
+      const messageLength = message.length;
+      const smsCount = Math.ceil(messageLength / smsCharacterLimit);
+      const costPerSms = 39; // 0.39 paisa in paisa units
+      const totalCost = smsCount * recipients.length * costPerSms;
+
+      console.log(`📊 SMS Analysis: ${messageLength} chars, ${smsCount} SMS per recipient, ${recipients.length} recipients, Total cost: ${totalCost} paisa`);
+
+      // Format recipients for BulkSMS service
+      const formattedRecipients = recipients.map((r: any) => ({
+        id: r.id || r.studentId || 'unknown',
+        name: r.name || r.studentName || 'Unknown',
+        phoneNumber: r.phoneNumber || r.phone
+      }));
+
+      // Send bulk SMS using BulkSMS service
+      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      const result = await bulkSMSService.sendBulkSMS(
+        formattedRecipients,
+        message,
+        userId,
+        smsType
+      );
+
+      // Update user SMS credits (deduct used credits)
+      if (result.sentCount > 0) {
+        const totalCreditsUsed = result.totalCreditsUsed * smsCount;
+        await storage.updateUserSmsCredits(userId, -totalCreditsUsed);
+      }
+
+      res.json({
+        success: result.success,
+        sent: result.sentCount,
+        failed: result.failedCount,
+        totalCreditsUsed: result.totalCreditsUsed,
+        messageLength,
+        smsPerRecipient: smsCount,
+        totalCostPaisa: totalCost,
+        failedMessages: result.failedMessages,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      res.status(500).json({ error: 'Failed to send SMS' });
+    }
   });
 
-  app.get("/api/sms/delivery-report", async (req, res) => {
-    const mockReport = {
-      delivered: 42,
-      failed: 3,
-      pending: 0,
-      recentMessages: [
-        { phoneNumber: '01712345678', status: 'delivered', timestamp: '2025-08-22T11:30:00Z' },
-        { phoneNumber: '01798765432', status: 'delivered', timestamp: '2025-08-22T11:29:00Z' }
-      ]
-    };
-    res.json(mockReport);
+  // Send SMS for exam results
+  app.post("/api/sms/send-exam-results", requireAuth, async (req: any, res) => {
+    try {
+      const { examId, recipientType = 'both' } = req.body; // 'students', 'parents', 'both'
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can send exam result SMS' });
+      }
+
+      // Get exam details
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ error: 'Exam not found' });
+      }
+
+      // Get exam submissions
+      const submissions = await storage.getExamSubmissions(examId);
+      if (submissions.length === 0) {
+        return res.status(400).json({ error: 'No submissions found for this exam' });
+      }
+
+      const recipients = [];
+      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      let totalSent = 0;
+      let totalFailed = 0;
+
+      for (const submission of submissions) {
+        const student = await storage.getUser(submission.studentId);
+        if (!student) continue;
+
+        const score = submission.score || 0;
+        const totalMarks = exam.totalMarks || 100;
+        const percentage = Math.round((score / totalMarks) * 100);
+        
+        const message = `${exam.title} পরীক্ষার ফলাফল:\nছাত্র/ছাত্রী: ${student.firstName} ${student.lastName}\nপ্রাপ্ত নম্বর: ${score}/${totalMarks}\nশতকরা: ${percentage}%\n\nধন্যবাদ,\nবেলাল স্যার`;
+
+        // Send to student
+        if ((recipientType === 'students' || recipientType === 'both') && student.phoneNumber) {
+          const result = await bulkSMSService.sendBulkSMS(
+            [{ id: student.id, name: `${student.firstName} ${student.lastName}`, phoneNumber: student.phoneNumber }],
+            message,
+            userId,
+            'exam_result'
+          );
+          totalSent += result.sentCount;
+          totalFailed += result.failedCount;
+        }
+
+        // Send to parent
+        if ((recipientType === 'parents' || recipientType === 'both') && student.parentPhoneNumber) {
+          const parentMessage = `আপনার সন্তান ${student.firstName} ${student.lastName} এর ${exam.title} পরীক্ষার ফলাফল:\nপ্রাপ্ত নম্বর: ${score}/${totalMarks}\nশতকরা: ${percentage}%\n\nধন্যবাদ,\nবেলাল স্যার`;
+          
+          const result = await bulkSMSService.sendBulkSMS(
+            [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
+            parentMessage,
+            userId,
+            'exam_result'
+          );
+          totalSent += result.sentCount;
+          totalFailed += result.failedCount;
+        }
+      }
+
+      res.json({
+        success: totalSent > 0,
+        sent: totalSent,
+        failed: totalFailed,
+        examTitle: exam.title,
+        recipientType,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error sending exam result SMS:', error);
+      res.status(500).json({ error: 'Failed to send exam result SMS' });
+    }
+  });
+
+  // Send SMS for attendance notifications
+  app.post("/api/sms/send-attendance", requireAuth, async (req: any, res) => {
+    try {
+      const { batchId, date, recipientType = 'parents' } = req.body;
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can send attendance SMS' });
+      }
+
+      // Get batch details
+      const batch = await storage.getBatch(batchId);
+      if (!batch) {
+        return res.status(404).json({ error: 'Batch not found' });
+      }
+
+      // Get attendance records for the date
+      const attendanceRecords = await storage.getAttendanceByBatchAndDate(batchId, date);
+      if (attendanceRecords.length === 0) {
+        return res.status(400).json({ error: 'No attendance records found for this date' });
+      }
+
+      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      let totalSent = 0;
+      let totalFailed = 0;
+      const formattedDate = new Date(date).toLocaleDateString('bn-BD');
+
+      for (const record of attendanceRecords) {
+        const student = await storage.getUser(record.studentId);
+        if (!student) continue;
+
+        const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
+        const emoji = record.isPresent ? '✅' : '❌';
+        
+        const message = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nছাত্র/ছাত্রী: ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\n${record.notes ? `মন্তব্য: ${record.notes}\n\n` : ''}ধন্যবাদ,\nবেলাল স্যার`;
+
+        // Send to student
+        if ((recipientType === 'students' || recipientType === 'both') && student.phoneNumber) {
+          const result = await bulkSMSService.sendBulkSMS(
+            [{ id: student.id, name: `${student.firstName} ${student.lastName}`, phoneNumber: student.phoneNumber }],
+            message,
+            userId,
+            'attendance'
+          );
+          totalSent += result.sentCount;
+          totalFailed += result.failedCount;
+        }
+
+        // Send to parent
+        if ((recipientType === 'parents' || recipientType === 'both') && student.parentPhoneNumber) {
+          const parentMessage = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nআপনার সন্তান ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\n${record.notes ? `মন্তব্য: ${record.notes}\n\n` : ''}ধন্যবাদ,\nবেলাল স্যার`;
+          
+          const result = await bulkSMSService.sendBulkSMS(
+            [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
+            parentMessage,
+            userId,
+            'attendance'
+          );
+          totalSent += result.sentCount;
+          totalFailed += result.failedCount;
+        }
+      }
+
+      res.json({
+        success: totalSent > 0,
+        sent: totalSent,
+        failed: totalFailed,
+        batchName: batch.name,
+        date: formattedDate,
+        recipientType,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error sending attendance SMS:', error);
+      res.status(500).json({ error: 'Failed to send attendance SMS' });
+    }
+  });
+
+  // Send custom notice SMS with batch/parent selection
+  app.post("/api/sms/send-notice", requireAuth, async (req: any, res) => {
+    try {
+      const { message, targetType, batchIds = [], recipientType = 'both', individualPhones = [] } = req.body;
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can send notice SMS' });
+      }
+
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const recipients = [];
+      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+
+      // Add signature to message
+      const finalMessage = `${message}\n\nধন্যবাদ,\nবেলাল স্যার\nChemistry & ICT Care`;
+
+      // Handle different target types
+      if (targetType === 'batches' && batchIds.length > 0) {
+        // Send to selected batches
+        for (const batchId of batchIds) {
+          const students = await storage.getStudentsByBatch(batchId);
+          
+          for (const student of students) {
+            // Add student to recipients
+            if ((recipientType === 'students' || recipientType === 'both') && student.phoneNumber) {
+              recipients.push({
+                id: student.id,
+                name: `${student.firstName} ${student.lastName}`,
+                phoneNumber: student.phoneNumber,
+                type: 'student'
+              });
+            }
+            
+            // Add parent to recipients
+            if ((recipientType === 'parents' || recipientType === 'both') && student.parentPhoneNumber) {
+              recipients.push({
+                id: `parent-${student.id}`,
+                name: `${student.firstName} এর অভিভাবক`,
+                phoneNumber: student.parentPhoneNumber,
+                type: 'parent'
+              });
+            }
+          }
+        }
+      } else if (targetType === 'all') {
+        // Send to all students/parents
+        const allStudents = await storage.getAllStudents();
+        
+        for (const student of allStudents) {
+          if ((recipientType === 'students' || recipientType === 'both') && student.phoneNumber) {
+            recipients.push({
+              id: student.id,
+              name: `${student.firstName} ${student.lastName}`,
+              phoneNumber: student.phoneNumber,
+              type: 'student'
+            });
+          }
+          
+          if ((recipientType === 'parents' || recipientType === 'both') && student.parentPhoneNumber) {
+            recipients.push({
+              id: `parent-${student.id}`,
+              name: `${student.firstName} এর অভিভাবক`,
+              phoneNumber: student.parentPhoneNumber,
+              type: 'parent'
+            });
+          }
+        }
+      } else if (targetType === 'individual' && individualPhones.length > 0) {
+        // Send to individual phone numbers
+        individualPhones.forEach((phone: string, index: number) => {
+          recipients.push({
+            id: `individual-${index}`,
+            name: 'ব্যক্তিগত',
+            phoneNumber: phone,
+            type: 'individual'
+          });
+        });
+      }
+
+      if (recipients.length === 0) {
+        return res.status(400).json({ error: 'No recipients found' });
+      }
+
+      // Send bulk SMS
+      const result = await bulkSMSService.sendBulkSMS(
+        recipients,
+        finalMessage,
+        userId,
+        'notice'
+      );
+
+      res.json({
+        success: result.success,
+        sent: result.sentCount,
+        failed: result.failedCount,
+        totalRecipients: recipients.length,
+        targetType,
+        recipientType,
+        messageLength: finalMessage.length,
+        failedMessages: result.failedMessages,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error sending notice SMS:', error);
+      res.status(500).json({ error: 'Failed to send notice SMS' });
+    }
+  });
+
+  // Get SMS delivery report - Real implementation
+  app.get("/api/sms/delivery-report", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can view delivery reports' });
+      }
+
+      // Get recent SMS logs
+      const recentSms = await storage.getRecentSmsLogs(userId, 50); // Last 50 SMS
+      
+      const delivered = recentSms.filter(sms => sms.status === 'sent' || sms.status === 'delivered').length;
+      const failed = recentSms.filter(sms => sms.status === 'failed').length;
+      const pending = recentSms.filter(sms => sms.status === 'pending').length;
+      
+      const recentMessages = recentSms.slice(0, 10).map(sms => ({
+        phoneNumber: sms.recipientPhone,
+        recipientName: sms.recipientName,
+        smsType: sms.smsType,
+        status: sms.status,
+        message: sms.message.substring(0, 50) + (sms.message.length > 50 ? '...' : ''),
+        timestamp: sms.sentAt,
+        credits: sms.credits
+      }));
+
+      res.json({
+        delivered,
+        failed,
+        pending,
+        totalSent: delivered + failed,
+        successRate: delivered + failed > 0 ? Math.round((delivered / (delivered + failed)) * 100) : 0,
+        recentMessages
+      });
+    } catch (error) {
+      console.error('Error getting SMS delivery report:', error);
+      res.status(500).json({ error: 'Failed to get delivery report' });
+    }
+  });
+
+  // Get SMS balance from BulkSMS API
+  app.get("/api/sms/balance", async (req, res) => {
+    try {
+      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      const balanceResult = await bulkSMSService.checkBalance();
+      res.json(balanceResult);
+    } catch (error) {
+      console.error('Error checking SMS balance:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to retrieve SMS balance' 
+      });
+    }
+  });
+
+  // Calculate SMS cost and character analysis
+  app.post("/api/sms/calculate-cost", requireAuth, async (req: any, res) => {
+    try {
+      const { message, recipientCount } = req.body;
+      
+      if (!message || !recipientCount) {
+        return res.status(400).json({ error: 'Message and recipient count are required' });
+      }
+
+      const smsCharacterLimit = 160;
+      const messageLength = message.length;
+      const smsPerRecipient = Math.ceil(messageLength / smsCharacterLimit);
+      const totalSms = smsPerRecipient * recipientCount;
+      const costPerSms = 39; // 0.39 paisa in paisa units
+      const totalCostPaisa = totalSms * costPerSms;
+      const totalCostTaka = totalCostPaisa / 100;
+
+      res.json({
+        messageLength,
+        smsCharacterLimit,
+        smsPerRecipient,
+        recipientCount,
+        totalSms,
+        costPerSms,
+        totalCostPaisa,
+        totalCostTaka: parseFloat(totalCostTaka.toFixed(2)),
+        isLongMessage: messageLength > smsCharacterLimit,
+        charactersRemaining: smsCharacterLimit - (messageLength % smsCharacterLimit)
+      });
+    } catch (error) {
+      console.error('Error calculating SMS cost:', error);
+      res.status(500).json({ error: 'Failed to calculate SMS cost' });
+    }
+  });
+
+  // Get recipient count for batches/students
+  app.get("/api/sms/recipient-count", requireAuth, async (req: any, res) => {
+    try {
+      const { targetType, batchIds, recipientType = 'both' } = req.query;
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can check recipient counts' });
+      }
+
+      let studentCount = 0;
+      let parentCount = 0;
+
+      if (targetType === 'all') {
+        const allStudents = await storage.getAllStudents();
+        studentCount = allStudents.filter(s => s.phoneNumber).length;
+        parentCount = allStudents.filter(s => s.parentPhoneNumber).length;
+      } else if (targetType === 'batches' && batchIds) {
+        const batchIdArray = Array.isArray(batchIds) ? batchIds : [batchIds];
+        
+        for (const batchId of batchIdArray) {
+          const students = await storage.getStudentsByBatch(batchId);
+          studentCount += students.filter(s => s.phoneNumber).length;
+          parentCount += students.filter(s => s.parentPhoneNumber).length;
+        }
+      }
+
+      let totalRecipients = 0;
+      if (recipientType === 'students') {
+        totalRecipients = studentCount;
+      } else if (recipientType === 'parents') {
+        totalRecipients = parentCount;
+      } else if (recipientType === 'both') {
+        totalRecipients = studentCount + parentCount;
+      }
+
+      res.json({
+        studentCount,
+        parentCount,
+        totalRecipients,
+        targetType,
+        recipientType
+      });
+    } catch (error) {
+      console.error('Error getting recipient count:', error);
+      res.status(500).json({ error: 'Failed to get recipient count' });
+    }
   });
 
   // Get SMS usage statistics

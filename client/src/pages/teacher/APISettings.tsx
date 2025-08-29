@@ -63,7 +63,7 @@ export default function APISettings() {
         } else {
           console.log('⚠️ Unexpected response format:', keys);
           // Handle non-array response by showing default keys
-          setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive', key: '' })));
+          setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive', key: '', maskedKey: '' })));
         }
       } catch (error) {
         console.error('Error loading API keys:', error);
@@ -81,7 +81,7 @@ export default function APISettings() {
   const updateApiKey = (id: number, key: string) => {
     setApiKeys(prev => prev.map(item => 
       item.id === id 
-        ? { ...item, key, status: key.trim() ? 'active' : 'inactive' }
+        ? { ...item, key: key || '', status: (key && key.trim()) ? 'active' : 'inactive', hasKey: !!(key && key.trim()), maskedKey: (key && key.trim()) ? '••••••••••••' + key.slice(-4) : '' }
         : item
     ));
   };

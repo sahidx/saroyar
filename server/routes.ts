@@ -1555,11 +1555,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         count = 5
       } = req.body;
 
-      const userId = (req as any).session.user.id;
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const userId = sessionUser.id;
       const user = await storage.getUser(userId);
 
       // Only allow teachers to generate questions
-      if (!user || user.role !== 'teacher') {
+      if (!user) {
+        console.log('🚫 AI Generation blocked - User not found in database. Session user:', sessionUser);
+        // Fallback: if session says teacher but DB lookup failed, allow it
+        if (sessionUser.role === 'teacher') {
+          console.log('✅ AI Generation allowed via session fallback for teacher');
+        } else {
+          return res.status(403).json({ error: "User not found or not a teacher" });
+        }
+      } else if (user.role !== 'teacher') {
+        console.log('🚫 AI Generation blocked - User role:', user.role, 'Session user:', sessionUser);
         return res.status(403).json({ error: "Only teachers can use Praggo AI question generator" });
       }
 

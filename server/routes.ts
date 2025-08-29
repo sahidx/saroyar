@@ -1616,13 +1616,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk SMS System (DISABLED AUTH FOR TESTING)
-  app.post("/api/sms/send-bulk", async (req: any, res) => {
+  // Bulk SMS System with Real BulkSMS Bangladesh API
+  app.post("/api/sms/send-bulk", requireAuth, async (req: any, res) => {
     try {
-      // Mock user for testing - in real app would use authentication
-      const mockUser = { role: 'teacher', smsCredits: 1000 };
+      const userId = (req as any).session.user.id;
+      const user = await storage.getUser(userId);
       
-      // Original code: const userId = req.user.claims.sub; const user = await storage.getUser(userId);
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can send bulk SMS" });
+      }
       
       const { message, recipients, smsType = 'general' } = req.body;
       
@@ -1632,30 +1634,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const smsCount = recipients.length;
       
-      // For demo/testing - skip credit checks and storage operations
-      // Original logic would check SMS credits and update database
+      // Check if user has enough SMS credits
+      if (user.smsCredits < smsCount) {
+        return res.status(400).json({ 
+          message: `Insufficient SMS credits. You have ${user.smsCredits} credits but need ${smsCount}.`,
+          currentCredits: user.smsCredits,
+          required: smsCount
+        });
+      }
+
+      // Import BulkSMS service
+      const { bulkSMSService } = await import('./bulkSMS');
       
-      // Simulate SMS sending (in real implementation, integrate with SMS provider like Twilio)
-      const sentMessages = recipients.map((recipient: any) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        phoneNumber: recipient.phoneNumber || recipient,
-        studentName: recipient.name || 'Student',
-        message: message,
-        status: 'sent',
-        sentAt: new Date(),
-        cost: 1 // 1 credit per SMS
+      // Convert recipients to proper format
+      const smsRecipients = recipients.map((recipient: any) => ({
+        id: recipient.id || recipient,
+        name: recipient.name || 'Student',
+        phoneNumber: recipient.phoneNumber || recipient.phone || recipient
       }));
 
-      // Real SMS response (remove fake credits calculation)
-      res.json({
-        success: true,
-        sentCount: smsCount,
-        sentMessages: sentMessages,
-        message: 'SMS functionality requires real SMS provider integration'
-      });
+      console.log(`📱 Starting bulk SMS: ${smsCount} messages from teacher ${user.firstName} ${user.lastName}`);
+      
+      // Send bulk SMS using real API
+      const result = await bulkSMSService.sendBulkSMS(smsRecipients, message, userId, smsType);
+      
+      // Update user's SMS credits
+      if (result.sentCount > 0) {
+        const newCreditBalance = user.smsCredits - result.totalCreditsUsed;
+        await storage.updateUser(userId, { 
+          smsCredits: Math.max(0, newCreditBalance) 
+        });
+        
+        console.log(`💳 Updated SMS credits: ${user.smsCredits} -> ${newCreditBalance} (used ${result.totalCreditsUsed})`);
+      }
+
+      const response = {
+        success: result.success,
+        message: result.sentCount > 0 
+          ? `SMS sent successfully to ${result.sentCount} recipients${result.failedCount > 0 ? `. ${result.failedCount} failed.` : '.'}`
+          : `Failed to send SMS to all ${result.failedCount} recipients`,
+        sentCount: result.sentCount,
+        failedCount: result.failedCount,
+        totalRecipients: recipients.length,
+        remainingCredits: Math.max(0, user.smsCredits - result.totalCreditsUsed),
+        creditsUsed: result.totalCreditsUsed,
+        failedMessages: result.failedMessages
+      };
+      
+      res.json(response);
     } catch (error) {
-      console.error("Error sending bulk SMS:", error);
-      res.status(500).json({ message: "Failed to send bulk SMS" });
+      console.error("Bulk SMS error:", error);
+      res.status(500).json({ message: "Failed to send SMS" });
+    }
+  });
+
+  // SMS Balance Check API
+  app.get("/api/sms/balance", requireAuth, async (req: any, res) => {
+    try {
+      const { bulkSMSService } = await import('./bulkSMS');
+      const balanceResult = await bulkSMSService.checkBalance();
+      
+      res.json(balanceResult);
+    } catch (error) {
+      console.error("SMS balance check error:", error);
+      res.status(500).json({ message: "Failed to check SMS balance" });
     }
   });
 

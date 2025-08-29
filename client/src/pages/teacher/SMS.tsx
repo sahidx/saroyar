@@ -59,6 +59,11 @@ export default function SMS() {
     queryKey: ["/api/teacher/stats"],
   });
 
+  // Fetch SMS balance from BulkSMS API
+  const { data: smsBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ["/api/sms/balance"],
+  });
+
   const sendSMSMutation = useMutation({
     mutationFn: async (data: {
       message: string;

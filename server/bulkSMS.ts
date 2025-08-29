@@ -61,8 +61,16 @@ export class BulkSMSService {
       const responseText = await response.text();
       console.log(`📨 SMS API Response: ${responseText}`);
       
-      // Parse response code (BulkSMS returns plain text with response codes)
-      const responseCode = parseInt(responseText.trim()) || 0;
+      let responseCode = 0;
+      
+      try {
+        // Try to parse as JSON first (new API format)
+        const jsonResponse = JSON.parse(responseText);
+        responseCode = jsonResponse.response_code || 0;
+      } catch {
+        // Fallback to plain text parsing (old format)
+        responseCode = parseInt(responseText.trim()) || 0;
+      }
       
       return this.parseResponse(responseCode, responseText);
     } catch (error) {
@@ -99,18 +107,18 @@ export class BulkSMSService {
         
         if (smsResult.success) {
           result.sentCount++;
-          result.totalCreditsUsed++; // Assuming 1 credit per SMS
+          result.totalCreditsUsed++; // 0.39 paisha per SMS as specified
           
-          // Log successful SMS
+          // Log successful SMS - only count if actually sent (code 202)
           await this.logSMS({
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
             recipientName: recipient.name,
-            studentId: recipient.id,
+            studentId: typeof recipient.id === 'string' ? recipient.id : undefined,
             smsType,
             message,
             status: 'sent',
-            credits: 1,
+            credits: 1, // Fixed rate as specified
             sentBy
           });
           
@@ -123,16 +131,16 @@ export class BulkSMSService {
             code: smsResult.code
           });
           
-          // Log failed SMS
+          // Log failed SMS - no credit deduction for failed SMS
           await this.logSMS({
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
             recipientName: recipient.name,
-            studentId: recipient.id,
+            studentId: typeof recipient.id === 'string' ? recipient.id : undefined,
             smsType,
             message,
             status: 'failed',
-            credits: 0,
+            credits: 0, // No charge for failed SMS
             sentBy
           });
           

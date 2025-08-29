@@ -22,10 +22,10 @@ const studentFormSchema = z.object({
   phoneNumber: z.string().min(10, "Valid phone number required"),
   parentPhoneNumber: z.string().min(10, "Valid parent phone number required"),
   batchId: z.string().min(1, "Please select a batch"),
-  email: z.string().email("Valid email required").optional().or(z.literal("")),
+  email: z.string().email("Valid email required").optional().or(z.literal("")).nullable(),
   institution: z.string().min(1, "Institution is required"),
   classLevel: z.string().min(1, "Please select class level"),
-  password: z.string().min(4, "Password must be at least 4 characters").optional().or(z.literal("")),
+  password: z.string().min(4, "Password must be at least 4 characters").optional().or(z.literal("")).nullable(),
 });
 
 interface AddStudentFormProps {

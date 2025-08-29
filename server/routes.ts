@@ -2837,36 +2837,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Try to update database if available
+      // Update database tracking using storage interface
       try {
         for (const keyData of keys) {
           if (!keyData.key || keyData.key.trim().length < 10) continue;
           
-          const existingKey = await db.select().from(praggoAIKeys)
-            .where(eq(praggoAIKeys.keyName, keyData.name)).limit(1);
-
-          if (existingKey.length > 0) {
-            await db.update(praggoAIKeys)
-              .set({
-                status: 'active',
-                isEnabled: true,
-                updatedAt: new Date()
-              })
-              .where(eq(praggoAIKeys.keyName, keyData.name));
-          } else {
-            await db.insert(praggoAIKeys).values({
-              keyName: keyData.name,
-              keyIndex: keyData.id - 1,
-              status: 'active',
-              isEnabled: true,
-              dailyUsageCount: 0,
-              dailyLimit: 24000
-            });
-          }
+          const keyIndex = keyData.id - 1; // Convert 1-based ID to 0-based index
+          await storage.upsertPraggoAIKey(keyData.name, keyIndex, true);
         }
-        console.log('💾 Database updated successfully');
+        console.log('💾 Database tracking updated successfully');
       } catch (dbError) {
-        console.log('⚠️ Database update skipped (may not be ready):', dbError.message);
+        console.warn('⚠️ Database update failed:', dbError.message);
       }
 
       console.log(`🎯 Praggo AI Keys Saved: ${savedCount} keys configured successfully!`);

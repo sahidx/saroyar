@@ -114,7 +114,7 @@ export default function APISettings() {
       console.error('API key save error:', error);
       toast({
         title: "সংরক্ষণ ত্রুটি",
-        description: error.response?.data?.error || "API keys সংরক্ষণে সমস্যা হয়েছে।",
+        description: error.message || error.response?.data?.error || "API keys সংরক্ষণে সমস্যা হয়েছে।",
         variant: "destructive"
       });
     } finally {

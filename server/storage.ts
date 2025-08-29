@@ -13,6 +13,7 @@ import {
   notes,
   courses,
   teacherProfiles,
+  praggoAIKeys,
   type User,
   type UpsertUser,
   type Batch,
@@ -42,6 +43,7 @@ import {
   type Course,
   type InsertTeacherProfile,
   type TeacherProfile,
+  type PraggoAIKey,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, count, avg, and, or, sql } from "drizzle-orm";
@@ -168,6 +170,13 @@ export interface IStorage {
   getPublicTeacherProfiles(): Promise<TeacherProfile[]>;
   updateTeacherProfile(id: string, data: Partial<InsertTeacherProfile>): Promise<TeacherProfile>;
   deleteTeacherProfile(id: string): Promise<void>;
+
+  // Praggo AI Key operations
+  getAllPraggoAIKeys(): Promise<PraggoAIKey[]>;
+  getPraggoAIKeyByName(keyName: string): Promise<PraggoAIKey | undefined>;
+  upsertPraggoAIKey(keyName: string, keyIndex: number, isEnabled?: boolean): Promise<PraggoAIKey>;
+  updatePraggoAIKeyStatus(keyName: string, status: 'active' | 'quota_exceeded' | 'error' | 'disabled', lastError?: string): Promise<PraggoAIKey>;
+  getActivePraggoAIKeys(): Promise<PraggoAIKey[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -871,6 +880,63 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTeacherProfile(id: string): Promise<void> {
     await db.delete(teacherProfiles).where(eq(teacherProfiles.id, id));
+  }
+
+  // Praggo AI Key operations
+  async getAllPraggoAIKeys(): Promise<PraggoAIKey[]> {
+    return await db.select().from(praggoAIKeys).orderBy(praggoAIKeys.keyIndex);
+  }
+
+  async getPraggoAIKeyByName(keyName: string): Promise<PraggoAIKey | undefined> {
+    const [key] = await db.select().from(praggoAIKeys).where(eq(praggoAIKeys.keyName, keyName));
+    return key;
+  }
+
+  async upsertPraggoAIKey(keyName: string, keyIndex: number, isEnabled: boolean = true): Promise<PraggoAIKey> {
+    const [key] = await db
+      .insert(praggoAIKeys)
+      .values({
+        keyName,
+        keyIndex,
+        isEnabled,
+        status: 'active',
+        dailyUsageCount: 0,
+      })
+      .onConflictDoUpdate({
+        target: praggoAIKeys.keyName,
+        set: {
+          isEnabled,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return key;
+  }
+
+  async updatePraggoAIKeyStatus(
+    keyName: string, 
+    status: 'active' | 'quota_exceeded' | 'error' | 'disabled', 
+    lastError?: string
+  ): Promise<PraggoAIKey> {
+    const [key] = await db
+      .update(praggoAIKeys)
+      .set({
+        status,
+        lastError,
+        lastUsed: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(praggoAIKeys.keyName, keyName))
+      .returning();
+    return key;
+  }
+
+  async getActivePraggoAIKeys(): Promise<PraggoAIKey[]> {
+    return await db
+      .select()
+      .from(praggoAIKeys)
+      .where(and(eq(praggoAIKeys.isEnabled, true), eq(praggoAIKeys.status, 'active')))
+      .orderBy(praggoAIKeys.keyIndex);
   }
 }
 

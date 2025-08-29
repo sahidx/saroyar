@@ -118,7 +118,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication middleware
   const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.session.user) {
+    console.log(`🔒 Auth Check - Session exists: ${!!req.session}, User in session: ${!!req.session?.user}`);
+    if (req.session?.user) {
+      console.log(`✅ Auth OK - User: ${req.session.user.id}, Role: ${req.session.user.role}`);
+    }
+    
+    if (!req.session?.user) {
+      console.log(`❌ Auth Failed - No session or user`);
       return res.status(401).json({ message: 'Unauthorized' });
     }
     next();
@@ -133,11 +139,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Phone number and password required' });
       }
       
-      // Demo credentials mapping
+      // Demo credentials mapping - using REAL database IDs
       const demoAccounts: Record<string, any> = {
         '01712345678': {
           password: 'sir123',
-          userId: 'teacher-belal-sir',
+          userId: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d', // Real database ID
           role: 'teacher',
           name: 'Belal Sir',
           firstName: 'Belal',
@@ -1637,18 +1643,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk SMS System with Real BulkSMS Bangladesh API
   app.post("/api/sms/send-bulk", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.session.user.id;
-      console.log(`🔍 SMS Request - User ID: ${userId}`);
+      const sessionUser = req.session.user;
+      console.log(`🔍 SMS Request - Session User: ${sessionUser.id}, Role: ${sessionUser.role}`);
       
-      const user = await storage.getUser(userId);
-      console.log(`👤 Found user: ${user?.firstName} ${user?.lastName}, Role: ${user?.role}`);
-      
-      if (!user || user.role !== 'teacher') {
-        console.log(`❌ SMS Auth failed - User role: ${user?.role}`);
+      // Check role from session directly (more reliable)
+      if (sessionUser.role !== 'teacher') {
+        console.log(`❌ SMS Auth failed - Session role: ${sessionUser.role}`);
         return res.status(403).json({ message: "Only teachers can send bulk SMS" });
       }
       
-      console.log(`✅ SMS Auth successful for teacher: ${user.firstName} ${user.lastName}`);
+      console.log(`✅ SMS Auth successful for teacher: ${sessionUser.firstName} ${sessionUser.lastName}`);
       
       const { message, recipients, smsType = 'general' } = req.body;
       

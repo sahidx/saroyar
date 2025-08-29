@@ -36,6 +36,30 @@ export default function APISettings() {
     setIsDarkMode(isDark);
   }, []);
 
+  // Load existing API keys on component mount
+  useEffect(() => {
+    const loadApiKeys = async () => {
+      try {
+        const response = await apiRequest('GET', '/api/praggo-ai/keys');
+        if (response && Array.isArray(response)) {
+          setApiKeys(response);
+          console.log('✅ Loaded API keys:', response.filter((k: any) => k.hasKey).length, 'active');
+        } else if (response) {
+          console.log('⚠️ Unexpected response format:', response);
+        }
+      } catch (error) {
+        console.error('Error loading API keys:', error);
+        toast({
+          title: "তথ্য লোড ত্রুটি",
+          description: "API keys লোড করতে সমস্যা হয়েছে।",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    loadApiKeys();
+  }, []);
+
   const updateApiKey = (id: number, key: string) => {
     setApiKeys(prev => prev.map(item => 
       item.id === id 
@@ -55,30 +79,42 @@ export default function APISettings() {
   const handleSaveKeys = async () => {
     setIsSaving(true);
     try {
-      // In a real implementation, you would send these to your server
-      // For now, we'll just show a success message
-      const activeKeys = apiKeys.filter(k => k.key.trim());
+      const activeKeys = apiKeys.filter(k => k.key && k.key.trim().length > 10);
       
       if (activeKeys.length === 0) {
         toast({
           title: "সতর্কতা",
-          description: "কমপক্ষে একটি API key প্রয়োজন।",
+          description: "কমপক্ষে একটি বৈধ API key প্রয়োজন (কমপক্ষে ১০ অক্ষর)।",
           variant: "destructive"
         });
+        setIsSaving(false);
         return;
       }
 
-      // Here you would make an API call to save the keys
-      // await apiRequest('POST', '/api/admin/api-keys', { keys: activeKeys });
+      console.log('💾 Saving API keys:', activeKeys.length, 'keys');
+
+      // Make API call to save the keys
+      const response = await apiRequest('POST', '/api/praggo-ai/keys', { keys: activeKeys });
       
+      if (response && response.success) {
+        toast({
+          title: "🎯 Praggo AI Configured!",
+          description: response.message || `${response.savedCount}টি API key সফলভাবে সংরক্ষণ করা হয়েছে`,
+        });
+        
+        // Refresh the key status
+        const updatedKeys = await apiRequest('GET', '/api/praggo-ai/keys');
+        if (updatedKeys && Array.isArray(updatedKeys)) {
+          setApiKeys(updatedKeys);
+        }
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch (error: any) {
+      console.error('API key save error:', error);
       toast({
-        title: "✅ সফল!",
-        description: `${activeKeys.length}টি API key সংরক্ষণ করা হয়েছে।`,
-      });
-    } catch (error) {
-      toast({
-        title: "ত্রুটি",
-        description: "API keys সংরক্ষণে সমস্যা হয়েছে।",
+        title: "সংরক্ষণ ত্রুটি",
+        description: error.response?.data?.error || "API keys সংরক্ষণে সমস্যা হয়েছে।",
         variant: "destructive"
       });
     } finally {

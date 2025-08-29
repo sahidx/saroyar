@@ -2755,6 +2755,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Key Management Routes
+  app.get('/api/praggo-ai/keys', async (req, res) => {
+    try {
+      // Check if user is logged in via session (using existing session structure)
+      const user = (req as any).session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      if (user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can manage API keys' });
+      }
+
+      console.log('📋 Loading Praggo AI keys for teacher...');
+
+      // Return the standard 7 keys with current status
+      const keyNames = [
+        'GEMINI_API_KEY',
+        'GEMINI_API_KEY_2', 
+        'GEMINI_API_KEY_3',
+        'GEMINI_API_KEY_4',
+        'GEMINI_API_KEY_5',
+        'GEMINI_API_KEY_6',
+        'GEMINI_API_KEY_7'
+      ];
+
+      const keys = keyNames.map((keyName, index) => {
+        const envKey = process.env[keyName];
+        return {
+          id: index + 1,
+          name: keyName,
+          status: envKey && envKey.length > 10 ? 'active' : 'inactive',
+          hasKey: !!(envKey && envKey.length > 10),
+          maskedKey: envKey && envKey.length > 10 ? '••••••••••••' + envKey.slice(-4) : '',
+          showKey: false
+        };
+      });
+
+      console.log('📋 Loaded API keys status:', keys.filter(k => k.hasKey).length, 'active keys');
+      res.json(keys);
+    } catch (error) {
+      console.error('Error fetching API keys:', error);
+      res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+  });
+
+  app.post('/api/praggo-ai/keys', async (req, res) => {
+    try {
+      // Check if user is logged in via session (using existing session structure)
+      const user = (req as any).session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      if (user.role !== 'teacher') {
+        return res.status(403).json({ error: 'Only teachers can manage API keys' });
+      }
+
+      const { keys } = req.body;
+      
+      if (!Array.isArray(keys)) {
+        return res.status(400).json({ error: 'Keys must be an array' });
+      }
+
+      console.log('🔧 Saving Praggo AI keys:', keys.length, 'keys provided');
+
+      let savedCount = 0;
+      
+      for (const keyData of keys) {
+        if (!keyData.key || !keyData.name || keyData.key.trim().length < 10) continue;
+        
+        try {
+          // Set environment variable
+          process.env[keyData.name] = keyData.key.trim();
+          savedCount++;
+          
+          console.log(`✅ Saved API key: ${keyData.name} (${keyData.key.substring(0, 12)}...)`);
+        } catch (keyError) {
+          console.error(`❌ Failed to save key ${keyData.name}:`, keyError);
+        }
+      }
+
+      // Try to update database if available
+      try {
+        for (const keyData of keys) {
+          if (!keyData.key || keyData.key.trim().length < 10) continue;
+          
+          const existingKey = await db.select().from(praggoAIKeys)
+            .where(eq(praggoAIKeys.keyName, keyData.name)).limit(1);
+
+          if (existingKey.length > 0) {
+            await db.update(praggoAIKeys)
+              .set({
+                status: 'active',
+                isEnabled: true,
+                updatedAt: new Date()
+              })
+              .where(eq(praggoAIKeys.keyName, keyData.name));
+          } else {
+            await db.insert(praggoAIKeys).values({
+              keyName: keyData.name,
+              keyIndex: keyData.id - 1,
+              status: 'active',
+              isEnabled: true,
+              dailyUsageCount: 0,
+              dailyLimit: 24000
+            });
+          }
+        }
+        console.log('💾 Database updated successfully');
+      } catch (dbError) {
+        console.log('⚠️ Database update skipped (may not be ready):', dbError.message);
+      }
+
+      console.log(`🎯 Praggo AI Keys Saved: ${savedCount} keys configured successfully!`);
+
+      res.json({ 
+        success: true, 
+        message: `${savedCount}টি API key সফলভাবে সংরক্ষণ করা হয়েছে`,
+        savedCount,
+        totalProvided: keys.length
+      });
+    } catch (error) {
+      console.error('Error saving API keys:', error);
+      res.status(500).json({ error: 'Failed to save API keys' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

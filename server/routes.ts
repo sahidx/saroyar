@@ -1907,7 +1907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get SMS usage statistics
   app.get("/api/sms/usage-stats", async (req, res) => {
     try {
-      const userId = req.session?.user?.id;
+      const userId = (req as any).session?.user?.id;
       if (!userId) {
         return res.status(401).json({ error: 'User not authenticated' });
       }

@@ -138,12 +138,6 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/teacher/ai-questions')
   },
   {
-    id: 'sms-purchase',
-    icon: <ShoppingCart className="w-full h-full" />,
-    label: 'Buy SMS',
-    onClick: () => setLocation('/teacher/sms-purchase')
-  },
-  {
     id: 'sms',
     icon: <MessageSquare className="w-full h-full" />,
     label: 'SMS',

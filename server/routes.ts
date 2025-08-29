@@ -1672,10 +1672,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber: recipient.phoneNumber || recipient.phone || recipient
       }));
 
-      console.log(`📱 Starting bulk SMS: ${smsCount} messages from teacher ${user.firstName} ${user.lastName}`);
+      console.log(`📱 Starting bulk SMS: ${smsCount} messages from teacher ${sessionUser.firstName} ${sessionUser.lastName}`);
       
       // Send bulk SMS using real API
-      const result = await bulkSMSService.sendBulkSMS(smsRecipients, message, userId, smsType);
+      const result = await bulkSMSService.sendBulkSMS(smsRecipients, message, sessionUser.id, smsType);
 
       const response = {
         success: result.success,

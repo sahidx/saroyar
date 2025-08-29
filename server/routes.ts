@@ -87,14 +87,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("📝 Note: You can manually add courses through the course management interface.");
   }
 
-  // Setup authentication routes (login, logout, callback) - includes session setup
-  try {
-    setupAuth(app);
-    console.log("✅ Replit authentication routes registered successfully");
-  } catch (error) {
-    console.log("⚠️  Replit authentication setup skipped - using session-based auth instead");
-    console.log("📝 Note: This is normal for local development without Replit environment variables.");
-  }
+  // Skip Replit authentication - use only custom session-based auth
+  console.log("🔧 Using custom session-based authentication for coach management system");
 
   // Additional session setup for internal use
   app.use(session({
@@ -183,14 +177,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Optimized current user from session - removed heavy logging
+  // Get current user from session
   app.get('/api/auth/user', (req, res) => {
-    if (!(req as any).session?.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    try {
+      if (!(req as any).session?.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const user = (req as any).session.user;
+      console.log('✅ User session found:', user.name, '- Role:', user.role);
+      res.json(user);
+    } catch (error) {
+      console.error('❌ Error getting user:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
-    
-    const user = (req as any).session.user;
-    res.json(user);
   });
 
   // Real dashboard stats for teacher with fallback

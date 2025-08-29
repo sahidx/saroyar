@@ -18,14 +18,16 @@ export default function APISettings() {
     name: string;
     status: 'active' | 'inactive';
     showKey: boolean;
+    hasKey?: boolean;
+    maskedKey?: string;
   }>>([
-    { id: 1, key: '', name: 'GEMINI_API_KEY_1', status: 'inactive', showKey: false },
-    { id: 2, key: '', name: 'GEMINI_API_KEY_2', status: 'inactive', showKey: false },
-    { id: 3, key: '', name: 'GEMINI_API_KEY_3', status: 'inactive', showKey: false },
-    { id: 4, key: '', name: 'GEMINI_API_KEY_4', status: 'inactive', showKey: false },
-    { id: 5, key: '', name: 'GEMINI_API_KEY_5', status: 'inactive', showKey: false },
-    { id: 6, key: '', name: 'GEMINI_API_KEY_6', status: 'inactive', showKey: false },
-    { id: 7, key: '', name: 'GEMINI_API_KEY_7', status: 'inactive', showKey: false },
+    { id: 1, key: '', name: 'GEMINI_API_KEY', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 2, key: '', name: 'GEMINI_API_KEY_2', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 3, key: '', name: 'GEMINI_API_KEY_3', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 4, key: '', name: 'GEMINI_API_KEY_4', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 5, key: '', name: 'GEMINI_API_KEY_5', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 6, key: '', name: 'GEMINI_API_KEY_6', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
+    { id: 7, key: '', name: 'GEMINI_API_KEY_7', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -50,10 +52,10 @@ export default function APISettings() {
           const mappedKeys = keys.map((apiKey: any) => ({
             id: apiKey.id,
             name: apiKey.name, 
-            key: '', // Never store actual key in frontend state
-            status: apiKey.status,
-            hasKey: apiKey.hasKey,
-            maskedKey: apiKey.maskedKey,
+            key: '', // Never store actual key in frontend state  
+            status: apiKey.status || 'inactive',
+            hasKey: apiKey.hasKey || false,
+            maskedKey: apiKey.maskedKey || '',
             showKey: false
           }));
           setApiKeys(mappedKeys);

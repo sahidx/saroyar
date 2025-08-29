@@ -23,8 +23,8 @@ class PraggoAIService {
     return PraggoAIService.instance;
   }
 
-  // Initialize API keys from environment
-  private initializeAPIKeys() {
+  // Initialize API keys from environment and database
+  private async initializeAPIKeys() {
     const keyNames = [
       'GEMINI_API_KEY',      // Primary key
       'GEMINI_API_KEY_2', 
@@ -34,6 +34,22 @@ class PraggoAIService {
       'GEMINI_API_KEY_6',
       'GEMINI_API_KEY_7'
     ];
+
+    // First, try to restore keys from database to environment
+    try {
+      const dbKeys = await db.select().from(praggoAIKeys)
+        .where(eq(praggoAIKeys.isEnabled, true));
+      
+      // Restore keys from database to environment
+      for (const dbKey of dbKeys) {
+        if (dbKey.keyValue && dbKey.keyValue.trim().length > 10) {
+          process.env[dbKey.keyName] = dbKey.keyValue;
+          console.log(`🔄 Restored Praggo AI key from database: ${dbKey.keyName}`);
+        }
+      }
+    } catch (error) {
+      console.log('💾 Database key restoration failed, using environment only');
+    }
 
     this.apiKeys = keyNames
       .map((keyName, index) => ({
@@ -54,7 +70,7 @@ class PraggoAIService {
     }
     
     // Initialize database keys if they don't exist
-    this.initializeDatabaseKeys();
+    await this.initializeDatabaseKeys();
   }
 
   // Initialize API keys in database
@@ -78,6 +94,11 @@ class PraggoAIService {
     } catch (error) {
       console.log('📝 Database not ready for Praggo AI keys initialization, will use memory only');
     }
+  }
+
+  // Refresh API keys from database - callable method
+  async refreshKeys() {
+    await this.initializeAPIKeys();
   }
 
   // Get current active API key
@@ -228,16 +249,32 @@ class PraggoAIService {
           throw new Error('Gemini API returned no response');
         }
 
+        console.log('🔍 Gemini API Response Debug:', {
+          hasResponse: !!response.response,
+          hasResponseText: response.response && typeof response.response.text,
+          hasText: typeof response.text,
+          hasCandidates: !!response.candidates,
+          keys: Object.keys(response)
+        });
+
         let result;
-        if (response.response && response.response.text) {
-          result = response.response.text();
-        } else if (response.text) {
-          result = response.text();
-        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-          result = response.candidates[0].content.parts[0].text;
-        } else {
-          console.error('Unexpected Gemini API response structure:', JSON.stringify(response, null, 2));
-          throw new Error('Gemini API returned invalid response structure');
+        try {
+          if (response.response && typeof response.response.text === 'function') {
+            result = response.response.text();
+          } else if (response.response && response.response.candidates?.[0]?.content?.parts?.[0]?.text) {
+            result = response.response.candidates[0].content.parts[0].text;
+          } else if (typeof response.text === 'function') {
+            result = response.text();
+          } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            result = response.candidates[0].content.parts[0].text;
+          } else {
+            console.error('🚨 Unexpected Gemini API response structure:', JSON.stringify(response, null, 2));
+            throw new Error('Gemini API returned invalid response structure');
+          }
+        } catch (textError) {
+          console.error('🔥 Error accessing response text:', textError);
+          console.log('📋 Full response object:', JSON.stringify(response, null, 2));
+          throw new Error(`Failed to extract text from Gemini response: ${textError.message}`);
         }
         const processingTime = Date.now() - startTime;
         const responseLength = result.length;

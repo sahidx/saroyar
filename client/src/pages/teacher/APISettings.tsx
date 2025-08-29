@@ -30,6 +30,7 @@ export default function APISettings() {
     { id: 7, key: '', name: 'GEMINI_API_KEY_7', status: 'inactive', showKey: false, hasKey: false, maskedKey: '' },
   ]);
   const [isSaving, setIsSaving] = useState(false);
+  const [quotaStatus, setQuotaStatus] = useState<Array<{keyName: string, isQuotaExceeded: boolean, resetDate?: string}>>([]);
   const { toast } = useToast();
 
   // Toggle theme based on system preference
@@ -59,7 +60,25 @@ export default function APISettings() {
             showKey: false
           }));
           setApiKeys(mappedKeys);
+          
+          // Check for quota exceeded keys and show notifications
+          const quotaExceededKeys = keys.filter((k: any) => k.status === 'quota_exceeded');
+          setQuotaStatus(quotaExceededKeys.map((k: any) => ({
+            keyName: k.name,
+            isQuotaExceeded: true,
+            resetDate: k.quotaResetDate
+          })));
+          
           console.log('✅ Loaded API keys:', keys.filter((k: any) => k.hasKey).length, 'active');
+          
+          // Show quota notifications
+          if (quotaExceededKeys.length > 0) {
+            toast({
+              title: "⚠️ API Key Limit সমস্যা",
+              description: `${quotaExceededKeys.length}টি API key এর limit শেষ। আগামীকাল reset হবে।`,
+              variant: "destructive"
+            });
+          }
         } else {
           console.log('⚠️ Unexpected response format:', keys);
           // Handle non-array response by showing default keys
@@ -216,6 +235,29 @@ export default function APISettings() {
           <p className="text-gray-600 dark:text-gray-300">
             Praggo AI ব্যবহারের জন্য Gemini API keys কনফিগার করুন
           </p>
+          
+          {/* Quota Limit Notifications */}
+          {quotaStatus.filter(status => status.isQuotaExceeded).length > 0 && (
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 border-2 border-red-200 dark:border-red-700 rounded-xl">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <span className="text-3xl">⚠️</span>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-red-700 dark:text-red-300">API Key Limit Over</h3>
+                  <p className="text-red-600 dark:text-red-400">দৈনিক limit শেষ হয়ে গেছে</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {quotaStatus.filter(status => status.isQuotaExceeded).map((status, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-3 bg-red-100 dark:bg-red-800/40 rounded-lg">
+                    <span className="font-medium text-red-800 dark:text-red-200">{status.keyName}</span>
+                    <span className="text-sm text-red-600 dark:text-red-400">
+                      Reset: {status.resetDate ? new Date(status.resetDate).toLocaleDateString('bn-BD') : 'আগামীকাল'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <Card className={`border ${isDarkMode 

@@ -1178,6 +1178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { praggoAI } = await import('./praggoAI');
       
+      // Ensure API keys are loaded from database before solving doubt
+      await praggoAI.refreshKeys();
+      
       const solution = await praggoAI.solveDoubt(doubt, subject, userId, 'student');
       
       res.json({ solution });
@@ -1582,6 +1585,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { praggoAI } = await import('./praggoAI');
+      
+      // Ensure API keys are loaded from database before generation
+      await praggoAI.refreshKeys();
       
       const questions = await praggoAI.generateQuestions(
         subject, examType, classLevel, chapter, questionType, difficulty, count, userId, 'teacher'

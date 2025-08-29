@@ -1638,11 +1638,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sms/send-bulk", requireAuth, async (req: any, res) => {
     try {
       const userId = req.session.user.id;
+      console.log(`🔍 SMS Request - User ID: ${userId}`);
+      
       const user = await storage.getUser(userId);
+      console.log(`👤 Found user: ${user?.firstName} ${user?.lastName}, Role: ${user?.role}`);
       
       if (!user || user.role !== 'teacher') {
+        console.log(`❌ SMS Auth failed - User role: ${user?.role}`);
         return res.status(403).json({ message: "Only teachers can send bulk SMS" });
       }
+      
+      console.log(`✅ SMS Auth successful for teacher: ${user.firstName} ${user.lastName}`);
       
       const { message, recipients, smsType = 'general' } = req.body;
       

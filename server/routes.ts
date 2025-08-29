@@ -2770,10 +2770,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📋 Loading Praggo AI keys for teacher...');
 
-      // Return the standard 7 keys with current status
+      // Simple approach - check environment variables only  
       const keyNames = [
         'GEMINI_API_KEY',
-        'GEMINI_API_KEY_2', 
+        'GEMINI_API_KEY_1',
+        'GEMINI_API_KEY_2',
         'GEMINI_API_KEY_3',
         'GEMINI_API_KEY_4',
         'GEMINI_API_KEY_5',
@@ -2783,12 +2784,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const keys = keyNames.map((keyName, index) => {
         const envKey = process.env[keyName];
+        const hasValidKey = !!(envKey && envKey.trim().length > 10);
         return {
           id: index + 1,
           name: keyName,
-          status: envKey && envKey.length > 10 ? 'active' : 'inactive',
-          hasKey: !!(envKey && envKey.length > 10),
-          maskedKey: envKey && envKey.length > 10 ? '••••••••••••' + envKey.slice(-4) : '',
+          status: hasValidKey ? 'active' : 'inactive',
+          hasKey: hasValidKey,
+          maskedKey: hasValidKey ? '••••••••••••' + envKey.slice(-4) : '',
           showKey: false
         };
       });
@@ -2837,18 +2839,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Update database tracking using storage interface
-      try {
-        for (const keyData of keys) {
-          if (!keyData.key || keyData.key.trim().length < 10) continue;
-          
-          const keyIndex = keyData.id - 1; // Convert 1-based ID to 0-based index
-          await storage.upsertPraggoAIKey(keyData.name, keyIndex, true);
-        }
-        console.log('💾 Database tracking updated successfully');
-      } catch (dbError) {
-        console.warn('⚠️ Database update failed:', dbError.message);
-      }
+      // Simple environment-based approach - no complex database tracking
+      console.log('💾 API keys saved to environment successfully');
 
       console.log(`🎯 Praggo AI Keys Saved: ${savedCount} keys configured successfully!`);
 

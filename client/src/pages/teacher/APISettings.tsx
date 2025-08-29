@@ -104,13 +104,19 @@ export default function APISettings() {
           description: response.message || `${response.savedCount}টি API key সফলভাবে সংরক্ষণ করা হয়েছে`,
         });
         
-        // Refresh the key status
-        const updatedKeys = await apiRequest('GET', '/api/praggo-ai/keys');
-        if (updatedKeys && Array.isArray(updatedKeys)) {
-          setApiKeys(updatedKeys);
-        }
+        // Refresh the key status after a short delay
+        setTimeout(async () => {
+          try {
+            const updatedKeys = await apiRequest('GET', '/api/praggo-ai/keys');
+            if (updatedKeys && Array.isArray(updatedKeys)) {
+              setApiKeys(updatedKeys);
+            }
+          } catch (refreshError) {
+            console.warn('Failed to refresh key status:', refreshError);
+          }
+        }, 500);
       } else {
-        throw new Error('Save failed');
+        throw new Error(response?.message || 'Save failed');
       }
     } catch (error: any) {
       console.error('API key save error:', error);

@@ -40,12 +40,16 @@ export default function APISettings() {
   useEffect(() => {
     const loadApiKeys = async () => {
       try {
-        const response = await apiRequest('GET', '/api/praggo-ai/keys');
-        if (response && Array.isArray(response)) {
-          setApiKeys(response);
-          console.log('✅ Loaded API keys:', response.filter((k: any) => k.hasKey).length, 'active');
-        } else if (response) {
-          console.log('⚠️ Unexpected response format:', response);
+        const response = await fetch('/api/praggo-ai/keys', {
+          credentials: 'include'
+        });
+        const keys = await response.json();
+        
+        if (response.ok && keys && Array.isArray(keys)) {
+          setApiKeys(keys);
+          console.log('✅ Loaded API keys:', keys.filter((k: any) => k.hasKey).length, 'active');
+        } else {
+          console.log('⚠️ Unexpected response format:', keys);
           // Handle non-array response by showing default keys
           setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive' })));
         }
@@ -96,27 +100,39 @@ export default function APISettings() {
       console.log('💾 Saving API keys:', activeKeys.length, 'keys');
 
       // Make API call to save the keys
-      const response = await apiRequest('POST', '/api/praggo-ai/keys', { keys: activeKeys });
+      const response = await fetch('/api/praggo-ai/keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keys: activeKeys }),
+        credentials: 'include'
+      });
+
+      const responseData = await response.json();
       
-      if (response && response.success) {
+      if (response.ok && responseData && responseData.success) {
         toast({
           title: "🎯 Praggo AI Configured!",
-          description: response.message || `${response.savedCount}টি API key সফলভাবে সংরক্ষণ করা হয়েছে`,
+          description: responseData.message || `${responseData.savedCount}টি API key সফলভাবে সংরক্ষণ করা হয়েছে`,
         });
         
         // Refresh the key status after a short delay
         setTimeout(async () => {
           try {
-            const updatedKeys = await apiRequest('GET', '/api/praggo-ai/keys');
+            const refreshResponse = await fetch('/api/praggo-ai/keys', {
+              credentials: 'include'
+            });
+            const updatedKeys = await refreshResponse.json();
             if (updatedKeys && Array.isArray(updatedKeys)) {
               setApiKeys(updatedKeys);
             }
           } catch (refreshError) {
             console.warn('Failed to refresh key status:', refreshError);
           }
-        }, 500);
+        }, 1000);
       } else {
-        throw new Error(response?.message || 'Save failed');
+        throw new Error(responseData?.error || responseData?.message || 'Save failed');
       }
     } catch (error: any) {
       console.error('API key save error:', error);

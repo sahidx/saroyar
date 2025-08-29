@@ -575,8 +575,8 @@ export class DatabaseStorage implements IStorage {
     // Generate a default password for the student
     const password = this.generateStudentPassword();
     
-    // Handle empty email - convert to null to avoid unique constraint issues
-    const emailValue = student.email && student.email.trim() !== '' ? student.email : null;
+    // Handle empty email - use empty string as default
+    const emailValue = student.email && student.email.trim() !== '' ? student.email : '';
     
     const [newStudent] = await db.insert(users).values({
       ...student,

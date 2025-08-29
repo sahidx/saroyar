@@ -32,11 +32,12 @@ export class BulkSMSService {
   private senderId = 'Random'; // Using the provided sender ID
 
   constructor() {
-    this.apiKey = process.env.BULKSMS_API_KEY || '';
+    // Use the new API key provided
+    this.apiKey = process.env.BULKSMS_API_KEY || 'gsOKLO6XtKsANCvgPHNt';
     if (!this.apiKey) {
       console.warn('⚠️ BULKSMS_API_KEY not found in environment variables');
     } else {
-      console.log('📱 BulkSMS Bangladesh API initialized successfully');
+      console.log('📱 BulkSMS Bangladesh API initialized successfully with key:', this.apiKey);
     }
   }
 

@@ -49,9 +49,9 @@ export default function SMS() {
     queryKey: ["/api/batches"],
   });
 
-  // Fetch SMS transactions
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/sms/transactions"],
+  // Fetch SMS usage statistics for current month
+  const { data: smsUsageStats } = useQuery({
+    queryKey: ["/api/sms/usage-stats"],
   });
 
   // Fetch teacher stats for SMS credits
@@ -179,10 +179,9 @@ export default function SMS() {
       </div>
 
       <Tabs defaultValue="send" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="send">Send SMS</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="analytics">Current Month Usage</TabsTrigger>
         </TabsList>
 
         {/* Send SMS Tab */}
@@ -417,12 +416,14 @@ export default function SMS() {
                       </div>
                     </div>
 
-                    <Button variant="outline" className="w-full mt-4" asChild>
-                      <a href="/teacher/sms-purchase">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Buy More Credits
-                      </a>
-                    </Button>
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-sm text-blue-600 dark:text-blue-400 text-center">
+                        📱 SMS Balance: {balanceLoading ? 'Loading...' : smsBalance?.balance || 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500 text-center mt-1">
+                        Current BulkSMS account balance
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -453,93 +454,99 @@ export default function SMS() {
           </div>
         </TabsContent>
 
-        {/* History Tab */}
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                SMS Transaction History
-              </CardTitle>
-              <CardDescription>
-                View all your SMS purchases and usage history
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {transactions.length > 0 ? (
-                <div className="space-y-4">
-                  {transactions.map((transaction: any) => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                          <CreditCard className="h-5 w-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{transaction.packageName}</h3>
-                          <p className="text-sm text-gray-500">
-                            {transaction.smsCount} SMS Credits • {transaction.paymentMethod}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">৳{transaction.price}</div>
-                        <Badge variant="secondary" className="mt-1">
-                          {transaction.paymentStatus}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">
-                    No SMS transactions found. Purchase your first SMS package to get started.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Analytics Tab */}
+        {/* Current Month SMS Usage */}
         <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                SMS Analytics
-              </CardTitle>
-              <CardDescription>
-                Monitor your SMS usage and engagement metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center p-6 border rounded-lg">
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Total Sent</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    0
+                    {smsUsageStats?.totalSent || 0}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">SMS Sent This Month</p>
-                </div>
-                <div className="text-center p-6 border rounded-lg">
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                    100%
+                  <p className="text-sm text-gray-500 mt-1">This month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Total Cost</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                    ৳{((smsUsageStats?.totalCost || 0) / 100).toFixed(2)}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Delivery Rate</p>
-                </div>
-                <div className="text-center p-6 border rounded-lg">
-                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                    {smsCredits}
+                  <p className="text-sm text-gray-500 mt-1">This month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">By Type</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {smsUsageStats?.smsByType?.map((type: any) => (
+                      <div key={type.type} className="flex justify-between text-sm">
+                        <span className="capitalize">{type.type.replace('_', ' ')}</span>
+                        <span className="font-medium">{type.count}</span>
+                      </div>
+                    )) || (
+                      <p className="text-gray-500 text-sm">No SMS sent this month</p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Credits Remaining</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">BulkSMS Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center p-6 border rounded-lg">
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {balanceLoading ? '...' : smsBalance?.balance || 'N/A'}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">Available Credits</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Monthly breakdown */}
+            {smsUsageStats?.monthlyBreakdown && smsUsageStats.monthlyBreakdown.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Monthly Usage Breakdown
+                  </CardTitle>
+                  <CardDescription>
+                    SMS usage and costs by month
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {smsUsageStats.monthlyBreakdown.map((month: any) => (
+                      <div key={month.month} className="flex justify-between items-center p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{month.month}</p>
+                          <p className="text-sm text-gray-500">{month.count} SMS sent</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">৳{(month.cost / 100).toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">Total cost</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

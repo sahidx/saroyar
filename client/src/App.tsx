@@ -16,7 +16,6 @@ import NotFound from "@/pages/not-found";
 // Teacher feature pages
 import AIQuestions from "@/pages/teacher/AIQuestions";
 import Students from "@/pages/teacher/Students";
-import SMSPurchase from "@/pages/teacher/SMSPurchase";
 import SMS from "@/pages/teacher/SMS";
 import Exams from "@/pages/teacher/Exams";
 import Quest from "@/pages/teacher/Quest";
@@ -78,7 +77,6 @@ function Router() {
               <Route path="/teacher-dashboard" component={TeacherDashboard} />
               <Route path="/teacher/ai-questions" component={AIQuestions} />
               <Route path="/teacher/students" component={Students} />
-              <Route path="/teacher/sms-purchase" component={SMSPurchase} />
               <Route path="/teacher/sms" component={SMS} />
               <Route path="/teacher/exams" component={Exams} />
               <Route path="/teacher/quest" component={Quest} />

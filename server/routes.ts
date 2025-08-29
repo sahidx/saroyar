@@ -1865,19 +1865,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(mockNotice);
   });
 
-  // SMS Purchase endpoints
-  app.post("/api/sms/purchase", async (req, res) => {
-    const { packageName, smsCount, price, paymentMethod, phoneNumber } = req.body;
-    const mockPurchase = {
-      transactionId: 'TXN' + Date.now(),
-      packageName,
-      smsCount,
-      price,
-      status: 'completed',
-      timestamp: new Date().toISOString()
-    };
-    res.json(mockPurchase);
-  });
+  // SMS Purchase endpoints - DISABLED (Only usage tracking allowed)
+  // Teachers cannot purchase SMS credits - only view usage statistics
 
   // SMS Sending endpoints - Real implementation with BulkSMS API
   app.post("/api/sms/send", requireAuth, async (req: any, res) => {

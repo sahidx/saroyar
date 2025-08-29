@@ -90,6 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes (login, logout, callback) - includes session setup
   try {
     setupAuth(app);
+    console.log("✅ Replit authentication routes registered successfully");
   } catch (error) {
     console.log("⚠️  Replit authentication setup skipped - using session-based auth instead");
     console.log("📝 Note: This is normal for local development without Replit environment variables.");

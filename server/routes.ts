@@ -1635,9 +1635,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk SMS System with Real BulkSMS Bangladesh API
-  app.post("/api/sms/send-bulk", requireAuth, async (req: any, res) => {
+  app.post("/api/sms/send-bulk", async (req: any, res) => {
     try {
-      const userId = (req as any).session.user.id;
+      // Check if user is authenticated
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.session.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'teacher') {
@@ -1720,9 +1725,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SMS Usage Statistics API
-  app.get("/api/sms/usage-stats", requireAuth, async (req: any, res) => {
+  app.get("/api/sms/usage-stats", async (req: any, res) => {
     try {
-      const userId = (req as any).session.user.id;
+      // Check if user is authenticated
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.session.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || user.role !== 'teacher') {

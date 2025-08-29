@@ -18,7 +18,8 @@ import {
   GraduationCap,
   TrendingUp,
   ShoppingCart,
-  CalendarCheck
+  CalendarCheck,
+  Settings
 } from 'lucide-react';
 
 interface IconGridItem {
@@ -177,6 +178,12 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     icon: <TrendingUp className="w-full h-full" />,
     label: 'Reports',
     onClick: () => setLocation('/teacher/reports')
+  },
+  {
+    id: 'api-settings',
+    icon: <Settings className="w-full h-full" />,
+    label: 'API Keys',
+    onClick: () => setLocation('/teacher/api-settings')
   },
   {
     id: 'question-bank',

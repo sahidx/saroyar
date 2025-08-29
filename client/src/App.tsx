@@ -22,6 +22,7 @@ import Exams from "@/pages/teacher/Exams";
 import Quest from "@/pages/teacher/Quest";
 import Reports from "@/pages/teacher/Reports";
 import Attendance from "@/pages/teacher/Attendance";
+import APISettings from "@/pages/teacher/APISettings";
 
 // Student feature pages
 import StudentHome from "@/pages/student/StudentHome";
@@ -81,6 +82,7 @@ function Router() {
               <Route path="/teacher/exams" component={Exams} />
               <Route path="/teacher/quest" component={Quest} />
               <Route path="/teacher/reports" component={Reports} />
+              <Route path="/teacher/api-settings" component={APISettings} />
               <Route path="/teacher/question-bank" component={TeacherQuestionBank} />
               <Route path="/courses" component={TeacherCourseManagement} />
               <Route path="/profile" component={TeacherProfileManagement} />

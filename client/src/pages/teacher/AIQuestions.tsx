@@ -201,10 +201,10 @@ export default function AIQuestions() {
             <div className="flex items-center space-x-2">
               <Bot className={`w-6 h-6 ${isDarkMode ? 'text-cyan-400' : 'text-green-600'}`} />
               <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Praggo AI প্রশ্ন জেনারেটর
+                🎓 Praggo AI প্রশ্ন জেনারেটর - Next Level
               </h1>
-              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                🤖 Praggo AI
+              <span className="text-xs px-2 py-1 rounded-full bg-gradient-to-r from-blue-100 to-green-100 text-blue-800 font-semibold">
+                🇧🇩 Bangladesh Academic Pro
               </span>
             </div>
           </div>

@@ -26,7 +26,7 @@ class PraggoAIService {
   // Initialize API keys from environment
   private initializeAPIKeys() {
     const keyNames = [
-      'GEMINI_API_KEY_1',
+      'GEMINI_API_KEY',      // Primary key
       'GEMINI_API_KEY_2', 
       'GEMINI_API_KEY_3',
       'GEMINI_API_KEY_4',
@@ -43,7 +43,15 @@ class PraggoAIService {
       }))
       .filter(key => key.keyValue && key.keyValue.trim() !== '');
 
-    console.log(`🎯 Praggo AI Keys configured: ${this.apiKeys.length} keys available`);
+    if (this.apiKeys.length > 0) {
+      console.log(`🎓 Praggo AI Enhanced System Activated! ${this.apiKeys.length} API keys ready for Bangladesh Education`);
+      console.log(`📚 Advanced Features: NCTB Curriculum • University Admission • Bengali AI Support`);
+      this.apiKeys.forEach((key, index) => {
+        console.log(`   🔑 Key ${index + 1}: ${key.keyName} (${key.keyValue.substring(0, 12)}...)`);
+      });
+    } else {
+      console.warn('⚠️ Praggo AI Demo Mode - Add API keys in Settings for full features');
+    }
     
     // Initialize database keys if they don't exist
     this.initializeDatabaseKeys();
@@ -312,7 +320,10 @@ class PraggoAIService {
     // Enhanced Bangladeshi context prompt
     const prompt = `আপনি "Praggo AI" - বাংলাদেশের শিক্ষার জন্য বিশেষভাবে ডিজাইন করা একটি AI শিক্ষা সহায়ক।
 
-🎯 Chemistry & ICT Care by Belal Sir কোচিং সেন্টারের জন্য ${count}টি ${difficultyLevels} ${subjectBangla} প্রশ্ন তৈরি করুন।
+🏆 Chemistry & ICT Care by Belal Sir কোচিং সেন্টারের জন্য ${count}টি ${difficultyLevels} ${subjectBangla} প্রশ্ন তৈরি করুন।
+
+🎯 **NEXT LEVEL BANGLADESHI ACADEMIC SYSTEM**
+আপনি একজন ২০+ বছরের অভিজ্ঞ ${subjectBangla} বিশেষজ্ঞ শিক্ষক যিনি বাংলাদেশের শীর্ষ বিশ্ববিদ্যালয়ের ভর্তি পরীক্ষায় প্রশ্ন প্রণয়ন করেন।
 
 📚 প্রশ্নের বিবরণ:
 - বিষয়: ${subjectBangla} (${subject})
@@ -394,7 +405,11 @@ ${questionType === 'mcq' ? 'MCQ ফরম্যাট:' : questionType === 'cq' 
 
 📝 শিক্ষার্থীর প্রশ্ন: ${question}
 
-🇧🇩 বাংলাদেশের NCTB কারিকুলাম ও শিক্ষাব্যবস্থা অনুযায়ী একটি সম্পূর্ণ, শিক্ষামূলক সমাধান প্রদান করুন যাতে রয়েছে:
+🇧🇩 **বাংলাদেশের সর্বোচ্চ মানের শিক্ষা ব্যবস্থা অনুযায়ী** একটি বিশেষজ্ঞ মানের সমাধান প্রদান করুন:
+
+📖 NCTB কারিকুলাম ২০২৪ অনুযায়ী সর্বশেষ আপডেট
+🏆 ঢাবি/বুয়েট/মেডিকেল ভর্তি পরীক্ষার মান বজায় রেখে
+🎯 বাংলাদেশের সাংস্কৃতিক ও ভৌগোলিক প্রেক্ষাপটে সমাধান
 
 ${subject === 'chemistry' ? `🧪 রসায়নের জন্য:
 - ধাপে ধাপে সমাধান সহ রাসায়নিক সমীকরণ

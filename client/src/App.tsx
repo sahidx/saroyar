@@ -75,6 +75,7 @@ function Router() {
           {(user as any)?.role === 'teacher' && (
             <>
               <Route path="/teacher" component={TeacherDashboard} />
+              <Route path="/teacher-dashboard" component={TeacherDashboard} />
               <Route path="/teacher/ai-questions" component={AIQuestions} />
               <Route path="/teacher/students" component={Students} />
               <Route path="/teacher/sms-purchase" component={SMSPurchase} />

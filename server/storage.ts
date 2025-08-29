@@ -572,10 +572,15 @@ export class DatabaseStorage implements IStorage {
     // Generate username from first name + student ID
     const username = `${(student.firstName || '').toLowerCase().replace(/\s+/g, '')}_${studentId}`;
     
+    // Generate a default password for the student
+    const password = this.generateStudentPassword();
+    
     const [newStudent] = await db.insert(users).values({
       ...student,
       studentId,
       username, // Add username field
+      password, // Add password field
+      studentPassword: password, // Use same password for studentPassword
       role: 'student',
       isActive: true
     }).returning();

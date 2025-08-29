@@ -29,17 +29,14 @@ export default function StudentAIHelp() {
   const { toast } = useToast();
 
   const aiHelpMutation = useMutation({
-    mutationFn: async (question: string) => {
-      const response = await apiRequest('POST', '/api/ai/doubt-solver', { 
-        question,
-        subject: 'chemistry'
-      });
+    mutationFn: async (data: { doubt: string, subject: string }) => {
+      const response = await apiRequest('POST', '/api/ai/solve-doubt', data);
       return response.json();
     },
     onSuccess: (data) => {
       setConversation(prev => [...prev, 
         { role: 'user', content: question },
-        { role: 'assistant', content: data.answer }
+        { role: 'assistant', content: data.solution }
       ]);
       setQuestion('');
     },
@@ -55,7 +52,7 @@ export default function StudentAIHelp() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
-    aiHelpMutation.mutate(question);
+    aiHelpMutation.mutate({ doubt: question, subject: 'chemistry' });
   };
 
   const handleLogout = () => {

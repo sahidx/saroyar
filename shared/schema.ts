@@ -40,6 +40,9 @@ export const smsTypeEnum = pgEnum('sms_type', ['attendance', 'exam_result', 'exa
 // Note type enum for note sharing feature
 export const noteTypeEnum = pgEnum('note_type', ['pdf', 'google_drive', 'link', 'text']);
 
+// Praggo AI API key status enum
+export const apiKeyStatusEnum = pgEnum('api_key_status', ['active', 'quota_exceeded', 'error', 'disabled']);
+
 // Batch status enum
 export const batchStatusEnum = pgEnum('batch_status', ['active', 'inactive', 'completed']);
 
@@ -572,6 +575,49 @@ export const insertTeacherProfileSchema = createInsertSchema(teacherProfiles).om
   socialLinks: z.record(z.string()).nullable().optional(),
 });
 
+// Praggo AI API Keys table for rotation and usage tracking
+export const praggoAIKeys = pgTable("praggo_ai_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  keyName: varchar("key_name").notNull().unique(), // GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.
+  keyIndex: integer("key_index").notNull().unique(), // 0, 1, 2, 3, 4, 5, 6
+  status: apiKeyStatusEnum("status").notNull().default('active'),
+  dailyUsageCount: integer("daily_usage_count").default(0),
+  lastUsed: timestamp("last_used"),
+  lastError: text("last_error"),
+  quotaResetDate: timestamp("quota_reset_date"),
+  isEnabled: boolean("is_enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Praggo AI Usage Logs for tracking API usage
+export const praggoAIUsage = pgTable("praggo_ai_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  userRole: userRoleEnum("user_role").notNull(), // teacher or student
+  requestType: varchar("request_type").notNull(), // generate_questions, solve_doubt
+  keyUsed: varchar("key_used").notNull().references(() => praggoAIKeys.keyName),
+  subject: subjectEnum("subject").notNull(),
+  promptLength: integer("prompt_length"),
+  responseLength: integer("response_length"),
+  success: boolean("success").notNull().default(false),
+  errorMessage: text("error_message"),
+  processingTime: integer("processing_time"), // in milliseconds
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for Praggo AI tables
+export const insertPraggoAIKeySchema = createInsertSchema(praggoAIKeys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPraggoAIUsageSchema = createInsertSchema(praggoAIUsage).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -604,3 +650,7 @@ export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 export type InsertTeacherProfile = z.infer<typeof insertTeacherProfileSchema>;
 export type TeacherProfile = typeof teacherProfiles.$inferSelect;
+export type InsertPraggoAIKey = z.infer<typeof insertPraggoAIKeySchema>;
+export type PraggoAIKey = typeof praggoAIKeys.$inferSelect;
+export type InsertPraggoAIUsage = z.infer<typeof insertPraggoAIUsageSchema>;
+export type PraggoAIUsage = typeof praggoAIUsage.$inferSelect;

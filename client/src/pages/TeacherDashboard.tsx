@@ -107,10 +107,10 @@ function AIQuestionMaker({ isDarkMode }: AIQuestionMakerProps) {
         <CardHeader>
           <CardTitle className={`flex items-center ${isDarkMode ? 'text-cyan-300' : 'text-orange-800'}`}>
             <Sparkles className="w-5 h-5 mr-2" />
-            AI Question Generator
+            Praggo AI Question Generator
           </CardTitle>
           <CardDescription className={isDarkMode ? 'text-blue-200' : 'text-orange-600'}>
-            Generate Chemistry and ICT questions using AI for your exams
+            Generate Chemistry and ICT questions using Praggo AI for your exams
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -168,17 +168,13 @@ function AIQuestionMaker({ isDarkMode }: AIQuestionMakerProps) {
 
               <div className="space-y-2">
                 <Label className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>AI Provider</Label>
-                <Select onValueChange={(value) => form.setValue('aiProvider', value)} defaultValue="claude">
+                <Select disabled>
                   <SelectTrigger className={`${isDarkMode 
-                    ? 'bg-slate-700 border-cyan-400/30 text-white' 
-                    : 'bg-white border-orange-200 text-gray-800'
+                    ? 'bg-slate-700 border-cyan-400/30 text-white opacity-75' 
+                    : 'bg-white border-orange-200 text-gray-800 opacity-75'
                   }`}>
-                    <SelectValue placeholder="Select AI" />
+                    <SelectValue placeholder="Praggo AI (Bangladesh Education)" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="claude">Claude (Anthropic)</SelectItem>
-                    <SelectItem value="gemini">Gemini (Google)</SelectItem>
-                  </SelectContent>
                 </Select>
               </div>
 

@@ -106,19 +106,19 @@ export default function AIQuestions() {
   // Get available papers based on subject and class
   const getAvailablePapers = () => {
     if (!subject || !classLevel) return [];
-    return curriculumData[subject]?.[classLevel]?.papers || [];
+    return curriculumData[subject as keyof typeof curriculumData]?.[classLevel as keyof typeof curriculumData['chemistry']]?.papers || [];
   };
 
   // Get available chapters based on subject, class, and paper
   const getAvailableChapters = () => {
     if (!subject || !classLevel) return [];
-    const subjectData = curriculumData[subject]?.[classLevel];
+    const subjectData = curriculumData[subject as keyof typeof curriculumData]?.[classLevel as keyof typeof curriculumData['chemistry']];
     if (!subjectData) return [];
     
     if (Array.isArray(subjectData.chapters)) {
       return subjectData.chapters;
-    } else if (paper && subjectData.chapters?.[paper]) {
-      return subjectData.chapters[paper];
+    } else if (paper && subjectData.chapters && typeof subjectData.chapters === 'object') {
+      return (subjectData.chapters as Record<string, string[]>)[paper] || [];
     }
     return [];
   };
@@ -142,10 +142,8 @@ export default function AIQuestions() {
         paper,
         chapter,
         questionType,
-        questionLanguage,
         difficulty,
-        count,
-        aiProvider: 'gemini' // Always use Gemini but show as Praggo AI
+        count
       });
 
       const data = await response.json();
@@ -294,7 +292,7 @@ export default function AIQuestions() {
                     <SelectValue placeholder="পত্র নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailablePapers().map((paperName) => (
+                    {getAvailablePapers().map((paperName: string) => (
                       <SelectItem key={paperName} value={paperName}>
                         📄 {paperName}
                       </SelectItem>
@@ -315,7 +313,7 @@ export default function AIQuestions() {
                     <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
-                    {getAvailableChapters().map((chapterName) => (
+                    {getAvailableChapters().map((chapterName: string) => (
                       <SelectItem key={chapterName} value={chapterName}>
                         📚 {chapterName}
                       </SelectItem>

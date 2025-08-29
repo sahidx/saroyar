@@ -1150,28 +1150,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Duplicate removed - real implementation is below
 
-  // AI Doubt Solver endpoint
-  app.post("/api/ai/solve-doubt", async (req: any, res) => {
+  // Praggo AI Doubt Solver endpoint for students
+  app.post("/api/ai/solve-doubt", requireAuth, async (req: any, res) => {
     try {
-      const { doubt, subject, aiProvider } = req.body;
+      const { doubt, subject } = req.body;
+      const userId = (req as any).session.user.id;
+      const user = await storage.getUser(userId);
       
       if (!doubt || !subject) {
         return res.status(400).json({ error: "Doubt and subject are required" });
       }
 
-      // Use Gemini API to solve the doubt
-      const { analyzeSentiment } = await import('./gemini');
+      // Only allow students to use this endpoint
+      if (!user || user.role !== 'student') {
+        return res.status(403).json({ error: "Only students can use Praggo AI doubt solver" });
+      }
+
+      const { praggoAI } = await import('./praggoAI');
       
-      // Create a proper prompt for educational context
-      const prompt = `আপনি একজন বাংলাদেশী শিক্ষক যিনি ${subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি'} পড়ান। নিচের প্রশ্নের বিস্তারিত উত্তর দিন:\n\nপ্রশ্ন: ${doubt}\n\nঅনুগ্রহ করে বাংলায় সহজ ও বোধগম্য ভাষায় উত্তর দিন।`;
-      
-      // For demo purposes, provide a structured response
-      const solution = `**${subject === 'chemistry' ? 'রসায়ন' : 'আইসিটি'} সমাধান:**\n\n${doubt}\n\nএটি একটি গুরুত্বপূর্ণ প্রশ্ন। আমি এর বিস্তারিত সমাধান দিচ্ছি:\n\n1. প্রথমে মূল ধারণা বুঝতে হবে\n2. তারপর ধাপে ধাপে সমাধান করতে হবে\n3. অনুশীলনের মাধ্যমে দক্ষতা বৃদ্ধি করতে হবে\n\n**মনে রাখবেন:** নিয়মিত অনুশীলন ও বোঝার চেষ্টা করলেই আপনি এই বিষয়ে দক্ষ হয়ে উঠবেন।`;
+      const solution = await praggoAI.solveDoubt(doubt, subject, userId, 'student');
       
       res.json({ solution });
     } catch (error) {
-      console.error("Error solving doubt:", error);
-      res.status(500).json({ error: "Failed to solve doubt" });
+      console.error("Praggo AI doubt solving error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Praggo AI সেবায় সমস্যা হয়েছে।";
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -1529,70 +1532,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Question Generation (Demo mode - temporarily allow without auth for testing)
-  app.post("/api/ai/generate-questions", async (req: any, res) => {
+  // Praggo AI Question Generation for teachers
+  app.post("/api/ai/generate-questions", requireAuth, async (req: any, res) => {
     try {
       const { 
         subject, 
         examType = 'academic', 
         classLevel, 
-        paper = '', 
         chapter, 
         questionType = 'mcq', 
-        questionLanguage = 'bengali', 
         difficulty = 'medium', 
-        count = 5, 
-        aiProvider = 'gemini' 
+        count = 5
       } = req.body;
 
-      const { generateQuestions } = await import('./anthropic');
-      const { generateQuestionsWithGemini } = await import('./gemini');
+      const userId = (req as any).session.user.id;
+      const user = await storage.getUser(userId);
 
-      let questions;
-      if (aiProvider === 'gemini') {
-        questions = await generateQuestionsWithGemini(
-          subject, 
-          examType, 
-          classLevel, 
-          paper, 
-          chapter, 
-          questionType, 
-          questionLanguage, 
-          difficulty, 
-          count
-        );
-      } else {
-        // Fallback to old format for Claude
-        questions = await generateQuestions(chapter, subject, count, difficulty);
+      // Only allow teachers to generate questions
+      if (!user || user.role !== 'teacher') {
+        return res.status(403).json({ error: "Only teachers can use Praggo AI question generator" });
       }
+
+      if (!subject || !chapter) {
+        return res.status(400).json({ error: "Subject and chapter are required" });
+      }
+
+      const { praggoAI } = await import('./praggoAI');
+      
+      const questions = await praggoAI.generateQuestions(
+        subject, examType, classLevel, chapter, questionType, difficulty, count, userId, 'teacher'
+      );
 
       res.json({ questions });
     } catch (error) {
-      console.error("Error generating questions:", error);
-      res.status(500).json({ message: "Failed to generate questions" });
+      console.error("Praggo AI question generation error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Praggo AI প্রশ্ন তৈরিতে সমস্যা হয়েছে।";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
-  // AI Doubt Solving (Demo mode - temporarily allow without auth for testing)
-  app.post("/api/ai/solve-doubt", async (req: any, res) => {
+
+  // Praggo AI usage statistics
+  app.get("/api/ai/usage-stats", requireAuth, async (req: any, res) => {
     try {
-
-      const { doubt, subject, aiProvider = 'claude' } = req.body;
-
-      const { solveDoubt } = await import('./anthropic');
-      const { solveDoubtWithGemini } = await import('./gemini');
-
-      let solution;
-      if (aiProvider === 'gemini') {
-        solution = await solveDoubtWithGemini(doubt, subject);
-      } else {
-        solution = await solveDoubt(doubt, subject);
-      }
-
-      res.json({ solution });
+      const userId = (req as any).session.user.id;
+      const { praggoAI } = await import('./praggoAI');
+      
+      const stats = await praggoAI.getUsageStats(userId);
+      res.json(stats);
     } catch (error) {
-      console.error("Error solving doubt:", error);
-      res.status(500).json({ message: "Failed to solve doubt" });
+      console.error("Error fetching Praggo AI usage stats:", error);
+      res.status(500).json({ error: "Failed to fetch usage statistics" });
     }
   });
 

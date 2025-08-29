@@ -69,6 +69,7 @@ export interface IStorage {
   createBatch(batch: InsertBatch): Promise<Batch>;
   getAllBatches(): Promise<Batch[]>;
   getBatchById(id: string): Promise<Batch | undefined>;
+  getBatch(id: string): Promise<Batch | undefined>; // Alias for getBatchById
   getBatchByCode(batchCode: string): Promise<Batch | undefined>;
   updateBatch(id: string, data: Partial<InsertBatch>): Promise<Batch>;
   deleteBatch(id: string): Promise<void>;
@@ -81,7 +82,7 @@ export interface IStorage {
     totalCost: number;
     smsByType: Array<{ type: string; count: number; cost: number }>;
     recentLogs: SmsLog[];
-    monthlyStats: Array<{ month: string; count: number; cost: number }>;
+    monthlyBreakdown: Array<{ month: string; count: number; cost: number }>;
   }>;
   
   // Exam operations
@@ -782,7 +783,7 @@ export class DatabaseStorage implements IStorage {
       totalCost,
       smsByType,
       recentLogs,
-      monthlyStats
+      monthlyBreakdown: monthlyStats
     };
   }
 
@@ -1028,6 +1029,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(batches.id, batchId))
       .limit(1);
     return batchData[0];
+  }
+
+  // Alias for getBatch - for consistency
+  async getBatchById(id: string): Promise<Batch | undefined> {
+    return this.getBatch(id);
   }
 }
 

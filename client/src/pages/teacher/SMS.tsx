@@ -36,6 +36,7 @@ export default function SMS() {
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [batchFilter, setBatchFilter] = useState<string>("all");
   const [recipientType, setRecipientType] = useState<string>("students");
+  const [smsType, setSmsType] = useState<string>("notice");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -155,7 +156,7 @@ export default function SMS() {
     sendSMSMutation.mutate({
       message,
       recipients,
-      smsType: "general",
+      smsType: smsType,
     });
   };
 
@@ -218,6 +219,41 @@ export default function SMS() {
                     <div className="flex justify-between text-sm text-gray-500 mt-1">
                       <span>{messageLength}/500 characters</span>
                       <span>{Math.ceil(messageLength / 160)} SMS units</span>
+                    </div>
+                  </div>
+
+                  {/* SMS Type Selection */}
+                  <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="font-medium">SMS Type</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button
+                        variant={smsType === "notice" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSmsType("notice")}
+                        className="w-full"
+                      >
+                        📢 Notice
+                      </Button>
+                      <Button
+                        variant={smsType === "attendance" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSmsType("attendance")}
+                        className="w-full"
+                      >
+                        📅 Attendance
+                      </Button>
+                      <Button
+                        variant={smsType === "exam_results" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSmsType("exam_results")}
+                        className="w-full"
+                      >
+                        📊 Exam Results
+                      </Button>
                     </div>
                   </div>
 

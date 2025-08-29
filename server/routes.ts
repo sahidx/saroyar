@@ -1943,13 +1943,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get exam details
-      const exam = await storage.getExam(examId);
+      const exam = await storage.getExamById(examId);
       if (!exam) {
         return res.status(404).json({ error: 'Exam not found' });
       }
 
       // Get exam submissions
-      const submissions = await storage.getExamSubmissions(examId);
+      const submissions = await storage.getSubmissionsByExam(examId);
       if (submissions.length === 0) {
         return res.status(400).json({ error: 'No submissions found for this exam' });
       }
@@ -2022,7 +2022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get batch details
-      const batch = await storage.getBatch(batchId);
+      const batch = await storage.getBatchById(batchId);
       if (!batch) {
         return res.status(404).json({ error: 'Batch not found' });
       }
@@ -2731,7 +2731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pendingExams: totalExams - completedExams,
         averageScore,
         upcomingExams: batchExams.filter(exam => new Date(exam.examDate) > new Date()).length,
-        subject: student.batch?.subject || 'general'
+        subject: student.batchId || 'general'
       });
     } catch (error) {
       console.error('Error fetching student stats:', error);

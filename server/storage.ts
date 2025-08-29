@@ -174,7 +174,7 @@ export interface IStorage {
   // Praggo AI Key operations
   getAllPraggoAIKeys(): Promise<PraggoAIKey[]>;
   getPraggoAIKeyByName(keyName: string): Promise<PraggoAIKey | undefined>;
-  upsertPraggoAIKey(keyName: string, keyIndex: number, isEnabled?: boolean): Promise<PraggoAIKey>;
+  upsertPraggoAIKey(keyName: string, keyValue: string, keyIndex: number, isEnabled?: boolean): Promise<PraggoAIKey>;
   updatePraggoAIKeyStatus(keyName: string, status: 'active' | 'quota_exceeded' | 'error' | 'disabled', lastError?: string): Promise<PraggoAIKey>;
   getActivePraggoAIKeys(): Promise<PraggoAIKey[]>;
 }
@@ -892,11 +892,12 @@ export class DatabaseStorage implements IStorage {
     return key;
   }
 
-  async upsertPraggoAIKey(keyName: string, keyIndex: number, isEnabled: boolean = true): Promise<PraggoAIKey> {
+  async upsertPraggoAIKey(keyName: string, keyValue: string, keyIndex: number, isEnabled: boolean = true): Promise<PraggoAIKey> {
     const [key] = await db
       .insert(praggoAIKeys)
       .values({
         keyName,
+        keyValue,
         keyIndex,
         isEnabled,
         status: 'active',
@@ -905,6 +906,8 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({
         target: praggoAIKeys.keyName,
         set: {
+          keyValue,
+          keyIndex,
           isEnabled,
           updatedAt: new Date(),
         },

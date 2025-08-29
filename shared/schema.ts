@@ -578,7 +578,8 @@ export const insertTeacherProfileSchema = createInsertSchema(teacherProfiles).om
 // Praggo AI API Keys table for rotation and usage tracking
 export const praggoAIKeys = pgTable("praggo_ai_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  keyName: varchar("key_name").notNull().unique(), // GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.
+  keyName: varchar("key_name").notNull().unique(), // GEMINI_API_KEY, GEMINI_API_KEY_2, etc.
+  keyValue: text("key_value").notNull(), // The actual API key value
   keyIndex: integer("key_index").notNull().unique(), // 0, 1, 2, 3, 4, 5, 6
   status: apiKeyStatusEnum("status").notNull().default('active'),
   dailyUsageCount: integer("daily_usage_count").default(0),

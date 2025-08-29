@@ -2770,10 +2770,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📋 Loading Praggo AI keys for teacher...');
 
-      // Simple approach - check environment variables only  
+      // Load from database and sync with environment
+      const dbKeys = await storage.getAllPraggoAIKeys();
+      
       const keyNames = [
         'GEMINI_API_KEY',
-        'GEMINI_API_KEY_1',
         'GEMINI_API_KEY_2',
         'GEMINI_API_KEY_3',
         'GEMINI_API_KEY_4',
@@ -2783,7 +2784,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       const keys = keyNames.map((keyName, index) => {
-        const envKey = process.env[keyName];
+        // First check database for stored key
+        const dbKey = dbKeys.find(k => k.keyName === keyName);
+        let envKey = process.env[keyName];
+        
+        // If key exists in database but not in environment, restore it
+        if (dbKey && dbKey.keyValue && (!envKey || envKey.length < 10)) {
+          process.env[keyName] = dbKey.keyValue;
+          envKey = dbKey.keyValue;
+          console.log(`🔄 Restored API key from database: ${keyName}`);
+        }
+        
         const hasValidKey = !!(envKey && envKey.trim().length > 10);
         return {
           id: index + 1,
@@ -2839,8 +2850,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Simple environment-based approach - no complex database tracking
-      console.log('💾 API keys saved to environment successfully');
+      // Save keys to database for persistence  
+      try {
+        for (const keyData of keys) {
+          if (!keyData.key || keyData.key.trim().length < 10) continue;
+          
+          const keyIndex = keyData.id - 1; // Convert 1-based ID to 0-based index
+          await storage.upsertPraggoAIKey(keyData.name, keyData.key, keyIndex, true);
+          console.log('💾 Saved key to database:', keyData.name);
+        }
+        console.log('💾 All keys saved to database successfully');
+      } catch (dbError) {
+        console.warn('⚠️ Database save failed:', dbError.message);
+      }
 
       console.log(`🎯 Praggo AI Keys Saved: ${savedCount} keys configured successfully!`);
 

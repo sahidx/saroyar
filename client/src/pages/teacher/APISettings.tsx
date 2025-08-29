@@ -46,12 +46,22 @@ export default function APISettings() {
         const keys = await response.json();
         
         if (response.ok && keys && Array.isArray(keys)) {
-          setApiKeys(keys);
+          // Map API response to local state with proper key values
+          const mappedKeys = keys.map((apiKey: any) => ({
+            id: apiKey.id,
+            name: apiKey.name, 
+            key: '', // Never store actual key in frontend state
+            status: apiKey.status,
+            hasKey: apiKey.hasKey,
+            maskedKey: apiKey.maskedKey,
+            showKey: false
+          }));
+          setApiKeys(mappedKeys);
           console.log('✅ Loaded API keys:', keys.filter((k: any) => k.hasKey).length, 'active');
         } else {
           console.log('⚠️ Unexpected response format:', keys);
           // Handle non-array response by showing default keys
-          setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive' })));
+          setApiKeys(prev => prev.map(item => ({ ...item, hasKey: false, status: 'inactive', key: '' })));
         }
       } catch (error) {
         console.error('Error loading API keys:', error);

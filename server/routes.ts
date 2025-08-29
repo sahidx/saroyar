@@ -6,6 +6,7 @@ import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoti
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { setupAuth, getSession } from "./replitAuth";
 
 // Helper function to get formatted time ago with dynamic precision
 function getTimeAgo(date: Date): string {
@@ -86,7 +87,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("📝 Note: You can manually add courses through the course management interface.");
   }
 
-  // Optimized session-based auth setup
+  // Setup authentication routes (login, logout, callback) - includes session setup
+  try {
+    setupAuth(app);
+  } catch (error) {
+    console.log("⚠️  Replit authentication setup skipped - using session-based auth instead");
+    console.log("📝 Note: This is normal for local development without Replit environment variables.");
+  }
+
+  // Additional session setup for internal use
   app.use(session({
     secret: process.env.SESSION_SECRET || 'default-secret',
     resave: false,

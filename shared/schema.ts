@@ -69,6 +69,7 @@ export const batches = pgTable("batches", {
 // User storage table for real coaching center
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username"), // Added username field to match database
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),

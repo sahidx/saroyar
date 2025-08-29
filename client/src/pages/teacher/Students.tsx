@@ -11,7 +11,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+
+// Student form validation schema
+const studentFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phoneNumber: z.string().min(10, "Valid phone number required"),
+  parentPhoneNumber: z.string().min(10, "Valid parent phone number required"),
+  batchId: z.string().min(1, "Please select a batch"),
+  email: z.string().email("Valid email required").optional().or(z.literal("")),
+  institution: z.string().min(1, "Institution is required"),
+  classLevel: z.string().min(1, "Please select class level"),
+});
 
 interface AddStudentFormProps {
   isDarkMode: boolean;
@@ -167,6 +181,7 @@ function CreateBatchForm({ isDarkMode, onSubmit, isLoading }: CreateBatchFormPro
 
 function AddStudentForm({ isDarkMode, onSubmit, batches, isLoading }: AddStudentFormProps) {
   const form = useForm({
+    resolver: zodResolver(studentFormSchema),
     defaultValues: {
       firstName: '',
       lastName: '',

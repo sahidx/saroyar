@@ -569,9 +569,13 @@ export class DatabaseStorage implements IStorage {
     // Generate student ID if not provided
     const studentId = student.studentId || await this.generateStudentId();
     
+    // Generate username from first name + student ID
+    const username = `${(student.firstName || '').toLowerCase().replace(/\s+/g, '')}_${studentId}`;
+    
     const [newStudent] = await db.insert(users).values({
       ...student,
       studentId,
+      username, // Add username field
       role: 'student',
       isActive: true
     }).returning();

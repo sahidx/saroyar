@@ -25,6 +25,7 @@ const studentFormSchema = z.object({
   email: z.string().email("Valid email required").optional().or(z.literal("")),
   institution: z.string().min(1, "Institution is required"),
   classLevel: z.string().min(1, "Please select class level"),
+  password: z.string().min(4, "Password must be at least 4 characters").optional().or(z.literal("")),
 });
 
 interface AddStudentFormProps {
@@ -190,7 +191,8 @@ function AddStudentForm({ isDarkMode, onSubmit, batches, isLoading }: AddStudent
       batchId: '',
       email: '',
       institution: '',
-      classLevel: ''
+      classLevel: '',
+      password: ''
     }
   });
 
@@ -317,6 +319,28 @@ function AddStudentForm({ isDarkMode, onSubmit, batches, isLoading }: AddStudent
                   <SelectItem value="12">Class 12</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>
+                Student Password 
+                <span className="text-xs text-gray-500 ml-2">(Leave empty to auto-generate)</span>
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  type="text"
+                  placeholder="Enter custom password or leave empty" 
+                  className={isDarkMode ? 'bg-slate-700 border-cyan-400/30 text-white' : 'bg-white'} 
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

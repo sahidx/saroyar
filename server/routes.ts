@@ -8,6 +8,16 @@ import { db } from "./db";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { setupAuth, getSession } from "./replitAuth";
 
+// Helper function to generate random password
+function generateRandomPassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let password = '';
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 // Helper function to get formatted time ago with dynamic precision
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -1300,6 +1310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new student (for teacher)
   app.post("/api/students", async (req: any, res) => {
     try {
+      // Get teacher ID from session
+      const teacherId = req.session?.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       // Add role to the request data before validation
       const requestData = {
         ...req.body,
@@ -1308,20 +1324,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const studentData = insertStudentSchema.parse(requestData);
       
-      // Generate student password
-      const studentPassword = storage.generateStudentPassword();
+      // Use custom password if provided, otherwise generate one
+      const studentPassword = studentData.password || generateRandomPassword();
       
       const newStudent = await storage.createStudent({
         ...studentData,
         studentPassword,
+        password: studentPassword,
         role: 'student'
       });
       
-      // Log activity
+      // Log activity with proper userId
       await storage.logActivity({
         type: 'student_created',
         message: `New student ${newStudent.firstName} ${newStudent.lastName} added to batch ${studentData.batchId}`,
         icon: '👨‍🎓',
+        userId: teacherId, // The teacher performing the action
         relatedUserId: newStudent.id
       });
       

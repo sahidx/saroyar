@@ -417,21 +417,21 @@ export default function SMS() {
             {/* SMS Info Panel */}
             <div className="lg:col-span-1">
               <div className="space-y-6">
-                {/* Credits Card */}
+                {/* SMS Info Card */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      SMS Credits
+                      <Send className="h-5 w-5" />
+                      SMS Information
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                        {smsCredits.toLocaleString()}
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        ∞
                       </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Available Credits
+                        Unlimited SMS
                       </p>
                     </div>
                     
@@ -441,23 +441,23 @@ export default function SMS() {
                         <span className="font-medium">{selectedStudents.length}</span>
                       </div>
                       <div className="flex justify-between text-sm mt-1">
-                        <span>Estimated Cost:</span>
-                        <span className="font-medium">{estimatedCost} credits</span>
+                        <span>SMS to Send:</span>
+                        <span className="font-medium">{estimatedCost} messages</span>
                       </div>
                       <div className="flex justify-between text-sm mt-1">
-                        <span>Remaining After:</span>
+                        <span>Status:</span>
                         <span className="font-medium text-green-600 dark:text-green-400">
-                          {smsCredits - estimatedCost}
+                          Ready to Send
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <p className="text-sm text-blue-600 dark:text-blue-400 text-center">
-                        📱 SMS Balance: {balanceLoading ? 'Loading...' : smsBalance?.balance || 'N/A'}
+                    <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <p className="text-sm text-green-600 dark:text-green-400 text-center">
+                        📱 No Credit Limit - Send as many SMS as needed
                       </p>
                       <p className="text-xs text-gray-500 text-center mt-1">
-                        Current BulkSMS account balance
+                        Usage tracked for manual collection
                       </p>
                     </div>
                   </CardContent>

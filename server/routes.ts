@@ -1656,15 +1656,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const smsCount = recipients.length;
-      
-      // Check if user has enough SMS credits
-      if (user.smsCredits < smsCount) {
-        return res.status(400).json({ 
-          message: `Insufficient SMS credits. You have ${user.smsCredits} credits but need ${smsCount}.`,
-          currentCredits: user.smsCredits,
-          required: smsCount
-        });
-      }
 
       // Import BulkSMS service
       const { bulkSMSService } = await import('./bulkSMS');
@@ -1680,16 +1671,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send bulk SMS using real API
       const result = await bulkSMSService.sendBulkSMS(smsRecipients, message, userId, smsType);
-      
-      // Update user's SMS credits
-      if (result.sentCount > 0) {
-        const newCreditBalance = user.smsCredits - result.totalCreditsUsed;
-        await storage.updateUser(userId, { 
-          smsCredits: Math.max(0, newCreditBalance) 
-        });
-        
-        console.log(`💳 Updated SMS credits: ${user.smsCredits} -> ${newCreditBalance} (used ${result.totalCreditsUsed})`);
-      }
 
       const response = {
         success: result.success,
@@ -1699,8 +1680,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sentCount: result.sentCount,
         failedCount: result.failedCount,
         totalRecipients: recipients.length,
-        remainingCredits: Math.max(0, user.smsCredits - result.totalCreditsUsed),
-        creditsUsed: result.totalCreditsUsed,
         failedMessages: result.failedMessages
       };
       

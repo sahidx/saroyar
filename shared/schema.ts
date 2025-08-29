@@ -71,7 +71,6 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: varchar("username"), // Added username field to match database
   password: varchar("password"), // General password field for authentication
-  email: varchar("email"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -88,9 +87,6 @@ export const users = pgTable("users", {
   institution: varchar("institution"), // School/College name
   classLevel: varchar("class_level"), // Class 9, 10, 11, 12, etc.
   batchId: varchar("batch_id"),
-  
-  // Teacher-specific fields
-  smsCredits: integer("sms_credits").default(0),
   
   // Authentication
   isActive: boolean("is_active").default(true),
@@ -481,7 +477,6 @@ export const insertBatchSchema = createInsertSchema(batches).omit({
 
 export const insertStudentSchema = createInsertSchema(users).omit({
   id: true,
-  smsCredits: true,
   profileImageUrl: true,
   createdAt: true,
   updatedAt: true,

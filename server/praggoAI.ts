@@ -223,7 +223,22 @@ class PraggoAIService {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
-        const result = response.response.text();
+        // Check if response exists and has expected structure
+        if (!response) {
+          throw new Error('Gemini API returned no response');
+        }
+
+        let result;
+        if (response.response && response.response.text) {
+          result = response.response.text();
+        } else if (response.text) {
+          result = response.text();
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+          result = response.candidates[0].content.parts[0].text;
+        } else {
+          console.error('Unexpected Gemini API response structure:', JSON.stringify(response, null, 2));
+          throw new Error('Gemini API returned invalid response structure');
+        }
         const processingTime = Date.now() - startTime;
         const responseLength = result.length;
 

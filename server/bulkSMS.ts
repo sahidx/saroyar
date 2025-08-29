@@ -29,16 +29,12 @@ interface BulkSMSResult {
 export class BulkSMSService {
   private apiKey: string;
   private baseUrl = 'http://bulksmsbd.net/api';
-  private senderId = 'Random'; // Using the provided sender ID
+  private senderId = 'Random'; // Exact sender ID as per API format
 
   constructor() {
-    // Use the new API key provided
-    this.apiKey = process.env.BULKSMS_API_KEY || 'gsOKLO6XtKsANCvgPHNt';
-    if (!this.apiKey) {
-      console.warn('⚠️ BULKSMS_API_KEY not found in environment variables');
-    } else {
-      console.log('📱 BulkSMS Bangladesh API initialized successfully with key:', this.apiKey);
-    }
+    // Use the exact API key provided: gsOKLO6XtKsANCvgPHNt
+    this.apiKey = 'gsOKLO6XtKsANCvgPHNt';
+    console.log('📱 BulkSMS Bangladesh API initialized with key:', this.apiKey);
   }
 
   // Send single SMS
@@ -50,9 +46,10 @@ export class BulkSMSService {
       // URL encode the message for special characters
       const encodedMessage = encodeURIComponent(message);
       
-      const apiUrl = `${this.baseUrl}/smsapi?api_key=${this.apiKey}&type=text&number=${formattedNumber}&senderid=${this.senderId}&message=${encodedMessage}`;
+      // Use exact API format as provided: http://bulksmsbd.net/api/smsapi?api_key=gsOKLO6XtKsANCvgPHNt&type=text&number=Receiver&senderid=Random&message=TestSMS
+      const apiUrl = `http://bulksmsbd.net/api/smsapi?api_key=${this.apiKey}&type=text&number=${formattedNumber}&senderid=${this.senderId}&message=${encodedMessage}`;
       
-      console.log(`📤 Sending SMS to ${formattedNumber}`);
+      console.log(`📤 Sending SMS to ${formattedNumber} using URL: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -62,9 +59,10 @@ export class BulkSMSService {
       });
       
       const responseText = await response.text();
+      console.log(`📨 SMS API Response: ${responseText}`);
       
       // Parse response code (BulkSMS returns plain text with response codes)
-      const responseCode = parseInt(responseText.trim());
+      const responseCode = parseInt(responseText.trim()) || 0;
       
       return this.parseResponse(responseCode, responseText);
     } catch (error) {

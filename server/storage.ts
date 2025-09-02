@@ -1163,6 +1163,67 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(questionBankItems.id, itemId));
   }
+
+  // New hierarchical question bank methods
+  async getQuestionBankItems(filter: { classLevel: string; subject: string; paper?: string; category: string; chapter: string }): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(questionBankItems)
+        .where(and(
+          eq(questionBankItems.chapter, filter.chapter),
+          eq(questionBankItems.isActive, true)
+        ))
+        .orderBy(questionBankItems.order, questionBankItems.createdAt);
+    } catch (error) {
+      console.error('Error fetching question bank items:', error);
+      return [];
+    }
+  }
+
+  async createQuestionBankItem(data: {
+    classLevel: string;
+    subject: string;
+    paper?: string;
+    category: string;
+    chapter: string;
+    title: string;
+    description?: string;
+    resourceUrl: string;
+    resourceType: string;
+    createdBy: string;
+  }): Promise<any> {
+    try {
+      // Create a simple category ID
+      const categoryId = `${data.classLevel}-${data.subject}-${data.paper || 'general'}-${data.category}`;
+      
+      const [item] = await db.insert(questionBankItems).values({
+        categoryId,
+        title: data.title,
+        chapter: data.chapter,
+        description: data.description,
+        resourceType: data.resourceType as any,
+        resourceUrl: data.resourceUrl,
+        createdBy: data.createdBy
+      }).returning();
+      
+      return item;
+    } catch (error) {
+      console.error('Error creating question bank item:', error);
+      throw error;
+    }
+  }
+
+  async incrementQuestionBankDownload(itemId: string): Promise<void> {
+    try {
+      await db.update(questionBankItems)
+        .set({ downloadCount: sql`${questionBankItems.downloadCount} + 1` })
+        .where(eq(questionBankItems.id, itemId));
+    } catch (error) {
+      console.error('Error incrementing download count:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -3442,6 +3442,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Question Bank API Routes for NCTB Structure
   
+  // Get question bank items with filtering
+  app.get('/api/question-bank/items', async (req, res) => {
+    try {
+      const { classLevel, subject, paper, category, chapter } = req.query;
+      
+      if (!classLevel || !subject || !category || !chapter) {
+        return res.status(400).json({ message: 'Missing required parameters' });
+      }
+      
+      const items = await storage.getQuestionBankItems({
+        classLevel: classLevel as string,
+        subject: subject as string,
+        paper: paper as string,
+        category: category as string,
+        chapter: chapter as string
+      });
+      
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching question bank items:', error);
+      res.status(500).json({ message: 'Failed to fetch items' });
+    }
+  });
+
+  // Add new question bank item
+  app.post('/api/question-bank/items', async (req, res) => {
+    try {
+      const { classLevel, subject, paper, category, chapter, title, description, driveLink, questionType } = req.body;
+      
+      if (!classLevel || !subject || !category || !chapter || !title || !driveLink) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      const newItem = await storage.createQuestionBankItem({
+        classLevel,
+        subject,
+        paper: paper || null,
+        category,
+        chapter,
+        title,
+        description: description || null,
+        resourceUrl: driveLink,
+        resourceType: questionType || 'pdf',
+        createdBy: 'teacher-belal-sir'
+      });
+      
+      res.json(newItem);
+    } catch (error) {
+      console.error('Error creating question bank item:', error);
+      res.status(500).json({ message: 'Failed to create item' });
+    }
+  });
+
+  // Delete question bank item
+  app.delete('/api/question-bank/items/:itemId', async (req, res) => {
+    try {
+      const { itemId } = req.params;
+      await storage.deleteQuestionBankItem(itemId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting question bank item:', error);
+      res.status(500).json({ message: 'Failed to delete item' });
+    }
+  });
+
+  // Track download for question bank item
+  app.post('/api/question-bank/items/:itemId/download', async (req, res) => {
+    try {
+      const { itemId } = req.params;
+      await storage.incrementQuestionBankDownload(itemId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error tracking download:', error);
+      res.status(500).json({ message: 'Failed to track download' });
+    }
+  });
+
   // Get all question bank categories
   app.get("/api/question-bank/categories", async (req: any, res) => {
     try {

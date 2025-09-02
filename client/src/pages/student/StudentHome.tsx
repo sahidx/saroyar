@@ -114,12 +114,12 @@ export default function StudentHome() {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mobile-emergency-override">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsDarkMode(!isDarkMode)}
-                  className={`w-9 h-9 ${isDarkMode 
+                  className={`responsive-button w-9 h-9 ${isDarkMode 
                     ? 'hover:bg-slate-700 text-yellow-400' 
                     : 'hover:bg-gray-100 text-gray-600'
                   }`}

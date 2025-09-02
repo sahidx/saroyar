@@ -60,14 +60,14 @@ export function Sidebar({ className }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo and Brand */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <GraduationCap className="text-white text-lg" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Belal Sir</h1>
-            <p className="text-sm text-gray-500">Chemistry & ICT Care</p>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Belal Sir</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Chemistry & ICT Care</p>
           </div>
         </div>
       </div>
@@ -83,10 +83,10 @@ export function Sidebar({ className }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors",
+                "responsive-button flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors",
                 isActive 
                   ? "bg-primary text-white" 
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
               data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
               onClick={() => setIsMobileOpen(false)}
@@ -104,7 +104,7 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
           <img
             src={(user as any)?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150'}
@@ -113,16 +113,16 @@ export function Sidebar({ className }: SidebarProps) {
             data-testid="user-profile-image"
           />
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-900" data-testid="user-name">
+            <p className="text-sm font-medium text-gray-900 dark:text-white" data-testid="user-name">
               {(user as any)?.firstName} {(user as any)?.lastName}
             </p>
-            <p className="text-xs text-gray-500 capitalize" data-testid="user-role">
+            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize" data-testid="user-role">
               {(user as any)?.role}
             </p>
           </div>
           <button 
             onClick={handleLogout}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="responsive-button text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
             data-testid="logout-button"
           >
             <LogOut className="w-4 h-4" />

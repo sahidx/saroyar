@@ -115,7 +115,7 @@ function AIQuestionMaker({ isDarkMode }: AIQuestionMakerProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mobile-adaptive-grid">
               <div className="space-y-2">
                 <Label className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>Subject</Label>
                 <Select onValueChange={(value) => form.setValue('subject', value)}>
@@ -363,8 +363,8 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
       <CardContent className="space-y-6">
         
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-slate-900/50' : 'bg-gray-50'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mobile-adaptive-grid">
+          <div className={`mobile-dashboard-card ${isDarkMode ? 'bg-slate-900/50 dark:bg-card' : 'bg-gray-50'}`}>
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-cyan-600/20' : 'bg-cyan-100'}`}>
                 <Send className={`w-5 h-5 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
@@ -372,7 +372,7 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
               <div>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Sent</p>
                 <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  {smsStats.totalSent}
+                  {(smsStats as any)?.totalSent || 0}
                 </p>
               </div>
             </div>
@@ -386,7 +386,7 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
               <div>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Cost</p>
                 <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  ৳{(smsStats.totalCost / 100).toFixed(2)}
+                  ৳{((smsStats as any)?.totalCost / 100 || 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -400,7 +400,7 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
               <div>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Avg. Cost/SMS</p>
                 <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  ৳{smsStats.totalSent > 0 ? ((smsStats.totalCost / smsStats.totalSent) / 100).toFixed(2) : '0.39'}
+                  ৳{(smsStats as any)?.totalSent > 0 ? (((smsStats as any)?.totalCost / (smsStats as any)?.totalSent) / 100).toFixed(2) : '0.39'}
                 </p>
               </div>
             </div>
@@ -408,13 +408,13 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
         </div>
 
         {/* SMS by Type */}
-        {smsStats.smsByType && smsStats.smsByType.length > 0 && (
+        {(smsStats as any)?.smsByType && (smsStats as any)?.smsByType.length > 0 && (
           <div>
             <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               SMS by Type
             </h4>
             <div className="space-y-3">
-              {smsStats.smsByType.map((typeData: any, index: number) => (
+              {((smsStats as any)?.smsByType || []).map((typeData: any, index: number) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className={isDarkMode ? 'border-cyan-400/30 text-cyan-300' : 'border-gray-300'}>
@@ -434,13 +434,13 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
         )}
 
         {/* Recent SMS Logs */}
-        {smsStats.recentLogs && smsStats.recentLogs.length > 0 && (
+        {(smsStats as any)?.recentLogs && (smsStats as any)?.recentLogs.length > 0 && (
           <div>
             <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Recent SMS Activity
             </h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {smsStats.recentLogs.slice(0, 5).map((log: any, index: number) => (
+              {((smsStats as any)?.recentLogs || []).slice(0, 5).map((log: any, index: number) => (
                 <div 
                   key={index} 
                   className={`p-3 rounded-lg border ${isDarkMode 
@@ -1279,7 +1279,7 @@ export default function TeacherDashboard() {
                     <div className="flex justify-between items-center">
                       <span className="text-white">Active Students</span>
                       <span className="text-cyan-400 font-bold">
-                        {statsLoading ? '...' : `${teacherStats?.totalStudents || 0}/${teacherStats?.totalBatches * 30 || 30}`}
+                        {statsLoading ? '...' : `${(teacherStats as any)?.totalStudents || 0}/${(teacherStats as any)?.totalBatches * 30 || 30}`}
                       </span>
                     </div>
                   </div>
@@ -1296,8 +1296,8 @@ export default function TeacherDashboard() {
                       <div className="text-center py-4">
                         <span className="text-gray-400">Loading...</span>
                       </div>
-                    ) : studentsData && studentsData.length > 0 ? (
-                      studentsData.map((student: any, index: number) => (
+                    ) : studentsData && (studentsData as any)?.length > 0 ? (
+                      (studentsData as any)?.map((student: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">

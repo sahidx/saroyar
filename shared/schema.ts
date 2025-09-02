@@ -605,6 +605,55 @@ export const praggoAIUsage = pgTable("praggo_ai_usage", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Question Bank System - NCTB Based Structure
+export const classLevelEnum = pgEnum('class_level', ['9-10', '11-12']);
+export const paperEnum = pgEnum('paper', ['১ম পত্র', '২য় পত্র']);
+export const questionBankCategoryEnum = pgEnum('question_bank_category', [
+  'board_questions', 
+  'test_paper', 
+  'ndc_admission', 
+  'holy_cross_admission',
+  'board_book_questions',
+  'general_university',
+  'engineering_university', 
+  'medical_university'
+]);
+export const resourceTypeEnum = pgEnum('resource_type', ['pdf', 'google_drive', 'link', 'text']);
+
+// Question Bank Categories Table
+export const questionBankCategories = pgTable("question_bank_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  classLevel: classLevelEnum("class_level").notNull(),
+  subject: subjectEnum("subject").notNull(),
+  paper: paperEnum("paper"), // Only for 11-12, null for 9-10
+  category: questionBankCategoryEnum("category").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Question Bank Items Table
+export const questionBankItems = pgTable("question_bank_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  categoryId: varchar("category_id").notNull().references(() => questionBankCategories.id, { onDelete: 'cascade' }),
+  title: varchar("title").notNull(),
+  chapter: varchar("chapter").notNull(), // Bengali chapter name
+  description: text("description"),
+  resourceType: resourceTypeEnum("resource_type").notNull(),
+  resourceUrl: text("resource_url"), // Google Drive link or other URL
+  content: text("content"), // For text-based content
+  fileSize: varchar("file_size"), // For PDF files
+  downloadCount: integer("download_count").default(0),
+  isActive: boolean("is_active").default(true),
+  order: integer("order").default(0), // For sorting
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas for Praggo AI tables
 export const insertPraggoAIKeySchema = createInsertSchema(praggoAIKeys).omit({
   id: true,
@@ -615,6 +664,19 @@ export const insertPraggoAIKeySchema = createInsertSchema(praggoAIKeys).omit({
 export const insertPraggoAIUsageSchema = createInsertSchema(praggoAIUsage).omit({
   id: true,
   createdAt: true,
+});
+
+// Question Bank Schema Validations
+export const insertQuestionBankCategorySchema = createInsertSchema(questionBankCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertQuestionBankItemSchema = createInsertSchema(questionBankItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Types
@@ -653,3 +715,7 @@ export type InsertPraggoAIKey = z.infer<typeof insertPraggoAIKeySchema>;
 export type PraggoAIKey = typeof praggoAIKeys.$inferSelect;
 export type InsertPraggoAIUsage = z.infer<typeof insertPraggoAIUsageSchema>;
 export type PraggoAIUsage = typeof praggoAIUsage.$inferSelect;
+export type InsertQuestionBankCategory = z.infer<typeof insertQuestionBankCategorySchema>;
+export type QuestionBankCategory = typeof questionBankCategories.$inferSelect;
+export type InsertQuestionBankItem = z.infer<typeof insertQuestionBankItemSchema>;
+export type QuestionBankItem = typeof questionBankItems.$inferSelect;

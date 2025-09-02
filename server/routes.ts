@@ -3423,6 +3423,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Question Bank API Routes for NCTB Structure
+  
+  // Get all question bank categories
+  app.get("/api/question-bank/categories", async (req: any, res) => {
+    try {
+      const categories = await storage.getQuestionBankCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching question bank categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Get question bank categories by filter (class, subject, paper)
+  app.get("/api/question-bank/categories/filter", async (req: any, res) => {
+    try {
+      const { classLevel, subject, paper } = req.query;
+      if (!classLevel || !subject) {
+        return res.status(400).json({ message: "Class level and subject are required" });
+      }
+      
+      const categories = await storage.getQuestionBankCategoriesByFilter(classLevel, subject, paper);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching filtered categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Create new question bank category (Teachers only)
+  app.post("/api/question-bank/categories", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can create categories" });
+      }
+
+      const categoryData = {
+        ...req.body,
+        createdBy: sessionUser.id
+      };
+
+      const category = await storage.createQuestionBankCategory(categoryData);
+      res.json(category);
+    } catch (error) {
+      console.error("Error creating question bank category:", error);
+      res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  // Update question bank category
+  app.put("/api/question-bank/categories/:id", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can update categories" });
+      }
+
+      const { id } = req.params;
+      const category = await storage.updateQuestionBankCategory(id, req.body);
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating question bank category:", error);
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  // Delete question bank category
+  app.delete("/api/question-bank/categories/:id", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can delete categories" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteQuestionBankCategory(id);
+      res.json({ success: true, message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting question bank category:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Get question bank items by category
+  app.get("/api/question-bank/categories/:categoryId/items", async (req: any, res) => {
+    try {
+      const { categoryId } = req.params;
+      const items = await storage.getQuestionBankItems(categoryId);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching question bank items:", error);
+      res.status(500).json({ message: "Failed to fetch items" });
+    }
+  });
+
+  // Get question bank items by category and chapter
+  app.get("/api/question-bank/categories/:categoryId/items/chapter/:chapter", async (req: any, res) => {
+    try {
+      const { categoryId, chapter } = req.params;
+      const items = await storage.getQuestionBankItemsByChapter(categoryId, decodeURIComponent(chapter));
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching question bank items by chapter:", error);
+      res.status(500).json({ message: "Failed to fetch items" });
+    }
+  });
+
+  // Create question bank item (Teachers only)
+  app.post("/api/question-bank/items", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can add items" });
+      }
+
+      const itemData = {
+        ...req.body,
+        createdBy: sessionUser.id
+      };
+
+      const item = await storage.createQuestionBankItem(itemData);
+      res.json(item);
+    } catch (error) {
+      console.error("Error creating question bank item:", error);
+      res.status(500).json({ message: "Failed to create item" });
+    }
+  });
+
+  // Update question bank item
+  app.put("/api/question-bank/items/:id", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can update items" });
+      }
+
+      const { id } = req.params;
+      const item = await storage.updateQuestionBankItem(id, req.body);
+      res.json(item);
+    } catch (error) {
+      console.error("Error updating question bank item:", error);
+      res.status(500).json({ message: "Failed to update item" });
+    }
+  });
+
+  // Delete question bank item
+  app.delete("/api/question-bank/items/:id", requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can delete items" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteQuestionBankItem(id);
+      res.json({ success: true, message: "Item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting question bank item:", error);
+      res.status(500).json({ message: "Failed to delete item" });
+    }
+  });
+
+  // Track download for question bank item
+  app.post("/api/question-bank/items/:id/download", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.incrementDownloadCount(id);
+      res.json({ success: true, message: "Download tracked" });
+    } catch (error) {
+      console.error("Error tracking download:", error);
+      res.status(500).json({ message: "Failed to track download" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

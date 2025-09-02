@@ -14,6 +14,8 @@ import {
   courses,
   teacherProfiles,
   praggoAIKeys,
+  questionBankCategories,
+  questionBankItems,
   type User,
   type UpsertUser,
   type Batch,
@@ -44,6 +46,10 @@ import {
   type InsertTeacherProfile,
   type TeacherProfile,
   type PraggoAIKey,
+  type QuestionBankCategory,
+  type InsertQuestionBankCategory,
+  type QuestionBankItem,
+  type InsertQuestionBankItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, count, avg, and, or, sql } from "drizzle-orm";
@@ -185,6 +191,20 @@ export interface IStorage {
   upsertPraggoAIKey(keyName: string, keyValue: string, keyIndex: number, isEnabled?: boolean): Promise<PraggoAIKey>;
   updatePraggoAIKeyStatus(keyName: string, status: 'active' | 'quota_exceeded' | 'error' | 'disabled', lastError?: string): Promise<PraggoAIKey>;
   getActivePraggoAIKeys(): Promise<PraggoAIKey[]>;
+
+  // Question Bank operations
+  getQuestionBankCategories(): Promise<QuestionBankCategory[]>;
+  getQuestionBankCategoriesByFilter(classLevel: string, subject: string, paper?: string): Promise<QuestionBankCategory[]>;
+  createQuestionBankCategory(categoryData: InsertQuestionBankCategory): Promise<QuestionBankCategory>;
+  updateQuestionBankCategory(id: string, updates: Partial<InsertQuestionBankCategory>): Promise<QuestionBankCategory>;
+  deleteQuestionBankCategory(id: string): Promise<void>;
+  
+  getQuestionBankItems(categoryId: string): Promise<QuestionBankItem[]>;
+  getQuestionBankItemsByChapter(categoryId: string, chapter: string): Promise<QuestionBankItem[]>;
+  createQuestionBankItem(itemData: InsertQuestionBankItem): Promise<QuestionBankItem>;
+  updateQuestionBankItem(id: string, updates: Partial<InsertQuestionBankItem>): Promise<QuestionBankItem>;
+  deleteQuestionBankItem(id: string): Promise<void>;
+  incrementDownloadCount(itemId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1043,6 +1063,105 @@ export class DatabaseStorage implements IStorage {
   // Alias for getBatch - for consistency
   async getBatchById(id: string): Promise<Batch | undefined> {
     return this.getBatch(id);
+  }
+
+  // Question Bank operations
+  async getQuestionBankCategories(): Promise<QuestionBankCategory[]> {
+    return await db
+      .select()
+      .from(questionBankCategories)
+      .where(eq(questionBankCategories.isActive, true))
+      .orderBy(questionBankCategories.classLevel, questionBankCategories.subject, questionBankCategories.category);
+  }
+
+  async getQuestionBankCategoriesByFilter(classLevel: string, subject: string, paper?: string): Promise<QuestionBankCategory[]> {
+    const conditions = [
+      eq(questionBankCategories.isActive, true),
+      eq(questionBankCategories.classLevel, classLevel as any),
+      eq(questionBankCategories.subject, subject as any)
+    ];
+    
+    if (paper) {
+      conditions.push(eq(questionBankCategories.paper, paper as any));
+    }
+
+    return await db
+      .select()
+      .from(questionBankCategories)
+      .where(and(...conditions))
+      .orderBy(questionBankCategories.category);
+  }
+
+  async createQuestionBankCategory(categoryData: InsertQuestionBankCategory): Promise<QuestionBankCategory> {
+    const [category] = await db
+      .insert(questionBankCategories)
+      .values(categoryData)
+      .returning();
+    return category;
+  }
+
+  async updateQuestionBankCategory(id: string, updates: Partial<InsertQuestionBankCategory>): Promise<QuestionBankCategory> {
+    const [category] = await db
+      .update(questionBankCategories)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(questionBankCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deleteQuestionBankCategory(id: string): Promise<void> {
+    await db.delete(questionBankCategories).where(eq(questionBankCategories.id, id));
+  }
+
+  async getQuestionBankItems(categoryId: string): Promise<QuestionBankItem[]> {
+    return await db
+      .select()
+      .from(questionBankItems)
+      .where(and(eq(questionBankItems.categoryId, categoryId), eq(questionBankItems.isActive, true)))
+      .orderBy(questionBankItems.order, questionBankItems.chapter, questionBankItems.createdAt);
+  }
+
+  async getQuestionBankItemsByChapter(categoryId: string, chapter: string): Promise<QuestionBankItem[]> {
+    return await db
+      .select()
+      .from(questionBankItems)
+      .where(and(
+        eq(questionBankItems.categoryId, categoryId),
+        eq(questionBankItems.chapter, chapter),
+        eq(questionBankItems.isActive, true)
+      ))
+      .orderBy(questionBankItems.order, questionBankItems.createdAt);
+  }
+
+  async createQuestionBankItem(itemData: InsertQuestionBankItem): Promise<QuestionBankItem> {
+    const [item] = await db
+      .insert(questionBankItems)
+      .values(itemData)
+      .returning();
+    return item;
+  }
+
+  async updateQuestionBankItem(id: string, updates: Partial<InsertQuestionBankItem>): Promise<QuestionBankItem> {
+    const [item] = await db
+      .update(questionBankItems)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(questionBankItems.id, id))
+      .returning();
+    return item;
+  }
+
+  async deleteQuestionBankItem(id: string): Promise<void> {
+    await db.delete(questionBankItems).where(eq(questionBankItems.id, id));
+  }
+
+  async incrementDownloadCount(itemId: string): Promise<void> {
+    await db
+      .update(questionBankItems)
+      .set({ 
+        downloadCount: sql`${questionBankItems.downloadCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(questionBankItems.id, itemId));
   }
 }
 

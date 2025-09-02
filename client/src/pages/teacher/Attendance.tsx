@@ -67,7 +67,7 @@ export default function Attendance() {
 
   // Fetch students for selected batch
   const { data: students = [], refetch: refetchStudents } = useQuery<Student[]>({
-    queryKey: ['/api/batches', selectedBatch, 'students'],
+    queryKey: [`/api/batches/${selectedBatch}/students`],
     enabled: !!selectedBatch,
   });
 
@@ -212,8 +212,8 @@ export default function Attendance() {
       </header>
 
       <main className="p-6">
-        {/* Selection Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Selection Cards - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {/* Subject Selection */}
           <Card className="border border-orange-200">
             <CardHeader className="pb-3">
@@ -289,9 +289,9 @@ export default function Attendance() {
           </Card>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards - Mobile Optimized */}
         {selectedBatch && students.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
             <Card className="border border-blue-200 bg-blue-50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-blue-800 flex items-center">
@@ -330,28 +330,30 @@ export default function Attendance() {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Mobile Optimized */}
         {selectedBatch && students.length > 0 && (
-          <div className="flex gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-4">
             <Button
               onClick={markAllPresent}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white py-3"
+              size="lg"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              Mark All Present
+              All Present
             </Button>
             <Button
               onClick={markAllAbsent}
               variant="outline"
-              className="border-red-200 text-red-700 hover:bg-red-50"
+              className="border-red-200 text-red-700 hover:bg-red-50 py-3"
+              size="lg"
             >
               <XCircle className="w-4 h-4 mr-2" />
-              Mark All Absent
+              All Absent
             </Button>
           </div>
         )}
 
-        {/* Student Attendance List */}
+        {/* Student Attendance List - Mobile Optimized */}
         {selectedBatch && students.length > 0 && (
           <Card className="border border-gray-200">
             <CardHeader>
@@ -361,72 +363,81 @@ export default function Attendance() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {students.map(student => (
-                  <div key={student.id} className="flex items-center p-4 border rounded-lg bg-gray-50">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
+                  <div key={student.id} className="p-3 border rounded-lg bg-gray-50">
+                    {/* Student Info - Mobile Friendly */}
+                    <div className="flex flex-col space-y-3">
+                      {/* Top Row: Student Details */}
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 text-lg">
                             {student.firstName} {student.lastName}
                           </div>
-                          <div className="text-sm text-gray-600">
-                            ID: {student.studentId}
+                          <div className="text-sm text-gray-600 mt-1">
+                            <div className="flex flex-col sm:flex-row sm:space-x-4">
+                              <span>ID: {student.studentId}</span>
+                              {student.phoneNumber && (
+                                <span className="flex items-center mt-1 sm:mt-0">
+                                  📱 <span className="ml-1 font-mono">{student.phoneNumber}</span>
+                                </span>
+                              )}
+                            </div>
                             {student.parentPhoneNumber && (
-                              <span className="ml-2">📱 {student.parentPhoneNumber}</span>
+                              <div className="flex items-center mt-1 text-blue-600">
+                                👨‍👩‍👧‍👦 <span className="ml-1 font-mono">{student.parentPhoneNumber}</span>
+                              </div>
                             )}
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-4">
-                          {/* Present/Absent Toggle */}
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleAttendanceChange(student.id, 'isPresent', true)}
-                              className={`${
-                                attendanceRecords[student.id]?.isPresent
-                                  ? 'bg-green-600 text-white hover:bg-green-700'
-                                  : 'bg-gray-200 text-gray-600 hover:bg-green-100'
-                              }`}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Present
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAttendanceChange(student.id, 'isPresent', false)}
-                              className={`${
-                                !attendanceRecords[student.id]?.isPresent
-                                  ? 'bg-red-600 text-white hover:bg-red-700'
-                                  : 'bg-gray-200 text-gray-600 hover:bg-red-100'
-                              }`}
-                            >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Absent
-                            </Button>
-                          </div>
-
-                          {/* Status Badge */}
-                          <Badge 
-                            className={
-                              attendanceRecords[student.id]?.isPresent
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : 'bg-red-100 text-red-800 border-red-200'
-                            }
-                          >
-                            {attendanceRecords[student.id]?.isPresent ? 'Present' : 'Absent'}
-                          </Badge>
-                        </div>
+                        {/* Status Badge - Always Visible */}
+                        <Badge 
+                          className={`text-sm px-3 py-1 ${
+                            attendanceRecords[student.id]?.isPresent
+                              ? 'bg-green-100 text-green-800 border-green-200'
+                              : 'bg-red-100 text-red-800 border-red-200'
+                          }`}
+                        >
+                          {attendanceRecords[student.id]?.isPresent ? '✅ Present' : '❌ Absent'}
+                        </Badge>
+                      </div>
+                      
+                      {/* Mobile Optimized Present/Absent Buttons */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="lg"
+                          onClick={() => handleAttendanceChange(student.id, 'isPresent', true)}
+                          className={`w-full text-base py-3 ${
+                            attendanceRecords[student.id]?.isPresent
+                              ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg'
+                              : 'bg-gray-200 text-gray-600 hover:bg-green-100'
+                          }`}
+                        >
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          Present
+                        </Button>
+                        <Button
+                          size="lg"
+                          onClick={() => handleAttendanceChange(student.id, 'isPresent', false)}
+                          className={`w-full text-base py-3 ${
+                            !attendanceRecords[student.id]?.isPresent
+                              ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg'
+                              : 'bg-gray-200 text-gray-600 hover:bg-red-100'
+                          }`}
+                        >
+                          <XCircle className="w-5 h-5 mr-2" />
+                          Absent
+                        </Button>
                       </div>
 
-                      {/* Notes */}
+                      {/* Notes - Collapsible on Mobile */}
                       <div className="mt-2">
                         <Textarea
-                          placeholder="Add notes (optional)..."
+                          placeholder="📝 Add notes (optional)..."
                           value={attendanceRecords[student.id]?.notes || ''}
                           onChange={(e) => handleAttendanceChange(student.id, 'notes', e.target.value)}
-                          className="h-20 text-sm"
+                          className="h-16 text-sm resize-none"
                         />
                       </div>
                     </div>

@@ -95,10 +95,23 @@ async function handleQuestionContent(content: string, source: string): Promise<s
 
   // Check if it's a base64 image
   if (content.startsWith('data:image/')) {
-    // For now, store smaller version for database performance
-    // In production, you'd save to file system or cloud storage
-    if (content.length > 50000) { // 50KB limit for base64 data
-      return content.substring(0, 50000) + '...[IMAGE_TRUNCATED]';
+    try {
+      // Extract image format and data
+      const base64Match = content.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (base64Match) {
+        const [, format, base64Data] = base64Match;
+        
+        // Store only reference for large images to prevent database issues
+        if (base64Data.length > 100000) { // 100KB limit
+          return `IMAGE_REF:${format}:${base64Data.substring(0, 100)}...`; // Store reference only
+        }
+        
+        // Store smaller images directly 
+        return content;
+      }
+    } catch (error) {
+      console.warn('Error processing image:', error);
+      return 'IMAGE_ERROR:Failed to process image';
     }
   }
   
@@ -392,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         examMode: req.body.examMode || 'online',
         questionSource: req.body.questionSource || 'drive_link',
         // Handle large image data by storing as file reference
-        questionContent: await handleQuestionContent(req.body.questionContent, req.body.questionSource),
+        questionContent: await handleQuestionContent(req.body.questionContent || '', req.body.questionSource || 'drive_link'),
         instructions: req.body.instructions || ''
       };
 
@@ -1113,9 +1126,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete existing attendance for this batch and date
       await storage.deleteAttendanceByBatchAndDate(batchId, attendanceDate);
       
+      // Get course ID based on subject and batch
+      let courseId = 'course-1'; // Default fallback
+      try {
+        const courses = await storage.getCoursesBySubject(subject);
+        if (courses.length > 0) {
+          courseId = courses[0].id;
+        }
+      } catch (error) {
+        console.warn('Using fallback course ID:', error);
+      }
+      
       // Create new attendance records
       const attendanceRecords = attendanceData.map((record: any) => ({
         studentId: record.studentId,
+        courseId,
         batchId,
         date: attendanceDate,
         isPresent: record.isPresent,

@@ -42,10 +42,12 @@ export default function StudentAttendance() {
     window.location.href = '/api/logout';
   };
 
-  // Fetch student's attendance data
-  const { data: attendanceData = [], isLoading } = useQuery<AttendanceRecord[]>({
+  // Fetch student's attendance data with auto-refresh
+  const { data: attendanceData = [], isLoading, refetch } = useQuery<AttendanceRecord[]>({
     queryKey: [`/api/attendance/${(user as any)?.id}`],
     enabled: !!user && (user as any)?.role === 'student',
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnWindowFocus: true, // Refresh when user comes back to tab
   });
 
   // Fetch student's batch information

@@ -195,6 +195,7 @@ export const notices = pgTable("notices", {
 export const attendance = pgTable("attendance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => users.id),
+  courseId: varchar("course_id").notNull().references(() => courses.id),
   batchId: varchar("batch_id").notNull().references(() => batches.id),
   date: timestamp("date").notNull(),
   isPresent: boolean("is_present").notNull(),

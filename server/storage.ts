@@ -174,6 +174,7 @@ export interface IStorage {
   createCourse(course: InsertCourse): Promise<Course>;
   getAllCourses(): Promise<Course[]>;
   getActiveCourses(): Promise<Course[]>;
+  getCoursesBySubject(subject: string): Promise<Course[]>;
   getCourseById(id: string): Promise<Course | undefined>;
   updateCourse(id: string, data: Partial<InsertCourse>): Promise<Course>;
   deleteCourse(id: string): Promise<void>;
@@ -945,6 +946,14 @@ export class DatabaseStorage implements IStorage {
     await db.update(courses)
       .set({ isActive: false })
       .where(eq(courses.id, id));
+  }
+
+  async getCoursesBySubject(subject: string): Promise<Course[]> {
+    return await db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.subject, subject), eq(courses.isActive, true)))
+      .orderBy(asc(courses.displayOrder));
   }
 
   // Teacher profile operations

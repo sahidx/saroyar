@@ -385,10 +385,22 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            // Check file size (limit to 2MB)
+                            if (file.size > 2 * 1024 * 1024) {
+                              alert('File too large! Please upload an image smaller than 2MB');
+                              return;
+                            }
+                            
                             // Convert to base64 for storage
                             const reader = new FileReader();
                             reader.onload = () => {
-                              field.onChange(reader.result as string);
+                              const result = reader.result as string;
+                              // Additional size check after base64 conversion
+                              if (result.length > 500000) { // ~500KB base64 limit
+                                alert('Image too large after conversion! Please use a smaller image or compress it');
+                                return;
+                              }
+                              field.onChange(result);
                             };
                             reader.readAsDataURL(file);
                           }

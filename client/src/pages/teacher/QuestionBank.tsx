@@ -58,17 +58,13 @@ const CHAPTERS = {
         'জৈব রসায়ন'
       ]
     },
-    'ict': {
-      'paper-1': [
-        'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
-        'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
-        'তথ্য ও সমাজ'
-      ],
-      'paper-2': [
-        'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
-        'উদীয়মান প্রযুক্তি প্রবণতা'
-      ]
-    }
+    'ict': [
+      'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+      'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
+      'তথ্য ও সমাজ',
+      'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
+      'উদীয়মান প্রযুক্তি প্রবণতা'
+    ]
   }
 };
 
@@ -118,7 +114,10 @@ export default function QuestionBank() {
       return CHAPTERS['9-10'][selectedSubject] || [];
     } else {
       const subject = CHAPTERS['11-12'][selectedSubject];
-      if (subject && selectedPaper) {
+      if (selectedSubject === 'ict') {
+        // ICT doesn't have papers, return chapters directly
+        return subject || [];
+      } else if (subject && selectedPaper) {
         return subject[selectedPaper] || [];
       }
     }
@@ -354,7 +353,7 @@ export default function QuestionBank() {
                   className="h-20 text-lg"
                   onClick={() => {
                     setSelectedSubject('ict');
-                    setCurrentStep(3);
+                    setCurrentStep(4); // Skip paper selection for ICT
                   }}
                 >
                   <div className="text-center">

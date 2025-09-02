@@ -32,9 +32,9 @@ export class BulkSMSService {
   private senderId = 'Random'; // Exact sender ID as per API format
 
   constructor() {
-    // Use the exact API key provided: gsOKLO6XtKsANCvgPHNt
-    this.apiKey = 'gsOKLO6XtKsANCvgPHNt';
-    console.log('📱 BulkSMS Bangladesh API initialized with key:', this.apiKey);
+    // Use API key from environment or fallback to provided key
+    this.apiKey = process.env.BULKSMS_API_KEY || 'gsOKLO6XtKsANCvgPHNt';
+    console.log('📱 BulkSMS Bangladesh API initialized');
   }
 
   // Send single SMS
@@ -49,14 +49,37 @@ export class BulkSMSService {
       // Use exact API format as provided: http://bulksmsbd.net/api/smsapi?api_key=gsOKLO6XtKsANCvgPHNt&type=text&number=Receiver&senderid=Random&message=TestSMS
       const apiUrl = `http://bulksmsbd.net/api/smsapi?api_key=${this.apiKey}&type=text&number=${formattedNumber}&senderid=${this.senderId}&message=${encodedMessage}`;
       
-      console.log(`📤 Sending SMS to ${formattedNumber} using URL: ${apiUrl}`);
+      console.log(`📤 Sending SMS to ${formattedNumber}`);
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'BelalSir-ChemistryICT/1.0'
-        }
-      });
+      // Try GET first, then POST as backup (both supported per user specifications)
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'BelalSir-ChemistryICT/1.0'
+          }
+        });
+      } catch (getError) {
+        // Fallback to POST method if GET fails
+        console.log('📤 GET failed, trying POST method...');
+        const postData = new URLSearchParams({
+          api_key: this.apiKey,
+          type: 'text',
+          number: formattedNumber,
+          senderid: this.senderId,
+          message: message
+        });
+        
+        response = await fetch(`${this.baseUrl}/smsapi`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'BelalSir-ChemistryICT/1.0'
+          },
+          body: postData
+        });
+      }
       
       const responseText = await response.text();
       console.log(`📨 SMS API Response: ${responseText}`);
@@ -168,19 +191,42 @@ export class BulkSMSService {
     return result;
   }
 
-  // Check SMS balance
+  // Check SMS balance using the exact API provided
   async checkBalance(): Promise<{ success: boolean; balance?: number; message: string }> {
     try {
+      // Use exact balance API as provided: http://bulksmsbd.net/api/getBalanceApi?api_key=gsOKLO6XtKsANCvgPHNt
       const apiUrl = `${this.baseUrl}/getBalanceApi?api_key=${this.apiKey}`;
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'BelalSir-ChemistryICT/1.0'
-        }
-      });
+      console.log('📊 Checking SMS balance...');
+      
+      // Try GET first, then POST as backup (both supported)
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'BelalSir-ChemistryICT/1.0'
+          }
+        });
+      } catch (getError) {
+        // Fallback to POST method
+        console.log('📊 GET failed, trying POST for balance check...');
+        const postData = new URLSearchParams({
+          api_key: this.apiKey
+        });
+        
+        response = await fetch(`${this.baseUrl}/getBalanceApi`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'BelalSir-ChemistryICT/1.0'
+          },
+          body: postData
+        });
+      }
       
       const responseText = await response.text();
+      console.log(`📊 Balance API Response: ${responseText}`);
       
       // BulkSMS returns balance as plain text number
       const balance = parseFloat(responseText.trim());
@@ -194,7 +240,7 @@ export class BulkSMSService {
       } else {
         return {
           success: false,
-          message: 'Failed to retrieve balance'
+          message: 'Failed to retrieve balance from API'
         };
       }
     } catch (error) {

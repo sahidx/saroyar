@@ -1766,17 +1766,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SMS Balance Check API
-  app.get("/api/sms/balance", requireAuth, async (req: any, res) => {
-    try {
-      const { bulkSMSService } = await import('./bulkSMS');
-      const balanceResult = await bulkSMSService.checkBalance();
-      
-      res.json(balanceResult);
-    } catch (error) {
-      console.error("SMS balance check error:", error);
-      res.status(500).json({ message: "Failed to check SMS balance" });
-    }
-  });
 
   // SMS Usage Statistics API
   app.get("/api/sms/usage-stats", requireAuth, async (req: any, res) => {

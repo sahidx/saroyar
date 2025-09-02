@@ -1578,6 +1578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         classLevel, 
         chapter, 
         questionType = 'mcq', 
+        questionCategory = 'mixed',
         difficulty = 'medium', 
         count = 5
       } = req.body;
@@ -1614,7 +1615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await praggoAI.refreshKeys();
       
       const questions = await praggoAI.generateQuestions(
-        subject, examType, classLevel, chapter, questionType, difficulty, count, userId, 'teacher'
+        subject, examType, classLevel, chapter, questionType, questionCategory, difficulty, count, userId, 'teacher'
       );
 
       res.json({ questions });

@@ -90,19 +90,11 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
-      
-      // Send SMS notification for exam creation
-      apiRequest('POST', '/api/sms/send', {
-        type: 'exam_created',
-        examId: result.id,
-        examTitle: result.title,
-        examDate: result.examDate,
-        batchId: result.batchId,
-      }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
       
       toast({
         title: "Success",
-        description: "Exam created successfully and SMS notifications sent!",
+        description: "Exam created successfully!",
       });
       form.reset();
       onClose();

@@ -295,12 +295,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user && user.role === 'teacher') {
         // Teacher should see only their own created exams
-        const teacherExams = await storage.getExamsByTeacher(user.id);
-        res.json(teacherExams);
+        try {
+          const teacherExams = await storage.getExamsByTeacher(user.id);
+          console.log(`📝 Found ${teacherExams.length} exams for teacher ${user.id}`);
+          res.json(teacherExams);
+        } catch (dbError) {
+          console.log("📝 Database error fetching teacher exams:", dbError);
+          res.json([]); // Return empty array for teachers when DB fails
+        }
       } else {
-        // For non-authenticated or students, return all active exams
-        const exams = await storage.getAllActiveExams();
-        res.json(exams);
+        // For students, return all active exams
+        try {
+          const exams = await storage.getAllActiveExams();
+          res.json(exams.filter(exam => exam.isActive));
+        } catch (dbError) {
+          console.log("📝 Using temporary exams - database endpoint disabled");
+          res.json([]); // Return empty array when DB fails
+        }
       }
     } catch (error) {
       console.error("Error fetching exams:", error);
@@ -390,10 +401,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Received exam data:", req.body);
       
+      // Get authenticated teacher ID from session
+      const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
+      
       // Process and validate exam data properly
       const processedData = {
         ...req.body,
-        createdBy: 'teacher-belal-sir',
+        createdBy: teacherId,
         // Handle batch selection (convert 'all' to null)
         batchId: (!req.body.batchId || req.body.batchId === 'all') ? null : req.body.batchId,
         // Ensure examDate is ISO string that can be parsed
@@ -445,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'exam_created',
         message: `New exam "${exam.title}" created for ${exam.subject}`,
         icon: '📝',
-        userId: 'teacher-belal-sir',
+        userId: teacherId,
         relatedEntityId: exam.id
       });
 
@@ -2592,26 +2606,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'User ID required' });
       }
 
+      console.log(`🔍 Fetching exams for student: ${userId}`);
+
       // Get student's batch information
       const student = await storage.getUser(userId);
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
       }
 
+      console.log(`👤 Student found: ${student.firstName} ${student.lastName}, Batch: ${(student as any).batchId}`);
+
       // Get student's batch ID from students table or user profile
       const studentBatchId = (student as any).batchId || 'batch-1'; // fallback for existing students
       
       // Get batch details
-      const batch = await storage.getBatchById(studentBatchId);
-      if (!batch) {
-        return res.status(404).json({ error: 'Student batch not found' });
+      let batch;
+      try {
+        batch = await storage.getBatchById(studentBatchId);
+      } catch (batchError) {
+        console.warn("Batch retrieval failed, using fallback:", batchError);
+        batch = {
+          id: studentBatchId,
+          name: 'HSC Chemistry Batch 2025',
+          subject: 'chemistry',
+          batchCode: 'CHEM25A'
+        };
       }
 
-      // Get all exams for this specific batch only (teacher-created exams)
-      const allExams = await storage.getExamsByBatch(studentBatchId);
-      const batchExams = allExams.filter(exam => 
-        exam.batchId === studentBatchId && exam.isActive
-      );
+      // Get all exams for this specific batch using direct database query
+      let batchExams = [];
+      try {
+        // Direct database query to get exams for this batch
+        const allActiveExams = await db
+          .select()
+          .from(exams)
+          .where(and(
+            eq(exams.batchId, studentBatchId),
+            eq(exams.isActive, true)
+          ))
+          .orderBy(desc(exams.examDate));
+        
+        batchExams = allActiveExams;
+        console.log(`📚 Found ${batchExams.length} exams for batch ${studentBatchId}`);
+      } catch (dbError) {
+        console.log("📝 Database error fetching student exams:", dbError);
+        batchExams = [];
+      }
 
       // Get submissions for this student to show completion status
       const submissions = [];

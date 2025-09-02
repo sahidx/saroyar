@@ -27,21 +27,21 @@ app.use(helmet({
   }
 }));
 
-// Global rate limiting
+// Reasonable global rate limiting - allows normal usage
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // More generous limit for normal usage
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use(globalLimiter);
 
-// Strict login rate limiting
+// Brute force protection for login attempts only
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per windowMs
-  message: { error: 'Too many login attempts, please try again in 15 minutes.' },
+  windowMs: 5 * 60 * 1000, // 5 minutes (shorter window)
+  max: 10, // 10 attempts per 5 minutes - protects against brute force
+  message: { error: 'Too many login attempts, please try again in 5 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true

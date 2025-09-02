@@ -10,102 +10,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { GraduationCap, BookOpen, Users, Award, FlaskConical, Atom, Zap, Cpu, User, UserPlus, Smartphone, MonitorSpeaker, Trophy, Target, Calendar, MessageSquare, CheckCircle, PlayCircle, Monitor } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Award, FlaskConical, Zap, Cpu, User, UserPlus, Smartphone, MonitorSpeaker, Trophy, Target, Calendar, MessageSquare, CheckCircle, PlayCircle, Monitor } from 'lucide-react';
 import TeacherDashboard from './TeacherDashboard';
 import StudentDashboard from './StudentDashboard';
 import { useAuth } from '@/hooks/useAuth';
 
-// Light chemical compounds for mobile performance
-const chemicalCompounds = [
-  { 
-    formula: 'H₂O', 
-    name: 'Water', 
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-400/20',
-    borderColor: 'border-blue-400/50',
-    reactsWith: ['HCl'],
-    type: 'molecular',
-    shape: 'bent'
-  },
-  { 
-    formula: 'CO₂', 
-    name: 'Carbon Dioxide', 
-    color: 'text-gray-400',
-    bgColor: 'bg-gray-400/20',
-    borderColor: 'border-gray-400/50',
-    reactsWith: ['NaOH'],
-    type: 'molecular',
-    shape: 'linear'
-  },
-  { 
-    formula: 'NH₃', 
-    name: 'Ammonia', 
-    color: 'text-green-400',
-    bgColor: 'bg-green-400/20',
-    borderColor: 'border-green-400/50',
-    reactsWith: ['HCl'],
-    type: 'molecular',
-    shape: 'simple'
-  },
-  { 
-    formula: 'NaCl', 
-    name: 'Salt', 
-    color: 'text-white',
-    bgColor: 'bg-white/20',
-    borderColor: 'border-white/50',
-    reactsWith: [],
-    type: 'ionic',
-    shape: 'simple'
-  },
-  { 
-    formula: 'HCl', 
-    name: 'Acid', 
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/20',
-    borderColor: 'border-red-400/50',
-    reactsWith: ['NaOH'],
-    type: 'molecular',
-    shape: 'linear'
-  },
-  { 
-    formula: 'NaOH', 
-    name: 'Base', 
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-400/20',
-    borderColor: 'border-purple-400/50',
-    reactsWith: ['HCl'],
-    type: 'ionic',
-    shape: 'simple'
-  }
-];
-
-// Chemical reactions database
-const reactions = [
-  {
-    reactants: ['NaOH', 'HCl'],
-    products: ['NaCl', 'H₂O'],
-    equation: 'NaOH + HCl → NaCl + H₂O',
-    type: 'neutralization'
-  },
-  {
-    reactants: ['Mg(OH)₂', 'HCl'],
-    products: ['MgCl₂', 'H₂O'],
-    equation: 'Mg(OH)₂ + 2HCl → MgCl₂ + 2H₂O',
-    type: 'neutralization'
-  },
-  {
-    reactants: ['CaCO₃', 'HCl'],
-    products: ['CaCl₂', 'H₂O', 'CO₂'],
-    equation: 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂',
-    type: 'acid-carbonate'
-  },
-  {
-    reactants: ['NaOH', 'H₂SO₄'],
-    products: ['Na₂SO₄', 'H₂O'],
-    equation: '2NaOH + H₂SO₄ → Na₂SO₄ + 2H₂O',
-    type: 'neutralization'
-  }
-];
 
 const addStudentSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -116,98 +25,9 @@ const addStudentSchema = z.object({
 
 type AddStudentData = z.infer<typeof addStudentSchema>;
 
-// Realistic atomic/molecular shape rendering function with electron orbitals
-function getMolecularShape(shape: string, compound: any) {
-  // Simplified shapes for mobile performance - all compounds use simple circles
-  return (
-    <div className="relative w-8 h-8">
-      <div className={`w-6 h-6 ${compound.bgColor} border ${compound.borderColor} rounded-full shadow-sm flex items-center justify-center`}>
-        <span className="text-xs text-white font-bold">{compound.formula}</span>
-      </div>
-    </div>
-  );
-}
-
-// Advanced chemical compound component with realistic molecular shapes
-function FloatingCompound({ 
-  compound, 
-  style, 
-  isReacting, 
-  reactionProducts 
-}: { 
-  compound: typeof chemicalCompounds[0], 
-  style: React.CSSProperties,
-  isReacting: boolean,
-  reactionProducts?: string[]
-}) {
-  return (
-    <div 
-      className={`absolute pointer-events-none transition-all duration-500 opacity-15 ${
-        isReacting ? 'animate-bounce scale-125 opacity-35' : 'hover:scale-110'
-      }`}
-      style={style}
-    >
-      <div className={`${isReacting ? 'ring-2 ring-white animate-pulse' : ''}`}>
-        {getMolecularShape(compound.shape || 'default', compound)}
-      </div>
-      {isReacting && reactionProducts && (
-        <div className="absolute -top-8 left-0 w-full text-center">
-          <div className="text-xs text-white bg-black/50 px-2 py-1 rounded animate-pulse">
-            →{reactionProducts.join('+')}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Reaction explosion effect component
-function ReactionEffect({ x, y, equation }: { x: number, y: number, equation: string }) {
-  return (
-    <div 
-      className="absolute pointer-events-none z-20"
-      style={{ left: x - 50, top: y - 25 }}
-    >
-      <div className="relative">
-        {/* Explosion effect */}
-        <div className="absolute inset-0 w-24 h-12 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-full animate-ping opacity-75"></div>
-        <div className="absolute inset-0 w-20 h-10 bg-gradient-to-r from-white via-yellow-300 to-orange-400 rounded-full animate-pulse"></div>
-        
-        {/* Chemical equation */}
-        <div className="absolute -top-12 left-0 w-32 text-center">
-          <div className="text-xs text-white bg-black/75 px-2 py-1 rounded-lg font-mono backdrop-blur-sm">
-            {equation}
-          </div>
-        </div>
-        
-        {/* Sparks effect */}
-        <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-300 rounded-full animate-ping"></div>
-        <div className="absolute top-6 left-16 w-1 h-1 bg-orange-400 rounded-full animate-ping delay-100"></div>
-        <div className="absolute top-1 left-12 w-1 h-1 bg-red-400 rounded-full animate-ping delay-200"></div>
-      </div>
-    </div>
-  );
-}
 
 export default function Landing() {
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
-  const [floatingCompounds, setFloatingCompounds] = useState<Array<{ 
-    compound: typeof chemicalCompounds[0], 
-    x: number, 
-    y: number, 
-    vx: number, 
-    vy: number, 
-    id: number,
-    isReacting: boolean,
-    reactionProducts?: string[]
-  }>>([]);
-  const [reactionEffects, setReactionEffects] = useState<Array<{
-    id: number,
-    x: number,
-    y: number,
-    equation: string,
-    timestamp: number
-  }>>([]);
 
   // Fetch courses from API
   const { data: courses = [], isLoading: coursesLoading } = useQuery<any[]>({
@@ -316,143 +136,6 @@ export default function Landing() {
     }
   };
 
-  // Initialize floating chemical compounds
-  useEffect(() => {
-    const compounds = Array.from({ length: 8 }, (_, i) => {
-      // Select compounds for light animation
-      const availableCompounds = chemicalCompounds;
-      return {
-        compound: availableCompounds[Math.floor(Math.random() * availableCompounds.length)],
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-        id: i,
-        isReacting: false
-      };
-    });
-    setFloatingCompounds(compounds);
-  }, []);
-
-  // Burst system - add new elements every 5 seconds
-  useEffect(() => {
-    
-    const burstInterval = setInterval(() => {
-      setFloatingCompounds(prev => {
-        // Add 1-2 new elements per burst for mobile performance
-        const burstCount = Math.floor(Math.random() * 2) + 1;
-        const newCompounds = Array.from({ length: burstCount }, (_, i) => ({
-          compound: chemicalCompounds[Math.floor(Math.random() * chemicalCompounds.length)],
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          id: Date.now() + i,
-          isReacting: false
-        }));
-        
-        // Limit total elements for mobile performance (max 12)
-        const allCompounds = [...prev, ...newCompounds];
-        return allCompounds.length > 12 ? allCompounds.slice(-12) : allCompounds;
-      });
-    }, 8000); // Every 8 seconds
-
-    return () => clearInterval(burstInterval);
-  }, []);
-
-  // Advanced animation with collision detection and chemical reactions
-  useEffect(() => {
-    
-    const animate = () => {
-      setFloatingCompounds(prev => {
-        const updatedCompounds = prev.map(compound => {
-          let newX = compound.x + compound.vx;
-          let newY = compound.y + compound.vy;
-          let newVx = compound.vx;
-          let newVy = compound.vy;
-
-          // Bounce off edges
-          if (newX <= 0 || newX >= window.innerWidth - 80) {
-            newVx = -newVx;
-            newX = Math.max(0, Math.min(window.innerWidth - 80, newX));
-          }
-          if (newY <= 0 || newY >= window.innerHeight - 48) {
-            newVy = -newVy;
-            newY = Math.max(0, Math.min(window.innerHeight - 48, newY));
-          }
-
-          return { ...compound, x: newX, y: newY, vx: newVx, vy: newVy, isReacting: false };
-        });
-
-        // Check for collisions and reactions
-        for (let i = 0; i < updatedCompounds.length; i++) {
-          for (let j = i + 1; j < updatedCompounds.length; j++) {
-            const comp1 = updatedCompounds[i];
-            const comp2 = updatedCompounds[j];
-            
-            const dx = comp1.x - comp2.x;
-            const dy = comp1.y - comp2.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // Check if compounds are close enough to react (collision distance)
-            if (distance < 60) {
-              // Check if these compounds can react with each other
-              const reaction = reactions.find(r => 
-                (r.reactants.includes(comp1.compound.formula) && r.reactants.includes(comp2.compound.formula))
-              );
-              
-              if (reaction) {
-                // Mark compounds as reacting
-                updatedCompounds[i] = { 
-                  ...comp1, 
-                  isReacting: true, 
-                  reactionProducts: reaction.products 
-                };
-                updatedCompounds[j] = { 
-                  ...comp2, 
-                  isReacting: true, 
-                  reactionProducts: reaction.products 
-                };
-                
-                // Create reaction effect
-                const effectX = (comp1.x + comp2.x) / 2;
-                const effectY = (comp1.y + comp2.y) / 2;
-                
-                setReactionEffects(prevEffects => [
-                  ...prevEffects,
-                  {
-                    id: Date.now() + Math.random(),
-                    x: effectX,
-                    y: effectY,
-                    equation: reaction.equation,
-                    timestamp: Date.now()
-                  }
-                ]);
-
-                // Apply collision physics (compounds bounce off each other)
-                const angle = Math.atan2(dy, dx);
-                const force = 0.5;
-                updatedCompounds[i].vx += Math.cos(angle) * force;
-                updatedCompounds[i].vy += Math.sin(angle) * force;
-                updatedCompounds[j].vx -= Math.cos(angle) * force;
-                updatedCompounds[j].vy -= Math.sin(angle) * force;
-              }
-            }
-          }
-        }
-
-        return updatedCompounds;
-      });
-
-      // Clean up old reaction effects
-      setReactionEffects(prev => prev.filter(effect => 
-        Date.now() - effect.timestamp < 3000 // Remove effects after 3 seconds
-      ));
-    };
-
-    const interval = setInterval(animate, 50);
-    return () => clearInterval(interval);
-  }, []);
 
 
   const addStudentForm = useForm<AddStudentData>({
@@ -479,35 +162,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-      {/* Animated floating chemical compounds */}
-      {floatingCompounds.map(({ compound, x, y, id, isReacting, reactionProducts }, index) => (
-        <FloatingCompound
-          key={`compound-${compound.formula}-${id}-${index}-${Date.now()}`}
-          compound={compound}
-          isReacting={isReacting}
-          reactionProducts={reactionProducts}
-          style={{
-            left: `${x}px`,
-            top: `${y}px`,
-            transition: 'all 0.05s linear',
-          }}
-        />
-      ))}
-
-      {/* Chemical reaction effects */}
-      {reactionEffects.map(({ id, x, y, equation }) => (
-        <ReactionEffect
-          key={`reaction-${id}`}
-          x={x}
-          y={y}
-          equation={equation}
-        />
-      ))}
-
-      {/* Light geometric shapes for mobile */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-16 h-16 border border-cyan-400/20 rounded-full opacity-30"></div>
-        <div className="absolute bottom-32 right-1/4 w-12 h-12 border border-purple-400/20 rounded-lg opacity-30"></div>
+      {/* Simple static background elements - no animation for fast loading */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+        <div className="absolute top-1/4 left-1/4 w-8 h-8 border border-cyan-400/40 rounded-full"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-6 h-6 border border-purple-400/40 rounded-lg"></div>
+        <div className="absolute top-1/2 right-1/4 w-4 h-4 border border-blue-400/40 rounded-full"></div>
       </div>
 
       {/* Header */}
@@ -541,10 +200,10 @@ export default function Landing() {
       <section className="py-20 text-center relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <div className="w-32 h-32 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse">
-              <div className="flex space-x-2">
-                <Atom className="text-white text-3xl animate-spin" />
-                <Cpu className="text-white text-3xl" />
+            <div className="w-24 h-24 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <div className="flex space-x-1">
+                <FlaskConical className="text-white w-8 h-8" />
+                <Cpu className="text-white w-8 h-8" />
               </div>
             </div>
             <h1 className="text-7xl font-bold text-white mb-6 tracking-tight" data-testid="hero-title">
@@ -721,7 +380,7 @@ export default function Landing() {
                     <span className="text-lg text-gray-200">Teacher at <span className="font-semibold text-green-300">Jahangirpur Girls School and College</span></span>
                   </div>
                   <div className="flex items-center justify-center md:justify-start gap-3">
-                    <Atom className="w-6 h-6 text-purple-400" />
+                    <FlaskConical className="w-6 h-6 text-purple-400" />
                     <span className="text-lg text-gray-200">Specialist in <span className="font-semibold text-purple-300">Chemistry & ICT</span></span>
                   </div>
                   <div className="flex items-center justify-center md:justify-start gap-3">

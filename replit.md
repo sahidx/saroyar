@@ -4,7 +4,7 @@
 A scientific-themed coaching center management system with animated chemical elements and comprehensive educational dashboards. The system supports two main user types: Teachers (Sir) and Students, with role-based access and features.
 
 ## User Preferences
-- Clean, scientific-themed UI with animated chemical elements floating around
+- Clean, scientific-themed UI optimized for fast loading (chemical animations removed per user request)
 - Sidebar navigation with dashboard-style layout
 - Mobile responsive design (PWA capability)
 - Chemistry and ICT focused branding

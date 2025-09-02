@@ -34,17 +34,7 @@ export default function LoginPage() {
       return;
     }
 
-    // Auto-detect credentials
-    let roleHint = '';
-    if (data.phoneNumber === '01712345678') {
-      roleHint = 'Teacher (Sir Belal)';
-    } else if (data.phoneNumber === '01798765432') {
-      roleHint = 'Student (Rashid Ahmed)';
-    } else {
-      roleHint = 'Unknown user';
-    }
-    
-    console.log('🔍 Detected role hint:', roleHint);
+    console.log('🔍 Login attempt for phone:', data.phoneNumber);
     
     loginMutation.mutate(data, {
       onSuccess: (data) => {
@@ -105,30 +95,6 @@ export default function LoginPage() {
               Enter your phone number and password to access your account
             </CardDescription>
             
-            {/* Demo Credentials */}
-            <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-300">
-                <FlaskConical className="w-4 h-4" />
-                <span className="text-sm font-medium">Teacher Access</span>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm text-white">Sir Belal</p>
-                <p className="text-xs text-yellow-300">Phone: <span className="font-mono">01712345678</span></p>
-                <p className="text-xs text-yellow-300">Password: <span className="font-mono">sir123</span></p>
-              </div>
-            </div>
-
-            <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 text-blue-300">
-                <Smartphone className="w-4 h-4" />
-                <span className="text-sm font-medium">Student Access</span>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm text-white">Rashid Ahmed</p>
-                <p className="text-xs text-yellow-300">Phone: <span className="font-mono">01798765432</span></p>
-                <p className="text-xs text-yellow-300">Password: <span className="font-mono">student123</span></p>
-              </div>
-            </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -143,7 +109,7 @@ export default function LoginPage() {
                       <FormControl>
                         <input 
                           type="text"
-                          placeholder="01712345678 or 01798765432" 
+                          placeholder="Enter your phone number" 
                           value={field.value || ''}
                           onChange={field.onChange}
                           onBlur={field.onBlur}
@@ -169,7 +135,7 @@ export default function LoginPage() {
                         <div className="relative">
                           <input 
                             type={showPassword ? "text" : "password"}
-                            placeholder="sir123 or student123" 
+                            placeholder="Enter your password" 
                             value={field.value || ''}
                             onChange={field.onChange}
                             onBlur={field.onBlur}
@@ -225,11 +191,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <div className="text-center mt-6">
-          <p className="text-slate-400 text-sm">
-            Auto-detects Teacher/Student role based on credentials
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -130,8 +130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Optimized login endpoint - reduced logging overhead  
-  app.post('/api/auth/login', async (req, res) => {
+  // Secure login endpoint with rate limiting and password hashing
+  const loginLimiter = (app as any).get('loginLimiter');
+  app.post('/api/auth/login', loginLimiter, async (req, res) => {
     try {
       const { phoneNumber, password } = req.body;
       
@@ -139,10 +140,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Phone number and password required' });
       }
       
-      // Demo credentials mapping - using REAL database IDs
+      // Demo credentials mapping - using REAL database IDs with hashed passwords
+      const crypto = await import('crypto');
+      const hashPassword = (password: string) => {
+        return crypto.createHash('sha256').update(password).digest('hex');
+      };
+      
       const demoAccounts: Record<string, any> = {
         '01712345678': {
-          password: 'sir123',
+          passwordHash: hashPassword('sir123'),
           userId: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d', // Real database ID
           role: 'teacher',
           name: 'Belal Sir',
@@ -151,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: 'belal.sir@chemistry-ict.edu.bd'
         },
         '01798765432': {
-          password: 'student123',
+          passwordHash: hashPassword('student123'),
           userId: 'student-rashid',
           role: 'student',
           name: 'Rashid Ahmed',
@@ -163,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const account = demoAccounts[phoneNumber];
       
-      if (!account || account.password !== password) {
+      if (!account || account.passwordHash !== hashPassword(password)) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       

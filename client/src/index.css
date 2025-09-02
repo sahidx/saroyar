@@ -996,3 +996,32 @@ button svg, .btn svg, [role="button"] svg {
     gap: 2px !important;
   }
 }
+
+
+/* Simplified loading interface - lighter and minimal */
+.simple-loading {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.simple-spinner {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #e5e7eb;
+  border-top: 1.5px solid #3b82f6;
+  border-radius: 50%;
+  animation: simple-spin 0.8s linear infinite;
+}
+
+@keyframes simple-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced mobile touch targets for question bank navigation */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}

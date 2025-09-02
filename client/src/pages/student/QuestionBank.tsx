@@ -19,66 +19,7 @@ import {
   Clock,
   Users
 } from 'lucide-react';
-
-// Chapter structure from NCTB curriculum
-const CHAPTERS = {
-  '9-10': {
-    'chemistry': [
-      '১. রসায়নের ধারণা',
-      '২. পদার্থের অবস্থা',
-      '৩. পদার্থের গঠন',
-      '৪. পর্যায় সারণী',
-      '৫. রাসায়নিক বন্ধন',
-      '৬. মৌলের ধারণা ও রাসায়নিক গণনা',
-      '৭. রাসায়নিক বিক্রিয়া',
-      '৮. রসায়ন ও শক্তি',
-      '৯. এসিড‑ক্ষার সমতা',
-      '১০. খনিজ সম্পদ: ধাতু ও অধাতু',
-      '১১. খনিজ সম্পদ: জীবাশ্ম',
-      '১২. আমাদের জীবনে রসায়ন'
-    ]
-  },
-  '11-12': {
-    'chemistry': {
-      'paper-1': [
-        'ল্যাবরেটোরির নিরাপদ ব্যবহার',
-        'গুণগত রসায়ন',
-        'মৌলের পর্যায়বৃত্ত ধর্ম ও রাসায়নিক বন্ধন',
-        'রাসায়নিক পরিবর্তন',
-        'কর্মমুখী রসায়ন'
-      ],
-      'paper-2': [
-        'পরিমাণগত রসায়ন',
-        'অর্থনৈতিক রসায়ন',
-        'তড়িৎ রসায়ন',
-        'জৈব রসায়ন'
-      ]
-    },
-    'ict': [
-      'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
-      'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
-      'তথ্য ও সমাজ',
-      'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
-      'উদীয়মান প্রযুক্তি প্রবণতা'
-    ]
-  }
-};
-
-// Question categories
-const CATEGORIES = {
-  '9-10': [
-    'বোর্ড প্রশ্ন',
-    'টেস্ট পেপার',
-    'নটরডেম কলেজ',
-    'হলি ক্রস কলেজ'
-  ],
-  '11-12': [
-    'বোর্ড প্রশ্ন',
-    'সাধারণ বিশ্ববিদ্যালয়',
-    'ইঞ্জিনিয়ারিং বিশ্ববিদ্যালয়',
-    'মেডিকেল বিশ্ববিদ্যালয়'
-  ]
-};
+import { CHAPTERS, CATEGORIES } from '@shared/questionBankConstants';
 
 export default function StudentQuestionBank() {
   const { toast } = useToast();
@@ -186,52 +127,79 @@ export default function StudentQuestionBank() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Mobile-optimized header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
-          <p className="text-gray-600 mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন ডাউনলোড করুন</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন ডাউনলোড করুন</p>
         </div>
         <div className="flex items-center space-x-2">
-          <BookOpen className="w-6 h-6 text-blue-600" />
-          <Badge variant="outline" className="text-lg px-4 py-2">
+          <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-4 py-1 sm:py-2">
             পদক্ষেপ {currentStep}/6
           </Badge>
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-600">
-        <span className={currentStep >= 1 ? 'font-semibold text-blue-600' : ''}>শ্রেণী</span>
-        {selectedClass && (
-          <>
-            <ArrowRight className="w-4 h-4" />
-            <span className={currentStep >= 2 ? 'font-semibold text-blue-600' : ''}>{selectedClass}</span>
-          </>
-        )}
-        {selectedSubject && (
-          <>
-            <ArrowRight className="w-4 h-4" />
-            <span className={currentStep >= 3 ? 'font-semibold text-blue-600' : ''}>{selectedSubject}</span>
-          </>
-        )}
-        {selectedPaper && (
-          <>
-            <ArrowRight className="w-4 h-4" />
-            <span className={currentStep >= 4 ? 'font-semibold text-blue-600' : ''}>{selectedPaper}</span>
-          </>
-        )}
-        {selectedCategory && (
-          <>
-            <ArrowRight className="w-4 h-4" />
-            <span className={currentStep >= 5 ? 'font-semibold text-blue-600' : ''}>{selectedCategory}</span>
-          </>
-        )}
-        {selectedChapter && (
-          <>
-            <ArrowRight className="w-4 h-4" />
-            <span className="font-semibold text-blue-600">{selectedChapter}</span>
-          </>
+      {/* Mobile-responsive breadcrumb with navigation controls */}
+      <div className="space-y-3">
+        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 breadcrumb-mobile">
+          <span className={currentStep >= 1 ? 'font-semibold text-blue-600' : ''}>শ্রেণী</span>
+          {selectedClass && (
+            <>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className={currentStep >= 2 ? 'font-semibold text-blue-600' : ''}>{selectedClass}</span>
+            </>
+          )}
+          {selectedSubject && (
+            <>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className={currentStep >= 3 ? 'font-semibold text-blue-600' : ''}>{selectedSubject}</span>
+            </>
+          )}
+          {selectedPaper && (
+            <>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className={currentStep >= 4 ? 'font-semibold text-blue-600' : ''}>{selectedPaper}</span>
+            </>
+          )}
+          {selectedCategory && (
+            <>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className={currentStep >= 5 ? 'font-semibold text-blue-600' : ''}>{selectedCategory}</span>
+            </>
+          )}
+          {selectedChapter && (
+            <>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="font-semibold text-blue-600">{selectedChapter}</span>
+            </>
+          )}
+        </div>
+        
+        {/* Mobile navigation controls */}
+        {currentStep > 1 && (
+          <div className="flex items-center space-x-2 sm:hidden">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleStepChange(currentStep - 1)}
+              className="flex-1 touch-target"
+              data-testid="button-mobile-nav-back-student"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              পূর্ববর্তী
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => handleStepChange(1)}
+              className="flex-1 touch-target"
+              data-testid="button-mobile-nav-reset-student"
+            >
+              প্রথম থেকে
+            </Button>
+          </div>
         )}
       </div>
 
@@ -245,14 +213,15 @@ export default function StudentQuestionBank() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 text-lg hover:bg-blue-50"
+                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
                 onClick={() => {
                   setSelectedClass('9-10');
                   setCurrentStep(2);
                 }}
+                data-testid="button-select-class-9-10-student"
               >
                 <div className="text-center">
                   <div className="font-bold">নবম-দশম শ্রেণী</div>
@@ -261,11 +230,12 @@ export default function StudentQuestionBank() {
               </Button>
               <Button 
                 variant="outline" 
-                className="h-20 text-lg hover:bg-blue-50"
+                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
                 onClick={() => {
                   setSelectedClass('11-12');
                   setCurrentStep(2);
                 }}
+                data-testid="button-select-class-11-12-student"
               >
                 <div className="text-center">
                   <div className="font-bold">একাদশ-দ্বাদশ শ্রেণী</div>
@@ -293,14 +263,15 @@ export default function StudentQuestionBank() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 text-lg hover:bg-green-50"
+                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-green-50"
                 onClick={() => {
                   setSelectedSubject('chemistry');
                   setCurrentStep(selectedClass === '11-12' ? 3 : 4);
                 }}
+                data-testid="button-select-subject-chemistry-student"
               >
                 <div className="text-center">
                   <div className="font-bold">রসায়ন</div>
@@ -310,11 +281,12 @@ export default function StudentQuestionBank() {
               {selectedClass === '11-12' && (
                 <Button 
                   variant="outline" 
-                  className="h-20 text-lg hover:bg-purple-50"
+                  className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-purple-50"
                   onClick={() => {
                     setSelectedSubject('ict');
                     setCurrentStep(4); // Skip paper selection for ICT
                   }}
+                  data-testid="button-select-subject-ict-student"
                 >
                   <div className="text-center">
                     <div className="font-bold">তথ্য ও যোগাযোগ প্রযুক্তি</div>
@@ -340,14 +312,15 @@ export default function StudentQuestionBank() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 text-lg hover:bg-orange-50"
+                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-orange-50"
                 onClick={() => {
                   setSelectedPaper('paper-1');
                   setCurrentStep(4);
                 }}
+                data-testid="button-select-paper-1-student"
               >
                 <div className="text-center">
                   <div className="font-bold">প্রথম পত্র</div>

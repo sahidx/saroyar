@@ -191,66 +191,8 @@ export class BulkSMSService {
     return result;
   }
 
-  // Check SMS balance using the exact API provided
-  async checkBalance(): Promise<{ success: boolean; balance?: number; message: string }> {
-    try {
-      // Use exact balance API as provided: http://bulksmsbd.net/api/getBalanceApi?api_key=gsOKLO6XtKsANCvgPHNt
-      const apiUrl = `${this.baseUrl}/getBalanceApi?api_key=${this.apiKey}`;
-      
-      console.log('📊 Checking SMS balance...');
-      
-      // Try GET first, then POST as backup (both supported)
-      let response;
-      try {
-        response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'BelalSir-ChemistryICT/1.0'
-          }
-        });
-      } catch (getError) {
-        // Fallback to POST method
-        console.log('📊 GET failed, trying POST for balance check...');
-        const postData = new URLSearchParams({
-          api_key: this.apiKey
-        });
-        
-        response = await fetch(`${this.baseUrl}/getBalanceApi`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'BelalSir-ChemistryICT/1.0'
-          },
-          body: postData
-        });
-      }
-      
-      const responseText = await response.text();
-      console.log(`📊 Balance API Response: ${responseText}`);
-      
-      // BulkSMS returns balance as plain text number
-      const balance = parseFloat(responseText.trim());
-      
-      if (!isNaN(balance)) {
-        return {
-          success: true,
-          balance,
-          message: `Current SMS balance: ${balance} credits`
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Failed to retrieve balance from API'
-        };
-      }
-    } catch (error) {
-      console.error('❌ Balance check error:', error);
-      return {
-        success: false,
-        message: 'Network error while checking balance'
-      };
-    }
-  }
+  // Balance checking functionality removed per user request
+  // SMS sending will work without balance verification
 
   // Format phone number for Bangladesh (ensure 88017XXXXXXXX format)
   private formatPhoneNumber(phoneNumber: string): string {

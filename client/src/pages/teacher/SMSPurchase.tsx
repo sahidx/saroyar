@@ -76,7 +76,7 @@ export default function SMSPurchase() {
     onSuccess: (data) => {
       toast({
         title: "✅ Purchase Successful!",
-        description: `${data.message}. Your SMS credits have been added to your account.`,
+        description: `${data?.message || 'SMS credits purchased successfully'}. Your SMS credits have been added to your account.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/teacher/stats"] });
       setSelectedPackage(null);

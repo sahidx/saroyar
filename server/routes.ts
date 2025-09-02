@@ -1223,7 +1223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.logActivity({
         type: 'attendance_taken',
         message: `Attendance recorded: ${presentCount} present, ${absentCount} absent in ${subject === 'chemistry' ? 'Chemistry' : 'ICT'} class`,
-        icon: '✅'
+        icon: '✅',
+        userId: teacherId
       });
       
       res.json({ 

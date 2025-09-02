@@ -37,6 +37,12 @@ A scientific-themed coaching center management system with animated chemical ele
 - **Advanced AI Integration**: Fully functional Claude/Gemini AI systems for question generation (teachers) and doubt solving (students)
 - **Production Database Setup**: Migrated from demo data to real PostgreSQL database with authentic users
 - **Real User Accounts**: Created Sir (Teacher: belal.sir@chemistry-ict.edu.bd) and Student (rashid.ahmed@student.edu.bd)
+- **DYNAMIC DATABASE INTEGRATION (Sep 2025)**: Completed full migration from static to dynamic database-driven system
+- **Teacher Dashboard Real Data**: Dashboard now displays actual counts from database (6 students, 15 exams, 3 batches, 8 questions)
+- **Attendance System Fix**: Fixed batch selection to show correct student counts and resolved attendance recording errors
+- **SMS Balance Removal**: Completely removed SMS balance checking functionality per user request
+- **Teacher ID Standardization**: Updated all teacher references from hardcoded 'teacher-belal-sir' to proper UUID 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
+- **Database Foreign Key Resolution**: Fixed course table dependencies for attendance system functionality
 
 ## Tech Stack
 - React with TypeScript

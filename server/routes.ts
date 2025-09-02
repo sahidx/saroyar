@@ -197,11 +197,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', (req, res) => {
     try {
       if (!(req as any).session?.user) {
+        // Don't log 401s as they're expected when not logged in
         return res.status(401).json({ message: 'Unauthorized' });
       }
       
       const user = (req as any).session.user;
-      console.log('✅ User session found:', user.name, '- Role:', user.role);
+      // Only log successful authentications to reduce noise
       res.json(user);
     } catch (error) {
       console.error('❌ Error getting user:', error);
@@ -3260,7 +3261,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!imageData) {
         // Return a default gradient avatar if no image is found
         console.log('🖼️ No profile picture found, returning default avatar');
-        return res.status(404).json({ error: 'Profile picture not found' });
+        const defaultAvatar = `<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="200" height="200" fill="url(#grad1)"/>
+          <circle cx="100" cy="80" r="40" fill="white" opacity="0.9"/>
+          <circle cx="100" cy="160" r="60" fill="white" opacity="0.9"/>
+          <text x="100" y="190" text-anchor="middle" fill="white" font-size="16" font-weight="bold" font-family="Arial">
+            ${userId.includes('teacher') ? 'Sir' : 'Student'}
+          </text>
+        </svg>`;
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+        return res.status(200).send(defaultAvatar);
       }
       
       // Extract the base64 data and mime type

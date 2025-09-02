@@ -33,6 +33,7 @@ import StudentMessages from "@/pages/student/StudentMessages";
 import StudentStudy from "@/pages/student/StudentStudy";
 import StudentExamView from "@/pages/student/StudentExamView";
 import StudentQuestionBank from "@/pages/student/QuestionBank";
+import StudentAttendance from "@/pages/student/StudentAttendance";
 import TeacherQuestionBank from "@/pages/teacher/QuestionBank";
 import TeacherCourseManagement from "@/pages/teacher/TeacherCourseManagement";
 import TeacherProfileManagement from "@/pages/teacher/TeacherProfileManagement";
@@ -103,6 +104,7 @@ function Router() {
               <Route path="/student/study" component={StudentStudy} />
               <Route path="/student/exam/:examId/view" component={StudentExamView} />
               <Route path="/student/question-bank" component={StudentQuestionBank} />
+              <Route path="/student/attendance" component={StudentAttendance} />
               <Route path="/attendance" component={Attendance} />
               <Route path="/messages" component={Messages} />
               <Route path="/notices" component={NoticeBoard} />

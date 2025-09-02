@@ -461,11 +461,12 @@ export const teacherProfilesRelations = relations(teacherProfiles, ({ one }) => 
 // Zod schemas
 export const upsertUserSchema = createInsertSchema(users).pick({
   id: true,
-  email: true,
   firstName: true,
   lastName: true,
   profileImageUrl: true,
   role: true,
+}).extend({
+  email: z.string().optional().nullable(),
 });
 
 export const insertBatchSchema = createInsertSchema(batches).omit({

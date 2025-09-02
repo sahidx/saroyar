@@ -72,7 +72,7 @@ export default function Attendance() {
   });
 
   // Fetch existing attendance for selected date and batch
-  const { data: existingAttendance = [] } = useQuery({
+  const { data: existingAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance/batch', selectedBatch, selectedDate],
     enabled: !!selectedBatch && !!selectedDate,
   });
@@ -278,7 +278,7 @@ export default function Attendance() {
                 <Checkbox
                   id="sms"
                   checked={sendSMS}
-                  onCheckedChange={setSendSMS}
+                  onCheckedChange={(checked) => setSendSMS(checked === true)}
                 />
                 <Label htmlFor="sms" className="text-sm">
                   Send to parents

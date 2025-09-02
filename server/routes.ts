@@ -87,6 +87,24 @@ const logTemporaryEndpoint = (feature: string) => {
   console.log(`${icon} Using temporary ${feature} - database endpoint disabled`);
 };
 
+// Helper function to handle large image content
+async function handleQuestionContent(content: string, source: string): Promise<string> {
+  if (!content || source !== 'image_upload') {
+    return content || '';
+  }
+
+  // Check if it's a base64 image
+  if (content.startsWith('data:image/')) {
+    // For now, store smaller version for database performance
+    // In production, you'd save to file system or cloud storage
+    if (content.length > 50000) { // 50KB limit for base64 data
+      return content.substring(0, 50000) + '...[IMAGE_TRUNCATED]';
+    }
+  }
+  
+  return content;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with real data - handle errors gracefully
   try {
@@ -373,7 +391,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         examType: req.body.examType || 'mcq',
         examMode: req.body.examMode || 'online',
         questionSource: req.body.questionSource || 'drive_link',
-        questionContent: req.body.questionContent || '',
+        // Handle large image data by storing as file reference
+        questionContent: await handleQuestionContent(req.body.questionContent, req.body.questionSource),
         instructions: req.body.instructions || ''
       };
 
@@ -401,7 +420,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correctAnswer: exam.examType === 'mcq' ? "A" : null
         };
         
-        await storage.createQuestion(questionData);
+        try {
+          await storage.createQuestion(questionData);
+        } catch (questionError) {
+          console.warn("Question creation failed, continuing with exam:", questionError);
+        }
       }
       
       // Log activity

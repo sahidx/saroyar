@@ -41,7 +41,7 @@ const studentMenuItems = [
   { icon: HelpCircle, label: 'AI Help', href: '/student/ai-help' },
   { icon: MessageSquare, label: 'Messages', href: '/student/messages' },
   { icon: BookOpen, label: 'Study Materials', href: '/student/study' },
-  { icon: CalendarCheck, label: 'Quest & Progress', href: '/student/quest' },
+  { icon: CalendarCheck, label: 'Attendance', href: '/student/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/student/reports' },
   { icon: Bell, label: 'Question Bank', href: '/student/question-bank' },
 ];

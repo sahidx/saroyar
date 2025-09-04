@@ -453,11 +453,11 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
                       {log.recipientName || 'Unknown'}
                     </span>
                     <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {new Date(log.sentAt || log.createdAt).toLocaleDateString()}
+                      {new Date(log.sentAt || log.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {log.message?.slice(0, 80)}...
+                    {log.message && log.message.length > 80 ? `${log.message.slice(0, 80)}...` : log.message}
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <Badge 
@@ -467,7 +467,7 @@ function SMSUsageStats({ isDarkMode }: SMSStatsProps) {
                       {log.status}
                     </Badge>
                     <span className={`text-xs ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>
-                      ৳{((log.costPaisa || 39) / 100).toFixed(2)}
+                      ৳{(log.costPaisa / 100).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -859,7 +859,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div>
                       <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-red-800'}`}>
-                        {creditsLoading ? '...' : userCredits?.smsCredits || smsCredits || 0}
+                        {creditsLoading ? '...' : (userCredits as any)?.smsCredits || (smsCredits as any) || 0}
                       </div>
                       <p className={`text-sm font-medium ${isDarkMode ? 'text-red-200' : 'text-red-600'}`}>SMS Credits Available</p>
                       <p className={`text-xs ${isDarkMode ? 'text-red-300' : 'text-red-500'}`}>Rate: 0.39 taka per SMS</p>

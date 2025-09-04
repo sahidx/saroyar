@@ -24,7 +24,7 @@ export default function SMSBalance({ isDarkMode = false }: SMSBalanceProps) {
     queryKey: ['/api/sms/usage-stats']
   });
 
-  const currentCredits = smsCreditsData?.smsCredits || 0;
+  const currentCredits = (smsCreditsData as any)?.smsCredits || 0;
   const smsRate = 0.39; // Taka per SMS
 
   return (
@@ -124,10 +124,10 @@ export default function SMSBalance({ isDarkMode = false }: SMSBalanceProps) {
                 <MessageCircle className="w-8 h-8 text-blue-500" />
                 <div>
                   <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {smsStats?.totalSent || 0}
+                    {(smsStats as any)?.thisMonth || 0}
                   </p>
                   <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Total SMS Sent
+                    This Month SMS
                   </p>
                 </div>
               </div>
@@ -140,10 +140,10 @@ export default function SMSBalance({ isDarkMode = false }: SMSBalanceProps) {
                 <TrendingUp className="w-8 h-8 text-green-500" />
                 <div>
                   <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    ৳{((smsStats?.totalSent || 0) * smsRate).toFixed(2)}
+                    ৳{((smsStats?.thisMonth || 0) * smsRate).toFixed(2)}
                   </p>
                   <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Total Cost
+                    This Month Cost
                   </p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function SMSBalance({ isDarkMode = false }: SMSBalanceProps) {
                 <Clock className="w-8 h-8 text-purple-500" />
                 <div>
                   <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {smsStats?.thisMonth || 0}
+                    {(smsStats as any)?.thisMonth || 0}
                   </p>
                   <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     This Month

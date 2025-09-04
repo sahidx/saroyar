@@ -2139,68 +2139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SMS Purchase endpoints - DISABLED (Only usage tracking allowed)
   // Teachers cannot purchase SMS credits - only view usage statistics
 
-  // SMS Sending endpoints - Real implementation with BulkSMS API
-  app.post("/api/sms/send", requireAuth, async (req: any, res) => {
-    try {
-      const { message, recipients, smsType = 'notice', recipientType = 'mixed' } = req.body;
-      const userId = req.session.user.id;
-      const user = await storage.getUser(userId);
-      
-      if (!user || user.role !== 'teacher') {
-        return res.status(403).json({ error: 'Only teachers can send SMS' });
-      }
-
-      if (!message || !recipients || recipients.length === 0) {
-        return res.status(400).json({ error: 'Message and recipients are required' });
-      }
-
-      // Calculate SMS character count and cost
-      const smsCharacterLimit = 160; // Standard SMS limit
-      const messageLength = message.length;
-      const smsCount = Math.ceil(messageLength / smsCharacterLimit);
-      const costPerSms = 39; // 0.39 paisa in paisa units
-      const totalCost = smsCount * recipients.length * costPerSms;
-
-      console.log(`📊 SMS Analysis: ${messageLength} chars, ${smsCount} SMS per recipient, ${recipients.length} recipients, Total cost: ${totalCost} paisa`);
-
-      // Format recipients for BulkSMS service
-      const formattedRecipients = recipients.map((r: any) => ({
-        id: r.id || r.studentId || 'unknown',
-        name: r.name || r.studentName || 'Unknown',
-        phoneNumber: r.phoneNumber || r.phone
-      }));
-
-      // Send bulk SMS using BulkSMS service
-      // Use initialized bulkSMSService
-      const result = await bulkSMSService.sendBulkSMS(
-        formattedRecipients,
-        message,
-        userId,
-        smsType
-      );
-
-      // Update user SMS credits (deduct used credits)
-      if (result.sentCount > 0) {
-        const totalCreditsUsed = result.totalCreditsUsed * smsCount;
-        await storage.updateUserSmsCredits(userId, -totalCreditsUsed);
-      }
-
-      res.json({
-        success: result.success,
-        sent: result.sentCount,
-        failed: result.failedCount,
-        totalCreditsUsed: result.totalCreditsUsed,
-        messageLength,
-        smsPerRecipient: smsCount,
-        totalCostPaisa: totalCost,
-        failedMessages: result.failedMessages,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Error sending SMS:', error);
-      res.status(500).json({ error: 'Failed to send SMS' });
-    }
-  });
+  // REMOVED: Duplicate SMS endpoint - use /api/sms/send-bulk for all SMS sending
 
   // Send SMS for exam results
   app.post("/api/sms/send-exam-results", requireAuth, async (req: any, res) => {
@@ -2600,21 +2539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get SMS usage statistics
-  app.get("/api/sms/usage-stats", async (req, res) => {
-    try {
-      const userId = (req as any).session?.user?.id;
-      if (!userId) {
-        return res.status(401).json({ error: 'User not authenticated' });
-      }
-      
-      const stats = await storage.getSmsUsageStats(userId);
-      res.json(stats);
-    } catch (error) {
-      console.error('Error getting SMS usage stats:', error);
-      res.status(500).json({ error: 'Failed to get SMS usage statistics' });
-    }
-  });
+  // REMOVED: Duplicate SMS usage stats endpoint - using secured version above
 
   // Notes sharing endpoints - Students can share PDF files or Google Drive links
   app.get("/api/notes", async (req, res) => {

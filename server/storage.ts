@@ -810,6 +810,8 @@ export class DatabaseStorage implements IStorage {
   async getSmsUsageStats(userId: string): Promise<{
     totalSent: number;
     totalCost: number;
+    thisMonth: number;
+    thisMonthCost: number;
     smsByType: Array<{ type: string; count: number; cost: number }>;
     recentLogs: SmsLog[];
     monthlyStats: Array<{ month: string; count: number; cost: number }>;
@@ -820,6 +822,19 @@ export class DatabaseStorage implements IStorage {
 
     const totalSent = logs.length;
     const totalCost = logs.reduce((sum, log) => sum + (log.costPaisa || 39), 0);
+
+    // Calculate current month data
+    const currentDate = new Date();
+    const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    const thisMonthLogs = logs.filter(log => {
+      const date = new Date(log.sentAt || log.createdAt || new Date());
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return monthKey === currentMonthKey;
+    });
+    
+    const thisMonth = thisMonthLogs.length;
+    const thisMonthCost = thisMonthLogs.reduce((sum, log) => sum + (log.costPaisa || 39), 0);
 
     // Group by SMS type
     const typeGroups = logs.reduce((acc, log) => {
@@ -864,9 +879,11 @@ export class DatabaseStorage implements IStorage {
     return {
       totalSent,
       totalCost,
+      thisMonth,
+      thisMonthCost,
       smsByType,
       recentLogs,
-      monthlyBreakdown: monthlyStats
+      monthlyStats
     };
   }
 

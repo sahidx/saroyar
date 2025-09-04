@@ -173,8 +173,8 @@ export const examSubmissions = pgTable("exam_submissions", {
 // Messages table
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  receiverId: varchar("receiver_id").notNull().references(() => users.id),
+  fromUserId: varchar("from_user_id").notNull().references(() => users.id),
+  toUserId: varchar("to_user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -372,12 +372,12 @@ export const examSubmissionsRelations = relations(examSubmissions, ({ one }) => 
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   sender: one(users, {
-    fields: [messages.senderId],
+    fields: [messages.fromUserId],
     references: [users.id],
     relationName: "sentMessages",
   }),
   receiver: one(users, {
-    fields: [messages.receiverId],
+    fields: [messages.toUserId],
     references: [users.id],
     relationName: "receivedMessages",
   }),

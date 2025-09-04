@@ -359,8 +359,8 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(
         or(
-          and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
-          and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1))
+          and(eq(messages.fromUserId, userId1), eq(messages.toUserId, userId2)),
+          and(eq(messages.fromUserId, userId2), eq(messages.toUserId, userId1))
         )
       )
       .orderBy(asc(messages.createdAt));

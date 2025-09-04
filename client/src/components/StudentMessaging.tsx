@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,8 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  BookOpen
+  BookOpen,
+  Smile
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -27,6 +27,12 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
   const [newMessage, setNewMessage] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Fetch teacher info
   const { data: teacher, isLoading: teacherLoading } = useQuery({
@@ -37,7 +43,13 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
   const { data: conversation = [], isLoading: conversationLoading } = useQuery({
     queryKey: ["/api/messages/conversation", teacher?.id],
     enabled: !!teacher?.id,
+    refetchInterval: 3000, // Refresh every 3 seconds for real-time feel
   });
+
+  // Auto-scroll when conversation updates
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -50,7 +62,7 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
         description: "Your message has been sent to the teacher",
       });
       setNewMessage('');
-      // Refresh conversation
+      // Refresh conversation immediately
       queryClient.invalidateQueries({ queryKey: ["/api/messages/conversation", teacher?.id] });
     },
     onError: (error: any) => {
@@ -103,154 +115,126 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center flex items-center justify-center gap-3">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            শিক্ষকের বার্তা সমূহ
-          </CardTitle>
-          <CardDescription className="text-center">
-            Teacher Messages - Communicate with your teacher
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    <div className="max-w-md mx-auto h-screen flex flex-col bg-white dark:bg-gray-900">
+      {/* Header - WhatsApp style */}
+      <div className="bg-green-600 dark:bg-green-700 text-white p-4 flex items-center gap-3 shadow-lg">
+        <Avatar className="h-10 w-10">
+          <AvatarFallback className="bg-green-500 text-white text-sm font-bold">
+            <User className="h-5 w-5" />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <h3 className="font-semibold text-lg">{teacher.name}</h3>
+          <p className="text-green-100 text-sm">Chemistry & ICT Teacher</p>
+        </div>
+        <div className="text-green-100">
+          <MessageSquare className="h-5 w-5" />
+        </div>
+      </div>
 
-      {/* Teacher Info */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 text-xl">
-                <User className="h-8 w-8" />
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="text-xl font-semibold">{teacher.name}</h3>
-              <p className="text-gray-600 dark:text-gray-400">Chemistry & ICT Teacher</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">Phone: {teacher.phoneNumber}</p>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Chat Area */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
-            Conversation with Teacher
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Messages */}
-          <ScrollArea className="h-96 border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
-            {conversationLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading conversation...</div>
-            ) : (conversation as any[]).length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                <p>No messages yet. Start the conversation with your teacher!</p>
+      {/* Messages Area - WhatsApp style */}
+      <div 
+        className="flex-1 bg-gray-50 dark:bg-gray-800 bg-opacity-30"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f0f0f0' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }}
+      >
+        <ScrollArea className="h-full p-4">
+          {conversationLoading ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="animate-pulse flex justify-center mb-4">
+                <div className="h-8 w-8 bg-gray-300 rounded-full"></div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {(conversation as any[]).map((message: any) => (
+              Loading conversation...
+            </div>
+          ) : (conversation as any[]).length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-lg font-semibold mb-2">শিক্ষকের সাথে কথা বলুন</p>
+              <p className="text-sm">Start a conversation with your teacher!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(conversation as any[]).map((message: any) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.senderRole === 'student' ? 'justify-end' : 'justify-start'}`}
+                >
                   <div
-                    key={message.id}
-                    className={`flex ${message.senderRole === 'student' ? 'justify-end' : 'justify-start'}`}
+                    className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm ${
+                      message.senderRole === 'student'
+                        ? 'bg-green-500 text-white rounded-br-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border rounded-bl-sm'
+                    }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                        message.senderRole === 'student'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium opacity-75">
-                          {message.senderRole === 'student' ? 'You' : 'Teacher'}
-                        </span>
-                      </div>
-                      <p className="text-sm">{message.content}</p>
-                      <div className="flex items-center gap-1 mt-2">
-                        <Clock className="h-3 w-3 opacity-60" />
-                        <span className="text-xs opacity-60">
-                          {format(new Date(message.createdAt), 'MMM dd, HH:mm')}
-                        </span>
-                        {message.senderRole === 'student' && (
-                          <CheckCircle2 className="h-3 w-3 opacity-60 ml-1" />
-                        )}
-                      </div>
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <div className={`flex items-center gap-1 mt-1 ${
+                      message.senderRole === 'student' ? 'justify-end' : 'justify-start'
+                    }`}>
+                      <span className={`text-xs ${
+                        message.senderRole === 'student' 
+                          ? 'text-green-100' 
+                          : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {format(new Date(message.createdAt), 'HH:mm')}
+                      </span>
+                      {message.senderRole === 'student' && (
+                        <CheckCircle2 className="h-3 w-3 text-green-100" />
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Input Area - WhatsApp style */}
+      <div className="bg-white dark:bg-gray-900 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type a message... (বার্তা লিখুন...)"
+              className="min-h-[50px] max-h-[120px] resize-none rounded-full border-gray-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500"
+              data-testid="student-message-input"
+            />
+            <div className="flex justify-between items-center mt-1 px-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                <Smile className="h-4 w-4" />
+                <span className="text-xs">{newMessage.length}/500</span>
               </div>
+              {newMessage.trim() && (
+                <span className="text-xs text-green-600 font-medium">Press Enter to send</span>
+              )}
+            </div>
+          </div>
+          
+          <Button
+            onClick={handleSendMessage}
+            disabled={!newMessage.trim() || sendMessageMutation.isPending || newMessage.length > 500}
+            className="h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
+            data-testid="student-send-button"
+          >
+            {sendMessageMutation.isPending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            ) : (
+              <Send className="h-4 w-4" />
             )}
-          </ScrollArea>
+          </Button>
+        </div>
+      </div>
 
-          {/* Message Input */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Send Message to Teacher
-              </label>
-              <Textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message here... (আপনার বার্তা এখানে লিখুন...)"
-                className="min-h-[100px] resize-none"
-                data-testid="student-message-input"
-              />
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {newMessage.length}/500 characters
-              </p>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || sendMessageMutation.isPending || newMessage.length > 500}
-                className="px-6 py-2"
-                data-testid="student-send-button"
-              >
-                {sendMessageMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Sending...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Send className="h-4 w-4" />
-                    Send Message
-                  </div>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Instructions */}
-      <Card className="bg-blue-50 dark:bg-blue-900/20">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
-                Messaging Guidelines:
-              </p>
-              <ul className="text-blue-700 dark:text-blue-300 space-y-1">
-                <li>• Be respectful and use appropriate language</li>
-                <li>• Ask questions about chemistry, ICT, or your studies</li>
-                <li>• Messages are limited to 500 characters</li>
-                <li>• Your teacher will respond during class hours</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Instructions footer */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          💡 Be respectful • Ask study questions • Messages refresh automatically
+        </p>
+      </div>
     </div>
   );
 }

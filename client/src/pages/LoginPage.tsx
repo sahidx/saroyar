@@ -15,6 +15,7 @@ interface LoginFormData {
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const { loginMutation } = useAuth();
 
   const form = useForm<LoginFormData>({
@@ -28,9 +29,12 @@ export default function LoginPage() {
     console.log('=== UNIFIED LOGIN FORM SUBMIT ===');
     console.log('Login data:', data);
     
+    // Clear previous errors
+    setLoginError('');
+    
     // Validate data
     if (!data.phoneNumber || !data.password) {
-      alert('Please fill in both phone number and password');
+      setLoginError('Please fill in both phone number and password');
       return;
     }
 
@@ -40,6 +44,7 @@ export default function LoginPage() {
       onSuccess: (data) => {
         console.log('🎉 Login successful, user role:', data?.user?.role);
         form.reset();
+        setLoginError('');
         
         // Redirect based on role
         if (data?.user?.role === 'teacher') {
@@ -55,8 +60,8 @@ export default function LoginPage() {
       },
       onError: (error: any) => {
         console.error('❌ Login mutation error:', error);
-        const message = error.message || 'Login failed. Please check your credentials.';
-        alert(`Login Failed: ${message}`);
+        const message = error?.message || 'Invalid phone number or password. Please try again.';
+        setLoginError(message.replace(/^(401: |400: |500: )/g, ''));
       }
     });
   };
@@ -161,6 +166,13 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
+
+                {/* Error Message Display */}
+                {loginError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                    <p className="text-red-400 text-sm text-center">{loginError}</p>
+                  </div>
+                )}
                 
                 <Button 
                   type="submit" 

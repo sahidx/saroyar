@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import LoginPage from "@/pages/LoginPage";
 import TeacherDashboard from "@/pages/TeacherDashboard";
+import SuperUserDashboard from "@/pages/SuperUserDashboard";
 import StudentDashboard from "@/pages/StudentDashboard";
 import ExamManagement from "@/pages/ExamManagement";
 import Messages from "@/pages/Messages";
@@ -70,7 +71,8 @@ function Router() {
         <>
           {/* Role-based home route */}
           <Route path="/">
-            {(user as any)?.role === 'teacher' ? <TeacherDashboard /> : <StudentHome />}
+            {(user as any)?.role === 'super_user' ? <SuperUserDashboard /> : 
+             (user as any)?.role === 'teacher' ? <TeacherDashboard /> : <StudentHome />}
           </Route>
           
           {/* Teacher routes - only accessible by teachers */}
@@ -96,6 +98,14 @@ function Router() {
             </>
           )}
           
+          {/* Super User routes - only accessible by super users */}
+          {(user as any)?.role === 'super_user' && (
+            <>
+              <Route path="/super" component={SuperUserDashboard} />
+              <Route path="/super-admin" component={SuperUserDashboard} />
+            </>
+          )}
+
           {/* Student routes - only accessible by students */}
           {(user as any)?.role === 'student' && (
             <>

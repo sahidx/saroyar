@@ -45,7 +45,6 @@ interface Batch {
 interface AttendanceRecord {
   studentId: string;
   isPresent: boolean;
-  notes: string;
 }
 
 export default function Attendance() {
@@ -133,7 +132,7 @@ export default function Attendance() {
     },
   });
 
-  const handleAttendanceChange = (studentId: string, field: 'isPresent' | 'notes', value: boolean | string) => {
+  const handleAttendanceChange = (studentId: string, field: 'isPresent', value: boolean) => {
     setAttendanceRecords(prev => ({
       ...prev,
       [studentId]: {
@@ -431,15 +430,6 @@ export default function Attendance() {
                         </Button>
                       </div>
 
-                      {/* Notes - Collapsible on Mobile */}
-                      <div className="mt-2">
-                        <Textarea
-                          placeholder="📝 Add notes (optional)..."
-                          value={attendanceRecords[student.id]?.notes || ''}
-                          onChange={(e) => handleAttendanceChange(student.id, 'notes', e.target.value)}
-                          className="h-16 text-sm resize-none"
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}

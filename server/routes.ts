@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { initializeBulkSMSService, bulkSMSService } from "./bulkSMS";
 import session from 'express-session';
 import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoticeSchema, insertSmsTransactionSchema, insertStudentSchema, insertNotesSchema, insertQuestionBankSchema, insertCourseSchema, insertTeacherProfileSchema, exams, examSubmissions, questions, questionBank, courses, teacherProfiles, users, batches } from "@shared/schema";
 import { z } from "zod";
@@ -130,6 +131,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Skip Replit authentication - use only custom session-based auth
   console.log("🔧 Using custom session-based authentication for coach management system");
+  
+  // Initialize BulkSMS service with storage
+  initializeBulkSMSService(storage);
 
   // Additional session setup for internal use
   app.use(session({
@@ -161,6 +165,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Super User authentication middleware
+  const requireSuperUser = (req: any, res: any, next: any) => {
+    if (!req.session?.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    if (req.session.user.role !== 'super_user') {
+      return res.status(403).json({ message: 'Super user access required' });
+    }
+    
+    next();
+  };
+
   // Secure login endpoint with rate limiting and password hashing
   const loginLimiter = (app as any).get('loginLimiter');
   app.post('/api/auth/login', loginLimiter, async (req, res) => {
@@ -189,19 +206,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
-      // Check password (teachers use hashed, students use plaintext from password changes)
+      // Check password (teachers use hashed, students use plaintext, super users use plaintext)
       let isValidPassword = false;
       
       if (user.role === 'teacher') {
-        // Teachers use hashed passwords
+        // Teachers use hashed passwords or updated password from super user
         const crypto = await import('crypto');
         const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-        // For teacher, check against known hashed password (sir123)
+        // Check against both hashed password and direct password (for super user updates)
         const expectedHash = crypto.createHash('sha256').update('sir123').digest('hex');
-        isValidPassword = hashedPassword === expectedHash;
+        isValidPassword = hashedPassword === expectedHash || user.password === password;
       } else if (user.role === 'student') {
         // Students use plaintext passwords from teacher updates
         isValidPassword = user.studentPassword === password;
+      } else if (user.role === 'super_user') {
+        // Super user uses plaintext password
+        isValidPassword = user.password === password;
       }
       
       if (!isValidPassword) {
@@ -219,6 +239,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
+        email: user.email,
+        smsCredits: user.smsCredits || 0,
         // Include avatar URL for teachers
         avatarUrl: user.role === 'teacher' ? tempTeacherProfile.avatarUrl : undefined
       };
@@ -236,6 +258,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Super User Routes - Password and SMS Credit Management
+  
+  // Get all teachers for super user dashboard
+  app.get('/api/super/teachers', requireSuperUser, async (req, res) => {
+    try {
+      const teachers = await storage.getAllTeachers();
+      const teachersWithCredits = teachers.map(teacher => ({
+        id: teacher.id,
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        email: teacher.email,
+        phoneNumber: teacher.phoneNumber,
+        smsCredits: teacher.smsCredits || 0,
+        lastLogin: teacher.lastLogin,
+        isActive: teacher.isActive
+      }));
+      res.json(teachersWithCredits);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      res.status(500).json({ message: "Failed to fetch teachers" });
+    }
+  });
+
+  // Change teacher password (Super User only)
+  app.put('/api/super/teachers/:teacherId/password', requireSuperUser, async (req, res) => {
+    try {
+      const { teacherId } = req.params;
+      const { newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 4) {
+        return res.status(400).json({ message: "Password must be at least 4 characters" });
+      }
+
+      const updatedUser = await storage.changeTeacherPassword(teacherId, newPassword);
+      
+      console.log(`🔑 Super user changed password for teacher ${updatedUser.firstName} ${updatedUser.lastName}`);
+      
+      res.json({ 
+        message: "Teacher password updated successfully",
+        teacher: {
+          id: updatedUser.id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName
+        }
+      });
+    } catch (error) {
+      console.error("Error changing teacher password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Add SMS credits to teacher account (Super User only)
+  app.put('/api/super/teachers/:teacherId/sms-credits', requireSuperUser, async (req, res) => {
+    try {
+      const { teacherId } = req.params;
+      const { credits, reason } = req.body;
+      
+      if (!credits || credits <= 0) {
+        return res.status(400).json({ message: "Credits must be a positive number" });
+      }
+
+      const updatedUser = await storage.addSmsCredits(teacherId, credits);
+      
+      // Log activity
+      await storage.logActivity({
+        type: 'sms_credit_added',
+        message: `Super user added ${credits} SMS credits to ${updatedUser.firstName} ${updatedUser.lastName}. Reason: ${reason || 'Offline payment'}`,
+        userId: req.session.user.id,
+        additionalData: JSON.stringify({
+          targetUserId: teacherId,
+          creditsAdded: credits,
+          newBalance: updatedUser.smsCredits,
+          reason
+        })
+      });
+      
+      console.log(`💳 Super user added ${credits} SMS credits to teacher ${updatedUser.firstName} ${updatedUser.lastName}`);
+      
+      res.json({ 
+        message: "SMS credits added successfully",
+        teacher: {
+          id: updatedUser.id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          smsCredits: updatedUser.smsCredits
+        }
+      });
+    } catch (error) {
+      console.error("Error adding SMS credits:", error);
+      res.status(500).json({ message: "Failed to add SMS credits" });
+    }
+  });
 
   // Get current user from session
   app.get('/api/auth/user', (req, res) => {
@@ -251,6 +365,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ Error getting user:', error);
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Get current user's SMS credits
+  app.get('/api/user/sms-credits', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const credits = await storage.getUserSmsCredits(userId);
+      res.json({ smsCredits: credits });
+    } catch (error) {
+      console.error("Error fetching SMS credits:", error);
+      res.status(500).json({ message: "Failed to fetch SMS credits" });
     }
   });
 
@@ -1131,7 +1257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: attendanceDate,
         isPresent: record.isPresent,
         subject,
-        notes: record.notes || null,
         createdBy: teacherId
       }));
       
@@ -1142,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const batch = await storage.getBatchById(batchId);
         const batchName = batch?.name || 'Unknown Batch';
         
-        const { bulkSMSService } = await import('./bulkSMS');
+        // Use initialized bulkSMSService
         
         for (const record of attendanceData) {
           const student = await storage.getUser(record.studentId);
@@ -1727,8 +1852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const smsCount = recipients.length;
 
-      // Import BulkSMS service
-      const { bulkSMSService } = await import('./bulkSMS');
+      // Use initialized bulkSMSService
       
       // Convert recipients to proper format
       const smsRecipients = recipients.map((recipient: any) => ({
@@ -1961,7 +2085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       // Send bulk SMS using BulkSMS service
-      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      // Use initialized bulkSMSService
       const result = await bulkSMSService.sendBulkSMS(
         formattedRecipients,
         message,
@@ -2016,7 +2140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const recipients = [];
-      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      // Use initialized bulkSMSService
       let totalSent = 0;
       let totalFailed = 0;
 
@@ -2094,7 +2218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'No attendance records found for this date' });
       }
 
-      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      // Use initialized bulkSMSService
       let totalSent = 0;
       let totalFailed = 0;
       const formattedDate = new Date(date).toLocaleDateString('bn-BD');
@@ -2106,7 +2230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
         const emoji = record.isPresent ? '✅' : '❌';
         
-        const message = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nছাত্র/ছাত্রী: ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\n${record.notes ? `মন্তব্য: ${record.notes}\n\n` : ''}ধন্যবাদ,\nবেলাল স্যার`;
+        const message = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nছাত্র/ছাত্রী: ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\nধন্যবাদ,\nবেলাল স্যার`;
 
         // Send to student
         if ((recipientType === 'students' || recipientType === 'both') && student.phoneNumber) {
@@ -2122,7 +2246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Send to parent
         if ((recipientType === 'parents' || recipientType === 'both') && student.parentPhoneNumber) {
-          const parentMessage = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nআপনার সন্তান ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\n${record.notes ? `মন্তব্য: ${record.notes}\n\n` : ''}ধন্যবাদ,\nবেলাল স্যার`;
+          const parentMessage = `${emoji} ${formattedDate} তারিখের ক্লাসে:\n\nআপনার সন্তান ${student.firstName} ${student.lastName}\nব্যাচ: ${batch.name}\nউপস্থিতি: ${status}\n\nধন্যবাদ,\nবেলাল স্যার`;
           
           const result = await bulkSMSService.sendBulkSMS(
             [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
@@ -2166,7 +2290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const recipients = [];
-      const bulkSMSService = (await import('./bulkSMS')).bulkSMSService;
+      // Use initialized bulkSMSService
 
       // Add signature to message
       const finalMessage = `${message}\n\nধন্যবাদ,\nবেলাল স্যার\nChemistry & ICT Care`;

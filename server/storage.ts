@@ -95,6 +95,13 @@ export interface IStorage {
     monthlyBreakdown: Array<{ month: string; count: number; cost: number }>;
   }>;
   
+  // Super User operations
+  changeTeacherPassword(teacherId: string, newPassword: string): Promise<User>;
+  addSmsCredits(teacherId: string, credits: number): Promise<User>;
+  getUserSmsCredits(userId: string): Promise<number>;
+  deductSmsCredits(userId: string, credits: number): Promise<boolean>;
+  getAllTeachers(): Promise<User[]>;
+  
   // Exam operations
   getExamsByTeacher(teacherId: string): Promise<Exam[]>;
   getAllActiveExams(): Promise<Exam[]>;
@@ -1286,6 +1293,62 @@ export class DatabaseStorage implements IStorage {
       console.error('Error incrementing download count:', error);
       throw error;
     }
+  }
+
+  // Super User operations implementation
+  async changeTeacherPassword(teacherId: string, newPassword: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ password: newPassword, updatedAt: new Date() })
+      .where(eq(users.id, teacherId))
+      .returning();
+    return updatedUser;
+  }
+
+  async addSmsCredits(teacherId: string, credits: number): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        smsCredits: sql`COALESCE(${users.smsCredits}, 0) + ${credits}`,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, teacherId))
+      .returning();
+    return updatedUser;
+  }
+
+  async getUserSmsCredits(userId: string): Promise<number> {
+    const [user] = await db
+      .select({ smsCredits: users.smsCredits })
+      .from(users)
+      .where(eq(users.id, userId));
+    return user?.smsCredits || 0;
+  }
+
+  async deductSmsCredits(userId: string, credits: number): Promise<boolean> {
+    const currentCredits = await this.getUserSmsCredits(userId);
+    
+    if (currentCredits < credits) {
+      return false; // Insufficient credits
+    }
+
+    await db
+      .update(users)
+      .set({ 
+        smsCredits: sql`${users.smsCredits} - ${credits}`,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+    
+    return true; // Successfully deducted
+  }
+
+  async getAllTeachers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'teacher'))
+      .orderBy(asc(users.firstName));
   }
 }
 

@@ -26,7 +26,7 @@ export const sessions = pgTable(
 );
 
 // User role enum
-export const userRoleEnum = pgEnum('user_role', ['teacher', 'student']);
+export const userRoleEnum = pgEnum('user_role', ['teacher', 'student', 'super_user']);
 
 // Payment status enum
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'completed', 'failed', 'cancelled']);
@@ -75,6 +75,10 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").notNull().default('student'),
+  
+  // Teacher/Super User specific fields
+  email: varchar("email"),
+  smsCredits: integer("sms_credits").default(0), // SMS balance for teachers
   
   // Student-specific fields
   studentId: varchar("student_id"),

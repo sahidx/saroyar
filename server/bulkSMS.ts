@@ -1,5 +1,6 @@
 import { db } from './db';
 import { smsLogs } from '@shared/schema';
+import type { IStorage } from './storage';
 
 interface SMSRecipient {
   id: string;
@@ -43,11 +44,13 @@ export class BulkSMSService {
   private baseUrl = 'http://bulksmsbd.net/api/smsapi';
   private senderId = '8809617628909'; // Exact sender ID as provided by user
   private costPerPart = 0.39; // 0.39 paisa per SMS part
+  private storage: IStorage;
 
-  constructor() {
+  constructor(storage: IStorage) {
     // Use API key from environment or fallback to provided key
     this.apiKey = process.env.BULKSMS_API_KEY || 'gsOKLO6XtKsANCvgPHNt';
-    console.log('📱 BulkSMS Bangladesh API initialized with professional billing');
+    this.storage = storage;
+    console.log('📱 BulkSMS Bangladesh API initialized with professional billing and credit management');
   }
 
   // Calculate SMS parts and billing information
@@ -155,6 +158,29 @@ export class BulkSMSService {
       failedMessages: []
     };
 
+    // Calculate total SMS credits needed
+    const billing = this.calculateSMSBilling(message);
+    const totalCreditsNeeded = billing.smsParts * recipients.length;
+    
+    // Check if sender has enough SMS credits
+    const senderCredits = await this.storage.getUserSmsCredits(sentBy);
+    console.log(`💳 Checking SMS credits: Need ${totalCreditsNeeded}, Available ${senderCredits}`);
+    
+    if (senderCredits < totalCreditsNeeded) {
+      console.log(`❌ Insufficient SMS credits: Need ${totalCreditsNeeded}, Have ${senderCredits}`);
+      return {
+        success: false,
+        sentCount: 0,
+        failedCount: recipients.length,
+        totalCreditsUsed: 0,
+        failedMessages: recipients.map(recipient => ({
+          recipient,
+          error: `Insufficient SMS credits. Need ${totalCreditsNeeded}, available ${senderCredits}`,
+          code: 1003
+        }))
+      };
+    }
+
     console.log(`🚀 Starting bulk SMS to ${recipients.length} recipients`);
 
     // Send SMS to each recipient
@@ -165,8 +191,17 @@ export class BulkSMSService {
         if (smsResult.success) {
           result.sentCount++;
           
-          // Log successful SMS with professional billing
+          // Deduct SMS credits from sender's account
           const billing = this.calculateSMSBilling(message);
+          const creditsDeducted = await this.storage.deductSmsCredits(sentBy, billing.smsParts);
+          
+          if (creditsDeducted) {
+            console.log(`💳 Deducted ${billing.smsParts} SMS credits from ${sentBy}`);
+          } else {
+            console.log(`⚠️ Warning: Could not deduct credits from ${sentBy}`);
+          }
+          
+          // Log successful SMS with professional billing
           await this.logSMS({
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
@@ -338,4 +373,9 @@ export class BulkSMSService {
 }
 
 // Export singleton instance
-export const bulkSMSService = new BulkSMSService();
+// Will be initialized with storage from routes
+export let bulkSMSService: BulkSMSService;
+
+export function initializeBulkSMSService(storage: IStorage): void {
+  bulkSMSService = new BulkSMSService(storage);
+}

@@ -45,6 +45,7 @@ interface Batch {
 interface AttendanceRecord {
   studentId: string;
   isPresent: boolean;
+  notes?: string;
 }
 
 export default function Attendance() {
@@ -68,6 +69,12 @@ export default function Attendance() {
   const { data: students = [], refetch: refetchStudents } = useQuery<Student[]>({
     queryKey: [`/api/batches/${selectedBatch}/students`],
     enabled: !!selectedBatch,
+  });
+
+  // Fetch SMS credits for validation
+  const { data: smsCreditsData } = useQuery({
+    queryKey: ['/api/user/sms-credits'],
+    refetchInterval: 5000, // Update every 5 seconds
   });
 
   // Fetch existing attendance for selected date and batch
@@ -153,6 +160,32 @@ export default function Attendance() {
     }
 
     const attendanceData = Object.values(attendanceRecords);
+    const currentCredits = (smsCreditsData as any)?.smsCredits || 0;
+    
+    // Check SMS credits if SMS is enabled
+    if (sendSMS) {
+      // Count students with parent phone numbers (only they will receive SMS)
+      const studentsWithParentNumbers = students.filter(student => student.parentPhoneNumber);
+      const requiredCredits = studentsWithParentNumbers.length;
+      
+      if (currentCredits === 0) {
+        toast({
+          title: "❌ SMS Balance End",
+          description: "আপনার SMS ব্যালেন্স শেষ! Admin এর সাথে যোগাযোগ করুন নতুন SMS এর জন্য।",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (requiredCredits > currentCredits) {
+        toast({
+          title: "❌ Insufficient SMS Credits", 
+          description: `আপনার ${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। Admin এর সাথে যোগাযোগ করুন।`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     takeAttendanceMutation.mutate({
       batchId: selectedBatch,

@@ -1355,13 +1355,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const createdAttendance = await storage.createBulkAttendance(attendanceRecords);
       
-      // Send SMS notifications to parents if enabled
+      // Send SMS notifications to parents if enabled using secure bulk SMS service
       if (sendSMS) {
         const batch = await storage.getBatchById(batchId);
         const batchName = batch?.name || 'Unknown Batch';
         
-        // Use initialized bulkSMSService
-        
+        // Prepare SMS recipients from students with parent phone numbers
+        const smsRecipients = [];
         for (const record of attendanceData) {
           const student = await storage.getUser(record.studentId);
           if (student?.parentPhoneNumber) {
@@ -1369,35 +1369,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const subjectName = subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
             const message = `${student.firstName} ${student.lastName} ${subjectName} ক্লাসে ${status} ছিল। বেলাল স্যার`;
             
-            try {
-              // Send actual SMS using BulkSMS BD API
-              const smsResult = await bulkSMSService.sendSMS(student.parentPhoneNumber, message);
+            smsRecipients.push({
+              id: student.id,
+              name: `${student.firstName}'s Parent`,
+              phoneNumber: student.parentPhoneNumber,
+              message
+            });
+          }
+        }
+        
+        // Send SMS using secure bulk SMS service with credit validation
+        if (smsRecipients.length > 0) {
+          try {
+            // Send individual SMS for each attendance status using proper credit checking
+            let totalSent = 0;
+            let totalFailed = 0;
+            
+            for (const recipient of smsRecipients) {
+              const smsResult = await bulkSMSService.sendBulkSMS(
+                [{ id: recipient.id, name: recipient.name, phoneNumber: recipient.phoneNumber }],
+                recipient.message,
+                teacherId,
+                'attendance'
+              );
               
-              // Log SMS result to database
-              await storage.createSmsLog({
-                recipientType: 'parent',
-                recipientPhone: student.parentPhoneNumber,
-                recipientName: `${student.firstName}'s Parent`,
-                studentId: student.id,
-                smsType: 'attendance',
-                subject: subject,
-                message,
-                status: smsResult.success ? 'sent' : 'failed',
-                credits: smsResult.success ? 1 : 0,
-                sentBy: teacherId
-              });
+              totalSent += smsResult.sentCount;
+              totalFailed += smsResult.failedCount;
               
-              // Log activity
-              await storage.logActivity({
-                type: 'attendance_sms',
-                message: `Attendance SMS ${smsResult.success ? 'sent to' : 'failed for'} ${student.firstName}'s parent`,
-                icon: smsResult.success ? '📱' : '❌',
-                userId: teacherId
-              });
-              
-            } catch (smsError) {
-              console.error(`Failed to send SMS to ${student.parentPhoneNumber}:`, smsError);
+              // Stop if no more credits available
+              if (!smsResult.success && smsResult.sentCount === 0) {
+                break;
+              }
             }
+            
+            // Log attendance SMS activity
+            await storage.logActivity({
+              type: 'attendance_sms',
+              message: `Attendance SMS: ${totalSent} sent, ${totalFailed} failed`,
+              icon: totalSent > 0 ? '📱' : '❌',
+              userId: teacherId
+            });
+          } catch (smsError) {
+            console.error(`Failed to send attendance SMS:`, smsError);
+            return res.status(400).json({ 
+              message: "Attendance recorded but SMS failed: " + (smsError as any).message 
+            });
           }
         }
       }

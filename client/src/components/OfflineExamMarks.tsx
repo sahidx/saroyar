@@ -27,21 +27,24 @@ interface StudentMark {
 
 interface SMSOptions {
   sendSMS: boolean;
-  targetRecipients: 'student' | 'parent' | 'both';
-  customTemplate: string;
 }
 
 export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProps) {
   const [studentMarks, setStudentMarks] = useState<StudentMark[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
-    sendSMS: true,
-    targetRecipients: 'student',
-    customTemplate: `🎯 Exam Result Alert!\n\nDear {student_name},\n\nYour result for "{exam_title}" exam:\n📊 Marks: {marks}/{total_marks}\n📅 Exam Date: {exam_date}\n\n{feedback}\n\nBest of luck for future exams!\n\nChemistry & ICT Care by Belal Sir\n📞 Contact: 01712345678`
+    sendSMS: true
   });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch SMS credits for validation
+  const { data: smsCreditsData } = useQuery({
+    queryKey: ['/api/user/sms-credits'],
+    refetchInterval: 5000,
+    enabled: isOpen,
+  });
 
   // Get students for this exam (either by batch or all students)
   const { data: students = [] } = useQuery({
@@ -110,6 +113,32 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
       return;
     }
 
+    const currentCredits = (smsCreditsData as any)?.smsCredits || 0;
+    
+    // Check SMS credits if SMS is enabled
+    if (smsOptions.sendSMS) {
+      const studentsWithMarks = validMarks.filter(mark => mark.marks > 0);
+      const requiredCredits = studentsWithMarks.length;
+      
+      if (currentCredits === 0) {
+        toast({
+          title: "❌ SMS Balance End",
+          description: "আপনার SMS ব্যালেন্স শেষ! Admin এর সাথে যোগাযোগ করুন নতুন SMS এর জন্য।",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (requiredCredits > currentCredits) {
+        toast({
+          title: "❌ Insufficient SMS Credits",
+          description: `আপনার ${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। Admin এর সাথে যোগাযোগ করুন।`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     updateMarksMutation.mutate({ 
       studentMarks: validMarks, 
       smsOptions 
@@ -124,14 +153,8 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
     const student = getStudentInfo(studentMark.studentId);
     if (!student) return '';
 
-    return smsOptions.customTemplate
-      .replace('{student_name}', `${student.firstName} ${student.lastName}`)
-      .replace('{exam_title}', exam.title)
-      .replace('{marks}', studentMark.marks.toString())
-      .replace('{total_marks}', exam.totalMarks.toString())
-      .replace('{exam_date}', new Date(exam.examDate).toLocaleDateString())
-      .replace('{feedback}', studentMark.feedback)
-      .replace('{teacher_phone}', '01712345678');
+    // Simple SMS template
+    return `🎯 Exam Result: ${student.firstName} ${student.lastName}\n📊 Marks: ${studentMark.marks}/${exam.totalMarks}\n📅 ${exam.title}\n\n${studentMark.feedback}\n\nBelal Sir - 01712345678`;
   };
 
   // Filter students based on search
@@ -145,15 +168,11 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
     );
   });
 
-  // Calculate SMS cost based on options
+  // Calculate SMS cost - simplified
   const getActiveSMSCount = () => {
     const studentsWithMarks = studentMarks.filter(mark => mark.marks > 0);
     if (!smsOptions.sendSMS) return 0;
-    
-    let multiplier = 1;
-    if (smsOptions.targetRecipients === 'both') multiplier = 2;
-    
-    return studentsWithMarks.length * multiplier;
+    return studentsWithMarks.length;
   };
   
   const totalSMSCost = getActiveSMSCount();
@@ -196,20 +215,20 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
             </CardContent>
           </Card>
 
-          {/* Enhanced SMS Options */}
+          {/* Simple SMS Option */}
           <Card className="bg-purple-50 border-purple-200">
             <CardHeader>
               <CardTitle className="text-lg text-purple-700 flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                SMS Options & Targeting
+                <Phone className="w-5 h-5" />
+                Send Results via SMS
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Send SMS Toggle */}
+              {/* Simple Send SMS Toggle */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-purple-600" />
-                  <Label className="font-semibold">Send SMS Notifications</Label>
+                  <MessageSquare className="w-5 h-5 text-purple-600" />
+                  <Label className="font-semibold">Send Result SMS to Students</Label>
                 </div>
                 <Switch
                   checked={smsOptions.sendSMS}
@@ -217,62 +236,11 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
                 />
               </div>
               
-              {/* Target Recipients */}
-              {smsOptions.sendSMS && (
-                <div className="space-y-2">
-                  <Label className="font-semibold flex items-center gap-2">
-                    <UserCheck className="w-4 h-4" />
-                    Send SMS To:
-                  </Label>
-                  <Select 
-                    value={smsOptions.targetRecipients} 
-                    onValueChange={(value: 'student' | 'parent' | 'both') => setSmsOptions({...smsOptions, targetRecipients: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">📱 Students Only</SelectItem>
-                      <SelectItem value="parent">👨‍👩‍👧‍👦 Parents Only</SelectItem>
-                      <SelectItem value="both">📱👨‍👩‍👧‍👦 Both Students & Parents</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="text-xs text-purple-600">
-                    {smsOptions.targetRecipients === 'student' && '📱 SMS will be sent to student phone numbers'}
-                    {smsOptions.targetRecipients === 'parent' && '👨‍👩‍👧‍👦 SMS will be sent to parent phone numbers'}
-                    {smsOptions.targetRecipients === 'both' && '📱👨‍👩‍👧‍👦 SMS will be sent to both student and parent phone numbers (2× cost)'}
-                  </div>
-                </div>
-              )}
-              
               {!smsOptions.sendSMS && (
                 <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                  💾 Marks will be saved without sending SMS notifications. You can manually send SMS later.
+                  💾 Results will be saved without SMS notifications. You can manually notify students later.
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* SMS Template */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-700 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                SMS Result Template
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={smsOptions.customTemplate}
-                onChange={(e) => setSmsOptions({...smsOptions, customTemplate: e.target.value})}
-                rows={8}
-                className="font-mono text-sm"
-                placeholder="Customize your SMS template using variables: student_name, exam_title, marks, total_marks, exam_date, feedback, teacher_phone"
-              />
-              <div className="mt-2 text-xs text-blue-600">
-                Available variables: student_name, exam_title, marks, total_marks, exam_date, feedback, teacher_phone
-              </div>
             </CardContent>
           </Card>
 

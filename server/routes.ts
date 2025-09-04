@@ -1625,17 +1625,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete student (for teacher)
-  app.delete("/api/students/:id", async (req: any, res) => {
+  app.delete("/api/students/:id", requireAuth, async (req: any, res) => {
     try {
       const studentId = req.params.id;
+      const teacherId = req.session?.user?.id; // Get from session auth
+      
       await storage.deleteStudent(studentId);
       
-      // Log activity - must include user_id to satisfy database constraint
+      // Log activity with proper user ID
       await storage.logActivity({
         type: 'student_deleted',
         message: `Student removed from the system`,
         icon: '🗑️',
-        userId: req.session?.user?.id || 'system'
+        userId: teacherId || 'unknown-teacher'
       });
       
       res.json({ message: "Student deleted successfully" });

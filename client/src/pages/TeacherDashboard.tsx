@@ -672,6 +672,13 @@ export default function TeacherDashboard() {
     retry: false,
   });
 
+  // Fetch real-time SMS credits with frequent updates
+  const { data: userCredits, isLoading: creditsLoading } = useQuery({
+    queryKey: ['/api/user/sms-credits'],
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+    retry: false,
+  });
+
   // Fetch real students data
   const studentsQuery = useQuery({
     queryKey: ['/api/students'],
@@ -839,6 +846,34 @@ export default function TeacherDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6 px-1">
+            {/* SMS Credits Balance - Prominent Display */}
+            <Card className={`mobile-dashboard-card ${isDarkMode 
+              ? 'bg-gradient-to-br from-red-500/10 to-pink-500/10 border-2 border-red-400/50' 
+              : 'bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-300 shadow-lg'
+            } hover:scale-105 transition-transform duration-200`}>
+              <CardContent className="mobile-card-content">
+                <div className="flex items-center justify-between space-x-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <MessageSquare className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-red-800'}`}>
+                        {creditsLoading ? '...' : userCredits?.smsCredits || smsCredits || 0}
+                      </div>
+                      <p className={`text-sm font-medium ${isDarkMode ? 'text-red-200' : 'text-red-600'}`}>SMS Credits Available</p>
+                      <p className={`text-xs ${isDarkMode ? 'text-red-300' : 'text-red-500'}`}>Rate: 0.39 taka per SMS</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-400">
+                      Live Balance
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <div className="grid grid-cols-2 gap-4">
               <Card className={`mobile-dashboard-card ${isDarkMode 
                 ? 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/30' 

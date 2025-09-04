@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +35,11 @@ export function BulkSMSComponent({ isDarkMode }: BulkSMSComponentProps) {
       console.log('Bulk SMS sent successfully:', data);
       setMessage('');
       setSelectedStudents([]);
+      // Invalidate SMS credits cache for real-time balance update
+      queryClient.invalidateQueries({ queryKey: ['/api/user/sms-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/teacher/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sms/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sms/logs'] });
       // Optionally fetch delivery report
       fetchDeliveryReport();
     },

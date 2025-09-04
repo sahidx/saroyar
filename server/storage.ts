@@ -15,11 +15,7 @@ import {
   teacherProfiles,
   praggoAIKeys,
   questionBankCategories,
-  type QuestionBankCategory,
-  type InsertQuestionBankCategory,
   questionBankItems,
-  type QuestionBankItem,
-  type InsertQuestionBankItem,
   type User,
   type UpsertUser,
   type Batch,
@@ -50,10 +46,6 @@ import {
   type InsertTeacherProfile,
   type TeacherProfile,
   type PraggoAIKey,
-  type QuestionBankCategory,
-  type InsertQuestionBankCategory,
-  type QuestionBankItem,
-  type InsertQuestionBankItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, count, avg, and, or, sql } from "drizzle-orm";
@@ -381,7 +373,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(messages)
-      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .where(or(eq(messages.fromUserId, userId), eq(messages.toUserId, userId)))
       .orderBy(desc(messages.createdAt))
       .limit(10);
   }

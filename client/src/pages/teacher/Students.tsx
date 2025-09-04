@@ -366,6 +366,7 @@ export default function Students() {
   const [editingPassword, setEditingPassword] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteBatchConfirm, setDeleteBatchConfirm] = useState<string | null>(null);
   const [transferringBatch, setTransferringBatch] = useState<string | null>(null);
   const [selectedBatch, setSelectedBatch] = useState('');
   const { toast } = useToast();
@@ -507,6 +508,31 @@ export default function Students() {
     }
   });
 
+  const deleteBatchMutation = useMutation({
+    mutationFn: async (batchId: string) => {
+      const response = await apiRequest('DELETE', `/api/batches/${batchId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      batchesQuery.refetch();
+      studentsQuery.refetch(); // Refresh students as batch counts might change
+      toast({
+        title: '✅ Batch Removed',
+        description: 'Batch has been successfully removed from the system.',
+        variant: 'default',
+      });
+      setDeleteBatchConfirm(null);
+    },
+    onError: (error: any) => {
+      console.error('Error deleting batch:', error);
+      toast({
+        title: '❌ Cannot Remove Batch', 
+        description: error.message || 'Failed to remove batch. Batch may have students.',
+        variant: 'destructive',
+      });
+    }
+  });
+
   const togglePasswordVisibility = (studentId: string) => {
     setPasswordVisible(prev => ({
       ...prev,
@@ -533,6 +559,10 @@ export default function Students() {
 
   const handleDeleteStudent = (studentId: string) => {
     deleteStudentMutation.mutate(studentId);
+  };
+
+  const handleDeleteBatch = (batchId: string) => {
+    deleteBatchMutation.mutate(batchId);
   };
 
   const handleBatchTransfer = (studentId: string) => {
@@ -648,6 +678,48 @@ export default function Students() {
                   className={`pl-10 ${isDarkMode ? 'bg-slate-700 border-cyan-400/30 text-white' : 'bg-white'}`}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Batch Management Section */}
+        <Card className={`${isDarkMode ? 'bg-slate-800/50 border-cyan-400/30' : 'bg-white border-orange-300/50'}`}>
+          <CardHeader>
+            <CardTitle className={`${isDarkMode ? 'text-cyan-300' : 'text-orange-600'}`}>
+              <GraduationCap className="w-5 h-5 mr-2 inline" />
+              Batch Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(batchesData || []).map((batch: any) => (
+                <div key={batch.id} className={`p-3 border rounded-lg ${getSubjectTheme(batch.subject, isDarkMode).bgColor} ${getSubjectTheme(batch.subject, isDarkMode).borderColor}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        {getSubjectIcon(batch.subject)}
+                        <h4 className={`font-semibold text-sm ${getSubjectTheme(batch.subject, isDarkMode).textColor}`}>
+                          {batch.name}
+                        </h4>
+                      </div>
+                      <div className={`text-xs space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        <div>Code: {batch.batchCode}</div>
+                        <div>Students: {batch.students || 0}/{batch.maxStudents}</div>
+                        <div>Subject: {batch.subject}</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteBatchConfirm(batch.id)}
+                      className={`h-6 px-2 ${isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'}`}
+                      data-testid={`button-delete-batch-${batch.batchCode}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -946,6 +1018,58 @@ export default function Students() {
             onSubmit={(data) => createBatchMutation.mutate(data)}
             isLoading={createBatchMutation.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Batch Confirmation Modal */}
+      <Dialog open={!!deleteBatchConfirm} onOpenChange={() => setDeleteBatchConfirm(null)}>
+        <DialogContent className={`max-w-md ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-white'}`}>
+          <DialogHeader>
+            <DialogTitle className={`${isDarkMode ? 'text-red-300' : 'text-red-700'}`}>
+              Confirm Batch Removal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Are you sure you want to permanently remove this batch? This action cannot be undone.
+            </p>
+            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-700 dark:text-red-300 text-sm font-medium">
+                ⚠️ Batch can only be deleted if:
+              </p>
+              <ul className="text-red-600 dark:text-red-400 text-sm mt-2 ml-4 list-disc">
+                <li>No students are currently enrolled</li>
+                <li>All students have been transferred to other batches</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteBatchConfirm(null)}
+              disabled={deleteBatchMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteBatchConfirm && handleDeleteBatch(deleteBatchConfirm)}
+              disabled={deleteBatchMutation.isPending}
+              data-testid="button-confirm-delete-batch"
+            >
+              {deleteBatchMutation.isPending ? (
+                <div className="flex items-center">
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  Removing...
+                </div>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Yes, Remove Batch
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

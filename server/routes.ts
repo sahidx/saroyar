@@ -1670,6 +1670,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete batch (for teacher)
+  app.delete("/api/batches/:id", requireAuth, async (req: any, res) => {
+    try {
+      const batchId = req.params.id;
+      const teacherId = req.session?.user?.id;
+      
+      // Check if batch has students
+      const studentsInBatch = await storage.getStudentsByBatch(batchId);
+      if (studentsInBatch.length > 0) {
+        return res.status(400).json({ 
+          message: `Cannot delete batch. ${studentsInBatch.length} students are still in this batch. Please transfer them first.`,
+          studentsCount: studentsInBatch.length 
+        });
+      }
+      
+      await storage.deleteBatch(batchId);
+      
+      // Log activity
+      await storage.logActivity({
+        type: 'batch_deleted',
+        message: `Batch removed from the system`,
+        icon: '🗑️',
+        userId: teacherId || 'unknown-teacher'
+      });
+      
+      res.json({ message: "Batch deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting batch:", error);
+      res.status(500).json({ message: "Failed to delete batch" });
+    }
+  });
+
   // Update student password (for teacher)
   // Batch transfer endpoint for students
   app.patch("/api/students/:id/batch", async (req: any, res) => {

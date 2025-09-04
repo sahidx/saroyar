@@ -635,8 +635,8 @@ export class DatabaseStorage implements IStorage {
     
     // Delete any messages sent by or to this student
     await db.delete(messages).where(or(
-      eq(messages.senderId, id),
-      eq(messages.receiverId, id)
+      eq(messages.fromUserId, id),
+      eq(messages.toUserId, id)
     ));
     
     // Finally delete the student

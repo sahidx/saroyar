@@ -28,8 +28,8 @@ interface BulkSMSResult {
 
 export class BulkSMSService {
   private apiKey: string;
-  private baseUrl = 'http://bulksmsbd.net/api';
-  private senderId = 'Random'; // Exact sender ID as per API format
+  private baseUrl = 'http://bulksmsbd.net/api/smsapi';
+  private senderId = '8809617628909'; // Exact sender ID as provided by user
 
   constructor() {
     // Use API key from environment or fallback to provided key
@@ -37,61 +37,42 @@ export class BulkSMSService {
     console.log('📱 BulkSMS Bangladesh API initialized');
   }
 
-  // Send single SMS
+  // Send single SMS using exact BulkSMS BD API format
   async sendSMS(phoneNumber: string, message: string): Promise<SMSResponse> {
     try {
       // Ensure phone number is in correct format (88017XXXXXXXX)
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       
-      // URL encode the message for special characters
+      // URL encode the message for special characters like &, $, @ etc
       const encodedMessage = encodeURIComponent(message);
       
-      // Use exact API format as provided: http://bulksmsbd.net/api/smsapi?api_key=gsOKLO6XtKsANCvgPHNt&type=text&number=Receiver&senderid=Random&message=TestSMS
-      const apiUrl = `http://bulksmsbd.net/api/smsapi?api_key=${this.apiKey}&type=text&number=${formattedNumber}&senderid=${this.senderId}&message=${encodedMessage}`;
+      // Use EXACT API format as specified by user:
+      // http://bulksmsbd.net/api/smsapi?api_key=gsOKLO6XtKsANCvgPHNt&type=text&number=Receiver&senderid=8809617628909&message=TestSMS
+      const apiUrl = `${this.baseUrl}?api_key=${this.apiKey}&type=text&number=${formattedNumber}&senderid=${this.senderId}&message=${encodedMessage}`;
       
       console.log(`📤 Sending SMS to ${formattedNumber}`);
+      console.log(`🔗 API URL: ${apiUrl.replace(this.apiKey, '***API_KEY***')}`); // Hide API key in logs
       
-      // Try GET first, then POST as backup (both supported per user specifications)
-      let response;
-      try {
-        response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'BelalSir-ChemistryICT/1.0'
-          }
-        });
-      } catch (getError) {
-        // Fallback to POST method if GET fails
-        console.log('📤 GET failed, trying POST method...');
-        const postData = new URLSearchParams({
-          api_key: this.apiKey,
-          type: 'text',
-          number: formattedNumber,
-          senderid: this.senderId,
-          message: message
-        });
-        
-        response = await fetch(`${this.baseUrl}/smsapi`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'BelalSir-ChemistryICT/1.0'
-          },
-          body: postData
-        });
-      }
+      // Use GET method as specified in user's API format
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'BelalSir-ChemistryICT/1.0'
+        }
+      });
       
       const responseText = await response.text();
       console.log(`📨 SMS API Response: ${responseText}`);
       
+      // Parse response - can be JSON or plain text
       let responseCode = 0;
       
       try {
-        // Try to parse as JSON first (new API format)
+        // Try to parse as JSON first
         const jsonResponse = JSON.parse(responseText);
-        responseCode = jsonResponse.response_code || 0;
+        responseCode = jsonResponse.response_code || jsonResponse.code || 0;
       } catch {
-        // Fallback to plain text parsing (old format)
+        // Fallback to plain text parsing (simple numeric code)
         responseCode = parseInt(responseText.trim()) || 0;
       }
       

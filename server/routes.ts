@@ -3782,8 +3782,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`💬 Sending message from ${senderRole} ${senderId} to ${receiver?.role} ${receiverId}`);
       
       const message = await storage.createMessage({
-        senderId,
-        receiverId,
+        fromUserId: senderId,
+        toUserId: receiverId,
         content: content.trim(),
         isRead: false
       });

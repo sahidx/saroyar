@@ -116,6 +116,7 @@ export interface IStorage {
   
   // Submission operations
   getSubmissionsByExam(examId: string): Promise<ExamSubmission[]>;
+  getSubmissionsByStudent(userId: string): Promise<ExamSubmission[]>;
   getSubmissionByUserAndExam(userId: string, examId: string): Promise<ExamSubmission | undefined>;
   createSubmission(submission: InsertSubmission): Promise<ExamSubmission>;
   updateSubmission(id: string, data: Partial<InsertSubmission>): Promise<ExamSubmission>;
@@ -333,6 +334,14 @@ export class DatabaseStorage implements IStorage {
       .from(examSubmissions)
       .where(eq(examSubmissions.examId, examId))
       .orderBy(desc(examSubmissions.createdAt));
+  }
+
+  async getSubmissionsByStudent(userId: string): Promise<ExamSubmission[]> {
+    return await db
+      .select()
+      .from(examSubmissions)
+      .where(eq(examSubmissions.studentId, userId))
+      .orderBy(desc(examSubmissions.submittedAt));
   }
 
   async getSubmissionByUserAndExam(userId: string, examId: string): Promise<ExamSubmission | undefined> {

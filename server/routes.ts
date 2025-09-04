@@ -739,166 +739,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalSMSSent = 0;
       
       if (smsOptions.sendSMS) {
-        smsPromises = studentMarks.map(async (mark: any) => {
-          const student = await storage.getUser(mark.studentId);
-          if (!student || mark.marks <= 0) return [];
-          
-          const recipients = [];
-          
-          // Build custom SMS template or use default
-          const smsTemplate = smsOptions.customTemplate || 
-            `🎯 {student_name} {exam_title}: {marks}/{total_marks}। বেলাল স্যার`;
-          
-          // Replace template variables
-          const finalMessage = smsTemplate
-            .replace('{student_name}', `${student.firstName} ${student.lastName}`)
-            .replace('{exam_title}', exam.title)
-            .replace('{marks}', mark.marks.toString())
-            .replace('{total_marks}', (exam.totalMarks || 100).toString())
-            .replace('{exam_date}', new Date(exam.examDate).toLocaleDateString())
-            .replace('{feedback}', mark.feedback || 'Keep up the good work!');
-          
-          // Send to student
-          if ((smsOptions.targetRecipients === 'student' || smsOptions.targetRecipients === 'both') && student.phoneNumber) {
-            recipients.push(storage.createSmsLog({
-              recipientType: 'student',
-              recipientPhone: student.phoneNumber,
-              recipientName: `${student.firstName} ${student.lastName}`,
-              studentId: student.id,
-              smsType: 'exam_result',
-              subject: exam.title,
-              message: finalMessage,
-              status: 'sent',
-              credits: 1,
-              sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
-            }));
-          }
-          
-          // Send to parent
-          if ((smsOptions.targetRecipients === 'parent' || smsOptions.targetRecipients === 'both') && student.parentPhoneNumber) {
-            const parentMessage = finalMessage.replace(
-              `Dear ${student.firstName} ${student.lastName}`,
-              `Dear Parent of ${student.firstName} ${student.lastName}`
-            );
-            
-            recipients.push(storage.createSmsLog({
-              recipientType: 'parent',
-              recipientPhone: student.parentPhoneNumber,
-              recipientName: `Parent of ${student.firstName} ${student.lastName}`,
-              studentId: student.id,
-              smsType: 'exam_result',
-              subject: exam.title,
-              message: parentMessage,
-              status: 'sent',
-              credits: 1,
-              sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
-            }));
-          }
-          
-          return Promise.all(recipients);
-        }).flat();
-      }
-
-      const sentSMS = smsOptions.sendSMS ? await Promise.all(smsPromises.filter(Boolean)) : [];
-      totalSMSSent = sentSMS.flat().length;
-
-      // Send exam result SMS using secure BulkSMS service
-      let actualSMSSent = 0;
-      if (smsOptions.sendSMS && studentMarks.length > 0) {
-        // Check if teacher has enough credits first
-        const teacher = await storage.getUser(req.session.user.id);
+        console.log('📤 Processing SMS for exam marks...');
+        
+        // Get teacher and check SMS credits
+        const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
+        const teacher = await storage.getUser(teacherId);
+        
         if (!teacher) {
           return res.status(404).json({ message: "Teacher not found" });
         }
 
-        const requiredCredits = studentMarks.length * 
-          (smsOptions.targetRecipients === 'both' ? 2 : 1);
-
-        if (teacher.smsCredits < requiredCredits) {
+        const studentsWithMarks = studentMarks.filter((mark: any) => mark.marks > 0);
+        const requiredCredits = studentsWithMarks.length;
+        
+        // Check credit availability
+        if ((teacher.smsCredits || 0) < requiredCredits) {
           return res.status(400).json({ 
-            message: `Insufficient SMS credits. Need ${requiredCredits}, available ${teacher.smsCredits}`,
-            success: false,
-            requiredCredits,
-            availableCredits: teacher.smsCredits
+            message: `❌ Insufficient SMS credits: Need ${requiredCredits}, available ${teacher.smsCredits || 0}`,
+            success: false
           });
         }
 
-        // Prepare SMS recipients with exam results
-        const smsRecipients = [];
-        for (const mark of studentMarks) {
+        // Send SMS to each student with marks
+        for (const mark of studentsWithMarks) {
           const student = await storage.getUser(mark.studentId);
-          if (!student || mark.marks <= 0) continue;
+          if (!student || !student.phoneNumber) continue;
 
-          const smsTemplate = smsOptions.customTemplate || 
-            `🎯 {student_name} {exam_title}: {marks}/{total_marks}। বেলাল স্যার`;
+          // Enhanced SMS message with student phone number
+          const studentPhone = student.phoneNumber;
+          const smsMessage = `🎯 ${student.firstName} ${student.lastName} (${studentPhone})\n📊 ${exam.title}: ${mark.marks}/${exam.totalMarks}\n💬 ${mark.feedback || 'চালিয়ে যান!'}\n📚 বেলাল স্যার - 01712345678`;
           
-          const finalMessage = smsTemplate
-            .replace('{student_name}', `${student.firstName} ${student.lastName}`)
-            .replace('{exam_title}', exam.title)
-            .replace('{marks}', mark.marks.toString())
-            .replace('{total_marks}', (exam.totalMarks || 100).toString())
-            .replace('{exam_date}', new Date(exam.examDate).toLocaleDateString())
-            .replace('{feedback}', mark.feedback || 'Keep up the good work!');
-
-          // Add student recipient
-          if ((smsOptions.targetRecipients === 'student' || smsOptions.targetRecipients === 'both') && student.phoneNumber) {
-            smsRecipients.push({
+          try {
+            // Send SMS to student
+            const smsRecipients = [{
               id: student.id,
               name: `${student.firstName} ${student.lastName}`,
               phoneNumber: student.phoneNumber
-            });
-          }
+            }];
 
-          // Add parent recipient
-          if ((smsOptions.targetRecipients === 'parent' || smsOptions.targetRecipients === 'both') && student.parentPhoneNumber) {
-            const parentMessage = finalMessage.replace(
-              `Dear ${student.firstName} ${student.lastName}`,
-              `Dear Parent of ${student.firstName} ${student.lastName}`
+            const smsResult = await bulkSMSService.sendBulkSMS(
+              smsRecipients,
+              smsMessage,
+              teacherId,
+              'exam_result'
             );
-            smsRecipients.push({
-              id: `parent-${student.id}`,
-              name: `Parent of ${student.firstName} ${student.lastName}`,
-              phoneNumber: student.parentPhoneNumber
-            });
-          }
-        }
 
-        // Use secure BulkSMS service for sending
-        if (smsRecipients.length > 0) {
-          const sampleMessage = smsOptions.customTemplate || 
-            `🎯 Student Name Exam: Result/Total। বেলাল স্যার`;
-          
-          const smsResult = await bulkSMSService.sendBulkSMS(
-            smsRecipients, 
-            sampleMessage, 
-            req.session.user.id, 
-            'exam_result'
-          );
-          
-          actualSMSSent = smsResult.sentCount;
-          
-          if (!smsResult.success && smsResult.sentCount === 0) {
-            return res.status(400).json({
-              success: false,
-              message: "Failed to send SMS notifications",
-              smsError: smsResult.failedMessages
-            });
+            if (smsResult.success && smsResult.sentCount > 0) {
+              totalSMSSent++;
+              console.log(`📱 Result SMS sent to ${student.firstName} ${student.lastName} (${studentPhone}): ${mark.marks}/${exam.totalMarks}`);
+            }
+          } catch (smsError) {
+            console.error(`❌ SMS failed for ${student.firstName}:`, smsError);
           }
         }
       }
 
-      res.json({ 
-        success: true, 
-        studentsUpdated: studentMarks.length,
-        smsSent: totalSMSSent,
-        smsDetails: {
-          sendSMS: smsOptions.sendSMS,
-          targetRecipients: smsOptions.targetRecipients
-        },
-        creditsUsed: totalSMSSent,
-        message: smsOptions.sendSMS 
-          ? `Marks updated for ${studentMarks.length} students and ${totalSMSSent} SMS sent to ${smsOptions.targetRecipients}.`
-          : `Marks saved for ${studentMarks.length} students (SMS not sent).`
+      // Final response with SMS results
+      res.json({
+        success: true,
+        message: `Marks updated for ${studentMarks.length} students${totalSMSSent > 0 ? `. SMS sent to ${totalSMSSent} students.` : ''}`,
+        smsResults: {
+          sent: totalSMSSent,
+          total: studentMarks.filter(mark => mark.marks > 0).length
+        }
       });
       
     } catch (error) {
@@ -1309,6 +1212,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching students by batch:", error);
       res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  // Student recent exam results endpoint
+  app.get("/api/student/recent-results", async (req: any, res) => {
+    try {
+      const userId = req.query.userId;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID required" });
+      }
+
+      // Get recent submissions with exam details using storage layer
+      try {
+        const submissions = await storage.getSubmissionsByStudent(userId);
+        const recentWithExams = await Promise.all(
+          submissions.slice(0, 5).map(async (submission: any) => {
+            const exam = await storage.getExamById(submission.examId);
+            return {
+              id: submission.id,
+              examId: submission.examId,
+              examTitle: exam?.title || 'Unknown Exam',
+              examSubject: exam?.subject || 'N/A',
+              marks: submission.score,
+              manualMarks: submission.manualMarks,
+              totalMarks: submission.totalMarks,
+              feedback: submission.feedback,
+              submittedAt: submission.submittedAt,
+              examDate: exam?.examDate
+            };
+          })
+        );
+
+        console.log(`📊 Found ${recentWithExams.length} recent results for student ${userId}`);
+        res.json(recentWithExams);
+      } catch (dbError) {
+        console.log("📊 Database error, returning empty results:", dbError);
+        res.json([]); // Return empty array on error
+      }
+    } catch (error) {
+      console.error("Error fetching recent results:", error);
+      res.json([]); // Return empty array on error
     }
   });
 

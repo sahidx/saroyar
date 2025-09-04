@@ -343,16 +343,14 @@ export default function Exams() {
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
-                      {exam.examMode === 'offline' && (
-                        <Button 
-                          size="sm" 
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                          data-testid={`button-marks-exam-${exam.id}`}
-                          onClick={() => setSelectedExamForMarks(exam)}
-                        >
-                          📝 Enter Marks
-                        </Button>
-                      )}
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        data-testid={`button-marks-exam-${exam.id}`}
+                        onClick={() => setSelectedExamForMarks(exam)}
+                      >
+                        📝 Enter Marks
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

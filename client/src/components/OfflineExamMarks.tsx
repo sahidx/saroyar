@@ -153,8 +153,9 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
     const student = getStudentInfo(studentMark.studentId);
     if (!student) return '';
 
-    // Simple SMS template
-    return `🎯 Exam Result: ${student.firstName} ${student.lastName}\n📊 Marks: ${studentMark.marks}/${exam.totalMarks}\n📅 ${exam.title}\n\n${studentMark.feedback}\n\nBelal Sir - 01712345678`;
+    // Enhanced SMS template with student phone number
+    const studentPhone = student.phoneNumber || 'নিবন্ধিত নম্বর নেই';
+    return `🎯 ${student.firstName} ${student.lastName} (${studentPhone})\n📊 ${exam.title}: ${studentMark.marks}/${exam.totalMarks}\n💬 ${studentMark.feedback}\n📚 Belal Sir - 01712345678`;
   };
 
   // Filter students based on search
@@ -182,10 +183,10 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            📝 Offline Exam Marks Entry - {exam?.title}
+            📝 Exam Marks Entry - {exam?.title}
           </DialogTitle>
           <DialogDescription>
-            Enter marks for offline exam and send individual SMS results to students
+            Enter marks for {exam?.batchId ? `${exam.batchId} batch` : 'all'} students and send SMS with phone numbers
           </DialogDescription>
         </DialogHeader>
 
@@ -209,8 +210,8 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
                 <p>{exam ? new Date(exam.examDate).toLocaleDateString() : ''}</p>
               </div>
               <div>
-                <Label className="font-semibold">Students</Label>
-                <p>{examStudents.length} students</p>
+                <Label className="font-semibold">Target Batch</Label>
+                <p>{exam?.batchId || 'All Students'} ({examStudents.length} students)</p>
               </div>
             </CardContent>
           </Card>
@@ -300,7 +301,7 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
                             📱 {student.phoneNumber || 'No phone'}
                           </p>
                           <p className="text-xs text-green-600">
-                            🏫 Batch: {exam?.subject?.toUpperCase() || 'N/A'}
+                            🏫 Batch: {student.batchId || exam?.batchId || 'All Students'}
                           </p>
                         </div>
                         

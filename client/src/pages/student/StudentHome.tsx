@@ -43,6 +43,12 @@ export default function StudentHome() {
     queryKey: ['/api/student/batch'],
     enabled: !!user && (user as any)?.role === 'student',
   });
+
+  // Fetch student's recent exam results
+  const { data: recentResults = [] } = useQuery<any[]>({
+    queryKey: [`/api/student/recent-results?userId=${(user as any)?.id}`],
+    enabled: !!(user as any)?.id,
+  });
   
   const handleLogout = async () => {
     try {
@@ -192,6 +198,35 @@ export default function StudentHome() {
                       উপরের আইকনগুলো ব্যবহার করে পড়াশোনা শুরু করুন
                     </p>
                   </div>
+                  
+                  {/* Recent Exam Results */}
+                  {Array.isArray(recentResults) && recentResults.length > 0 && (
+                    <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800/50' : 'bg-blue-50/80'}`}>
+                      <h3 className={`font-semibold mb-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                        📊 সাম্প্রতিক ফলাফল
+                      </h3>
+                      <div className="space-y-2">
+                        {recentResults.slice(0, 3).map((result: any) => (
+                          <div key={result.id} className={`text-sm flex justify-between items-center p-2 rounded ${isDarkMode ? 'bg-slate-700/50' : 'bg-white/60'}`}>
+                            <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {result.examTitle}
+                            </span>
+                            <Badge className={`${result.marks >= (result.totalMarks * 0.6) ? 'bg-green-600' : 'bg-orange-600'} text-white`}>
+                              {result.marks || result.manualMarks}/{result.totalMarks}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3"
+                        onClick={() => setLocation('/student/exams')}
+                      >
+                        সব ফলাফল দেখুন
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -139,10 +139,10 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/teacher/ai-questions')
   },
   {
-    id: 'buy-sms',
-    icon: <ShoppingCart className="w-full h-full" />,
-    label: 'Buy SMS',
-    onClick: () => setLocation('/teacher/sms-purchase')
+    id: 'sms-balance',
+    icon: <CreditCard className="w-full h-full" />,
+    label: 'SMS Balance',
+    onClick: () => setLocation('/teacher/sms-balance')
   },
   {
     id: 'exams',

@@ -15,11 +15,11 @@ export async function seedDatabase() {
 
     // Create REAL teacher - Belal Sir
     const [teacher] = await db.insert(users).values({
-      id: "teacher-belal-sir",
-      email: "belal.sir@chemistry-ict.edu.bd",
+      id: "teacher-belal-sir", 
+      email: null,
       firstName: "Belal",
       lastName: "Sir",
-      phoneNumber: "01734285995", // Real phone number provided by user
+      phoneNumber: "01712345678", // Real phone number provided by user
       role: "teacher",
       smsCredits: 1000,
       profileImageUrl: null,

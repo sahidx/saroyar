@@ -40,6 +40,7 @@ import TeacherQuestionBank from "@/pages/teacher/QuestionBank";
 import TeacherCourseManagement from "@/pages/teacher/TeacherCourseManagement";
 import TeacherProfileManagement from "@/pages/teacher/TeacherProfileManagement";
 import SMSBilling from "@/pages/teacher/SMSBilling";
+import SMSBalance from "@/pages/teacher/SMSBalance";
 
 function Router() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -84,6 +85,7 @@ function Router() {
               <Route path="/teacher/students" component={Students} />
               <Route path="/teacher/sms" component={SMS} />
               <Route path="/teacher/sms-billing" component={SMSBilling} />
+              <Route path="/teacher/sms-balance" component={SMSBalance} />
               <Route path="/teacher/messaging" component={TeacherMessaging} />
               <Route path="/teacher/exams" component={Exams} />
               <Route path="/teacher/quest" component={Quest} />

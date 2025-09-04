@@ -315,8 +315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { teacherId } = req.params;
       const { credits, reason } = req.body;
       
-      if (!credits || credits <= 0) {
-        return res.status(400).json({ message: "Credits must be a positive number" });
+      if (credits === undefined || credits === null) {
+        return res.status(400).json({ message: "Credits value is required" });
       }
 
       const updatedUser = await storage.addSmsCredits(teacherId, credits);
@@ -558,11 +558,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SMS notifications for exams
-  app.post("/api/sms/send", async (req: any, res) => {
+  // SMS notifications for exams (secured with balance check)
+  app.post("/api/sms/send", requireAuth, async (req: any, res) => {
     try {
       const { type, examId, examTitle, examDate, batchId } = req.body;
       
+      // Check if user is teacher
+      if (req.session.user.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can send exam SMS notifications" });
+      }
+
       let recipients: any[] = [];
       
       if (batchId) {
@@ -573,40 +578,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipients = await storage.getAllStudents();
       }
 
-      // Filter out students without phone numbers
-      recipients = recipients.filter(student => student?.phoneNumber);
+      // Filter out students without phone numbers and prepare SMS recipients
+      const smsRecipients = recipients
+        .filter(student => student?.phoneNumber)
+        .map(student => ({
+          id: student.id,
+          name: `${student.firstName} ${student.lastName}`,
+          phoneNumber: student.phoneNumber
+        }));
+
+      if (smsRecipients.length === 0) {
+        return res.json({ 
+          success: true, 
+          sent: 0,
+          message: "No students with valid phone numbers found" 
+        });
+      }
 
       let message = '';
       if (type === 'exam_created') {
         const examDateTime = new Date(examDate).toLocaleString();
-        message = `📝 ${examTitle} পরীক্ষা। বেলাল স্যার`;
+        message = `📝 ${examTitle} পরীক্ষা। তারিখ: ${examDateTime}। বেলাল স্যার`;
       } else if (type === 'exam_result') {
         const { studentName, marks, totalMarks } = req.body;
         message = `🎯 ${studentName} ${examTitle}: ${marks}/${totalMarks}। বেলাল স্যার`;
       }
 
-      // Create SMS logs for each recipient
-      const smsPromises = recipients.map(async (student: any) => {
-        return storage.createSmsLog({
-          recipientType: 'student',
-          recipientPhone: student.phoneNumber,
-          recipientName: `${student.firstName} ${student.lastName}`,
-          studentId: student.id,
-          smsType: type === 'exam_created' ? 'exam_notification' : 'exam_result',
-          subject: examTitle,
-          message: message,
-          status: 'sent',
-          credits: 1,
-          sentBy: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d'
-        });
-      });
-
-      await Promise.all(smsPromises);
+      // Use secure BulkSMS service with proper balance check
+      const smsResult = await bulkSMSService.sendBulkSMS(
+        smsRecipients,
+        message,
+        req.session.user.id,
+        type === 'exam_created' ? 'exam_notification' : 'exam_result'
+      );
 
       res.json({ 
-        success: true, 
-        sent: recipients.length,
-        message: `SMS sent to ${recipients.length} students` 
+        success: smsResult.success,
+        sent: smsResult.sentCount,
+        failed: smsResult.failedCount,
+        message: smsResult.success 
+          ? `SMS sent to ${smsResult.sentCount} students${smsResult.failedCount > 0 ? `, ${smsResult.failedCount} failed` : ''}`
+          : `Failed to send SMS: ${smsResult.failedMessages?.[0]?.error || 'Unknown error'}`,
+        creditsUsed: smsResult.totalCreditsUsed || 0
       });
       
     } catch (error) {
@@ -730,15 +743,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sentSMS = smsOptions.sendSMS ? await Promise.all(smsPromises.filter(Boolean)) : [];
       totalSMSSent = sentSMS.flat().length;
 
-      // Update teacher's SMS credits (deduct from main balance)
-      if (smsOptions.sendSMS && totalSMSSent > 0) {
-        const teacher = await storage.getUser('c71a0268-95ab-4ae1-82cf-3fefdf08116d');
-        if (teacher) {
-          const currentCredits = teacher.smsCredits || 0;
-          const newCredits = Math.max(0, currentCredits - totalSMSSent);
-          await storage.updateUser('c71a0268-95ab-4ae1-82cf-3fefdf08116d', { smsCredits: newCredits });
+      // Send exam result SMS using secure BulkSMS service
+      let actualSMSSent = 0;
+      if (smsOptions.sendSMS && studentMarks.length > 0) {
+        // Check if teacher has enough credits first
+        const teacher = await storage.getUser(req.session.user.id);
+        if (!teacher) {
+          return res.status(404).json({ message: "Teacher not found" });
+        }
+
+        const requiredCredits = studentMarks.length * 
+          (smsOptions.targetRecipients === 'both' ? 2 : 1);
+
+        if (teacher.smsCredits < requiredCredits) {
+          return res.status(400).json({ 
+            message: `Insufficient SMS credits. Need ${requiredCredits}, available ${teacher.smsCredits}`,
+            success: false,
+            requiredCredits,
+            availableCredits: teacher.smsCredits
+          });
+        }
+
+        // Prepare SMS recipients with exam results
+        const smsRecipients = [];
+        for (const mark of studentMarks) {
+          const student = await storage.getUser(mark.studentId);
+          if (!student || mark.marks <= 0) continue;
+
+          const smsTemplate = smsOptions.customTemplate || 
+            `🎯 {student_name} {exam_title}: {marks}/{total_marks}। বেলাল স্যার`;
           
-          console.log(`SMS Credits updated: ${currentCredits} -> ${newCredits} (Used: ${totalSMSSent})`);
+          const finalMessage = smsTemplate
+            .replace('{student_name}', `${student.firstName} ${student.lastName}`)
+            .replace('{exam_title}', exam.title)
+            .replace('{marks}', mark.marks.toString())
+            .replace('{total_marks}', (exam.totalMarks || 100).toString())
+            .replace('{exam_date}', new Date(exam.examDate).toLocaleDateString())
+            .replace('{feedback}', mark.feedback || 'Keep up the good work!');
+
+          // Add student recipient
+          if ((smsOptions.targetRecipients === 'student' || smsOptions.targetRecipients === 'both') && student.phoneNumber) {
+            smsRecipients.push({
+              id: student.id,
+              name: `${student.firstName} ${student.lastName}`,
+              phoneNumber: student.phoneNumber
+            });
+          }
+
+          // Add parent recipient
+          if ((smsOptions.targetRecipients === 'parent' || smsOptions.targetRecipients === 'both') && student.parentPhoneNumber) {
+            const parentMessage = finalMessage.replace(
+              `Dear ${student.firstName} ${student.lastName}`,
+              `Dear Parent of ${student.firstName} ${student.lastName}`
+            );
+            smsRecipients.push({
+              id: `parent-${student.id}`,
+              name: `Parent of ${student.firstName} ${student.lastName}`,
+              phoneNumber: student.parentPhoneNumber
+            });
+          }
+        }
+
+        // Use secure BulkSMS service for sending
+        if (smsRecipients.length > 0) {
+          const sampleMessage = smsOptions.customTemplate || 
+            `🎯 Student Name Exam: Result/Total। বেলাল স্যার`;
+          
+          const smsResult = await bulkSMSService.sendBulkSMS(
+            smsRecipients, 
+            sampleMessage, 
+            req.session.user.id, 
+            'exam_result'
+          );
+          
+          actualSMSSent = smsResult.sentCount;
+          
+          if (!smsResult.success && smsResult.sentCount === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "Failed to send SMS notifications",
+              smsError: smsResult.failedMessages
+            });
+          }
         }
       }
 

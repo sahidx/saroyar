@@ -104,10 +104,10 @@ export default function SuperUserDashboard() {
   };
 
   const handleAddCredits = () => {
-    if (!selectedTeacher || !smsCredits || parseInt(smsCredits) <= 0) {
+    if (!selectedTeacher || smsCredits === '') {
       toast({
         title: "Invalid Input",
-        description: "Credits must be a positive number",
+        description: "Please enter a valid credit amount",
         variant: "destructive",
       });
       return;
@@ -161,10 +161,9 @@ export default function SuperUserDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total SMS Credits</p>
-                  <p className="text-3xl font-bold text-green-600">
-                    {teachers?.reduce((sum: number, t: Teacher) => sum + t.smsCredits, 0) || 0}
-                  </p>
+                  <p className="text-sm text-gray-600">SMS Rate</p>
+                  <p className="text-3xl font-bold text-green-600">৳0.39</p>
+                  <p className="text-xs text-gray-500">Per SMS</p>
                 </div>
                 <MessageCircle className="w-8 h-8 text-green-500" />
               </div>

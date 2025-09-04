@@ -46,6 +46,10 @@ import {
   type InsertTeacherProfile,
   type TeacherProfile,
   type PraggoAIKey,
+  type QuestionBankCategory,
+  type InsertQuestionBankCategory,
+  type QuestionBankItem,
+  type InsertQuestionBankItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, count, avg, and, or, sql } from "drizzle-orm";
@@ -82,9 +86,11 @@ export interface IStorage {
   getSmsUsageStats(userId: string): Promise<{
     totalSent: number;
     totalCost: number;
+    thisMonth: number;
+    thisMonthCost: number;
     smsByType: Array<{ type: string; count: number; cost: number }>;
     recentLogs: SmsLog[];
-    monthlyBreakdown: Array<{ month: string; count: number; cost: number }>;
+    monthlyStats: Array<{ month: string; count: number; cost: number }>;
   }>;
   
   // Super User operations
@@ -639,20 +645,20 @@ export class DatabaseStorage implements IStorage {
     // Get all logs for calculations
     const allLogs = await db.select().from(smsLogs);
     
-    const todayLogs = allLogs.filter(log => new Date(log.sentAt!) >= today);
-    const weekLogs = allLogs.filter(log => new Date(log.sentAt!) >= weekAgo);
-    const monthLogs = allLogs.filter(log => new Date(log.sentAt!) >= monthAgo);
+    const todayLogs = allLogs.filter((log: any) => new Date(log.sentAt!) >= today);
+    const weekLogs = allLogs.filter((log: any) => new Date(log.sentAt!) >= weekAgo);
+    const monthLogs = allLogs.filter((log: any) => new Date(log.sentAt!) >= monthAgo);
 
     return {
       totalSent: allLogs.length,
-      totalCredits: allLogs.reduce((sum, log) => sum + (log.credits || 0), 0),
-      totalCostPaisa: allLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0),
+      totalCredits: allLogs.reduce((sum: any, log: any) => sum + (log.credits || 0), 0),
+      totalCostPaisa: allLogs.reduce((sum: any, log: any) => sum + (log.costPaisa || 0), 0),
       todayCount: todayLogs.length,
-      todayCost: todayLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+      todayCost: todayLogs.reduce((sum: any, log: any) => sum + (log.costPaisa || 0), 0) / 100,
       weeklyCount: weekLogs.length,
-      weeklyCost: weekLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+      weeklyCost: weekLogs.reduce((sum: any, log: any) => sum + (log.costPaisa || 0), 0) / 100,
       monthlyCount: monthLogs.length,
-      monthlyCost: monthLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+      monthlyCost: monthLogs.reduce((sum: any, log: any) => sum + (log.costPaisa || 0), 0) / 100,
     };
   }
 
@@ -821,23 +827,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(smsLogs.sentAt));
 
     const totalSent = logs.length;
-    const totalCost = logs.reduce((sum, log) => sum + (log.costPaisa || 39), 0);
+    const totalCost = logs.reduce((sum: any, log: any) => sum + (log.costPaisa || 39), 0);
 
     // Calculate current month data
     const currentDate = new Date();
     const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     
-    const thisMonthLogs = logs.filter(log => {
+    const thisMonthLogs = logs.filter((log: any) => {
       const date = new Date(log.sentAt || log.createdAt || new Date());
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       return monthKey === currentMonthKey;
     });
     
     const thisMonth = thisMonthLogs.length;
-    const thisMonthCost = thisMonthLogs.reduce((sum, log) => sum + (log.costPaisa || 39), 0);
+    const thisMonthCost = thisMonthLogs.reduce((sum: any, log: any) => sum + (log.costPaisa || 39), 0);
 
     // Group by SMS type
-    const typeGroups = logs.reduce((acc, log) => {
+    const typeGroups = logs.reduce((acc: any, log: any) => {
       const type = log.smsType || 'general';
       if (!acc[type]) {
         acc[type] = { count: 0, cost: 0 };
@@ -847,14 +853,14 @@ export class DatabaseStorage implements IStorage {
       return acc;
     }, {} as Record<string, { count: number; cost: number }>);
 
-    const smsByType = Object.entries(typeGroups).map(([type, stats]) => ({
+    const smsByType = Object.entries(typeGroups).map(([type, stats]: any) => ({
       type,
-      count: stats.count,
-      cost: stats.cost
+      count: (stats as any).count,
+      cost: (stats as any).cost
     }));
 
     // Group by month for the last 6 months
-    const monthlyGroups = logs.reduce((acc, log) => {
+    const monthlyGroups = logs.reduce((acc: any, log: any) => {
       const date = new Date(log.sentAt || log.createdAt || new Date());
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       if (!acc[monthKey]) {
@@ -868,8 +874,8 @@ export class DatabaseStorage implements IStorage {
     const monthlyStats = Object.entries(monthlyGroups)
       .map(([month, stats]) => ({
         month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        count: stats.count,
-        cost: stats.cost
+        count: (stats as any).count,
+        cost: (stats as any).cost
       }))
       .sort((a, b) => new Date(b.month).getTime() - new Date(a.month).getTime())
       .slice(0, 6);
@@ -1022,7 +1028,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(courses)
-      .where(and(eq(courses.subject, subject), eq(courses.isActive, true)))
+      .where(and(eq(courses.subject, subject as any), eq(courses.isActive, true)))
       .orderBy(asc(courses.displayOrder));
   }
 
@@ -1139,10 +1145,6 @@ export class DatabaseStorage implements IStorage {
     return batchData[0];
   }
 
-  // Alias for getBatch - for consistency
-  async getBatchById(id: string): Promise<Batch | undefined> {
-    return this.getBatch(id);
-  }
 
   // Question Bank operations
   async getQuestionBankCategories(): Promise<QuestionBankCategory[]> {
@@ -1243,66 +1245,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(questionBankItems.id, itemId));
   }
 
-  // New hierarchical question bank methods
-  async getQuestionBankItems(filter: { classLevel: string; subject: string; paper?: string; category: string; chapter: string }): Promise<any[]> {
-    try {
-      return await db
-        .select()
-        .from(questionBankItems)
-        .where(and(
-          eq(questionBankItems.chapter, filter.chapter),
-          eq(questionBankItems.isActive, true)
-        ))
-        .orderBy(questionBankItems.order, questionBankItems.createdAt);
-    } catch (error) {
-      console.error('Error fetching question bank items:', error);
-      return [];
-    }
-  }
 
-  async createQuestionBankItem(data: {
-    classLevel: string;
-    subject: string;
-    paper?: string;
-    category: string;
-    chapter: string;
-    title: string;
-    description?: string;
-    resourceUrl: string;
-    resourceType: string;
-    createdBy: string;
-  }): Promise<any> {
-    try {
-      // Create a simple category ID
-      const categoryId = `${data.classLevel}-${data.subject}-${data.paper || 'general'}-${data.category}`;
-      
-      const [item] = await db.insert(questionBankItems).values({
-        categoryId,
-        title: data.title,
-        chapter: data.chapter,
-        description: data.description,
-        resourceType: data.resourceType as any,
-        resourceUrl: data.resourceUrl,
-        createdBy: data.createdBy
-      }).returning();
-      
-      return item;
-    } catch (error) {
-      console.error('Error creating question bank item:', error);
-      throw error;
-    }
-  }
 
-  async incrementQuestionBankDownload(itemId: string): Promise<void> {
-    try {
-      await db.update(questionBankItems)
-        .set({ downloadCount: sql`${questionBankItems.downloadCount} + 1` })
-        .where(eq(questionBankItems.id, itemId));
-    } catch (error) {
-      console.error('Error incrementing download count:', error);
-      throw error;
-    }
-  }
 
   // Super User operations implementation
   async changeTeacherPassword(teacherId: string, newPassword: string): Promise<User> {

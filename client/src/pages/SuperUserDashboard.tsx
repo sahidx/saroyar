@@ -36,11 +36,7 @@ export default function SuperUserDashboard() {
   // Change teacher password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async ({ teacherId, password }: { teacherId: string; password: string }) => {
-      return apiRequest(`/api/super/teachers/${teacherId}/password`, {
-        method: 'PUT',
-        body: JSON.stringify({ newPassword: password }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return apiRequest('PUT', `/api/super/teachers/${teacherId}/password`, { newPassword: password });
     },
     onSuccess: () => {
       toast({
@@ -62,11 +58,7 @@ export default function SuperUserDashboard() {
   // Add SMS credits mutation
   const addCreditsMutation = useMutation({
     mutationFn: async ({ teacherId, credits, reason }: { teacherId: string; credits: number; reason: string }) => {
-      return apiRequest(`/api/super/teachers/${teacherId}/sms-credits`, {
-        method: 'PUT',
-        body: JSON.stringify({ credits, reason }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return apiRequest('PUT', `/api/super/teachers/${teacherId}/sms-credits`, { credits, reason });
     },
     onSuccess: () => {
       toast({
@@ -150,7 +142,7 @@ export default function SuperUserDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Teachers</p>
-                  <p className="text-3xl font-bold text-indigo-600">{teachers?.length || 0}</p>
+                  <p className="text-3xl font-bold text-indigo-600">{(teachers as Teacher[])?.length || 0}</p>
                 </div>
                 <Users className="w-8 h-8 text-indigo-500" />
               </div>
@@ -176,7 +168,7 @@ export default function SuperUserDashboard() {
                 <div>
                   <p className="text-sm text-gray-600">Active Teachers</p>
                   <p className="text-3xl font-bold text-blue-600">
-                    {teachers?.filter((t: Teacher) => t.isActive).length || 0}
+                    {(teachers as Teacher[])?.filter((t: Teacher) => t.isActive).length || 0}
                   </p>
                 </div>
                 <Shield className="w-8 h-8 text-blue-500" />
@@ -195,7 +187,7 @@ export default function SuperUserDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {teachers?.map((teacher: Teacher) => (
+              {(teachers as Teacher[])?.map((teacher: Teacher) => (
                 <div key={teacher.id} className="border rounded-lg p-4 bg-white">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">

@@ -768,7 +768,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllBatches(): Promise<Batch[]> {
-    return await db.select().from(batches).orderBy(asc(batches.name));
+    return await db.select().from(batches)
+      .where(eq(batches.status, 'active'))
+      .orderBy(asc(batches.name));
   }
 
   async getBatchById(id: string): Promise<Batch | undefined> {
@@ -791,9 +793,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBatch(id: string): Promise<void> {
-    await db.update(batches)
-      .set({ status: 'inactive' })
-      .where(eq(batches.id, id));
+    // Hard delete - completely remove from database
+    await db.delete(batches).where(eq(batches.id, id));
   }
 
   // SMS operations

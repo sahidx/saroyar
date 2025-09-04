@@ -558,6 +558,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update existing exam (PUT /api/exams/:id)
+  app.put("/api/exams/:id", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      console.log("Updating exam:", id, req.body);
+      
+      // Get authenticated teacher ID from session
+      const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
+      
+      // Check if exam exists and teacher has permission
+      const existingExam = await storage.getExamById(id);
+      if (!existingExam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      // Process and validate exam data properly
+      const processedData = {
+        ...req.body,
+        createdBy: teacherId,
+        // Handle batch selection (convert 'all' to null)
+        batchId: (!req.body.batchId || req.body.batchId === 'all') ? null : req.body.batchId,
+        // Ensure examDate is ISO string that can be parsed
+        examDate: req.body.examDate || existingExam.examDate,
+        // Set defaults for required fields
+        duration: parseInt(req.body.duration) || existingExam.duration,
+        totalMarks: parseInt(req.body.totalMarks) || existingExam.totalMarks,
+        examType: req.body.examType || existingExam.examType,
+        examMode: req.body.examMode || existingExam.examMode,
+        questionSource: req.body.questionSource || existingExam.questionSource,
+        // Handle large image data by storing as file reference
+        questionContent: await handleQuestionContent(req.body.questionContent || existingExam.questionContent, req.body.questionSource || existingExam.questionSource),
+        instructions: req.body.instructions !== undefined ? req.body.instructions : existingExam.instructions
+      };
+
+      console.log("Processed exam update data:", processedData);
+      
+      const examData = insertExamSchema.parse(processedData);
+      const updatedExam = await storage.updateExam(id, examData);
+      
+      // Log activity
+      await storage.logActivity({
+        type: 'exam_updated',
+        message: `Exam "${updatedExam.title}" updated for ${updatedExam.subject}`,
+        icon: '✏️',
+        userId: teacherId,
+        relatedEntityId: updatedExam.id
+      });
+
+      res.json(updatedExam);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      if (error instanceof z.ZodError) {
+        console.log("Validation errors:", error.errors);
+        return res.status(400).json({ message: "Invalid exam data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update exam" });
+    }
+  });
+
   // SMS notifications for exams (secured with balance check)
   app.post("/api/sms/send", requireAuth, async (req: any, res) => {
     try {

@@ -34,9 +34,10 @@ type ExamFormData = z.infer<typeof examSchema>;
 interface ExamModalProps {
   isOpen: boolean;
   onClose: () => void;
+  editingExam?: any;
 }
 
-export function ExamModal({ isOpen, onClose }: ExamModalProps) {
+export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -52,7 +53,19 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
 
   const form = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
-    defaultValues: {
+    defaultValues: editingExam ? {
+      title: editingExam.title || '',
+      subject: editingExam.subject || 'chemistry',
+      examDate: editingExam.examDate ? new Date(editingExam.examDate).toISOString().split('T')[0] : '',
+      duration: editingExam.duration || 90,
+      examType: editingExam.examType || 'mcq',
+      examMode: editingExam.examMode || 'online',
+      batchId: editingExam.batchId || undefined,
+      questionSource: editingExam.questionSource || 'drive_link',
+      questionContent: editingExam.questionContent || '',
+      totalMarks: editingExam.totalMarks || 100,
+      instructions: editingExam.instructions || '',
+    } : {
       title: '',
       subject: 'chemistry',
       examDate: '',
@@ -85,7 +98,10 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
       
       console.log('Sending exam data:', payload);
       
-      const response = await apiRequest('POST', '/api/exams', payload);
+      // Use PUT for editing, POST for creating
+      const method = editingExam ? 'PUT' : 'POST';
+      const url = editingExam ? `/api/exams/${editingExam.id}` : '/api/exams';
+      const response = await apiRequest(method, url, payload);
       return response.json();
     },
     onSuccess: (result) => {
@@ -94,15 +110,28 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
       
       toast({
         title: "Success",
-        description: "Exam created successfully!",
+        description: editingExam ? "Exam updated successfully!" : "Exam created successfully!",
       });
-      form.reset();
+      // Reset form properly when done
+      form.reset(editingExam ? undefined : {
+        title: '',
+        subject: 'chemistry',
+        examDate: '',
+        duration: 90,
+        examType: 'mcq',
+        examMode: 'online',
+        batchId: undefined,
+        questionSource: 'drive_link',
+        questionContent: '',
+        totalMarks: 100,
+        instructions: '',
+      });
       onClose();
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create exam. Please try again.",
+        description: editingExam ? "Failed to update exam. Please try again." : "Failed to create exam. Please try again.",
         variant: "destructive",
       });
       console.error('Error creating exam:', error);
@@ -127,9 +156,14 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle data-testid="exam-modal-title">Create New Exam - Chemistry & ICT Only</DialogTitle>
+          <DialogTitle data-testid="exam-modal-title">
+            {editingExam ? 'Edit Exam - Chemistry & ICT' : 'Create New Exam - Chemistry & ICT Only'}
+          </DialogTitle>
           <DialogDescription className="text-gray-600">
-            Create a new exam for Chemistry or ICT with comprehensive question management and student targeting.
+            {editingExam 
+              ? 'Update exam details, questions, and settings for Chemistry or ICT exam.'
+              : 'Create a new exam for Chemistry or ICT with comprehensive question management and student targeting.'
+            }
           </DialogDescription>
         </DialogHeader>
         
@@ -377,9 +411,16 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            // Check file size (limit to 2MB)
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert('File too large! Please upload an image smaller than 2MB');
+                            // Check file size (increased limit to 5MB for better JPG support)
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert('File too large! Please upload an image smaller than 5MB');
+                              return;
+                            }
+                            
+                            // Validate file type
+                            const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+                            if (!validTypes.includes(file.type)) {
+                              alert('Invalid file type! Please upload PNG or JPG files only');
                               return;
                             }
                             
@@ -387,12 +428,15 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                             const reader = new FileReader();
                             reader.onload = () => {
                               const result = reader.result as string;
-                              // Additional size check after base64 conversion
-                              if (result.length > 500000) { // ~500KB base64 limit
-                                alert('Image too large after conversion! Please use a smaller image or compress it');
+                              // Increased size limit for better JPG support (1.5MB base64)
+                              if (result.length > 1500000) {
+                                alert('Image too large after conversion! Please use a smaller image or compress it (max ~1.5MB)');
                                 return;
                               }
                               field.onChange(result);
+                            };
+                            reader.onerror = () => {
+                              alert('Error reading file! Please try again or use a different image');
                             };
                             reader.readAsDataURL(file);
                           }
@@ -445,7 +489,9 @@ export function ExamModal({ isOpen, onClose }: ExamModalProps) {
                   data-testid="button-create-exam"
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                 >
-                  {isSubmitting || createExamMutation.isPending ? 'Creating Exam...' : 'Create Exam & Send SMS'}
+                  {isSubmitting || createExamMutation.isPending 
+                    ? (editingExam ? 'Updating Exam...' : 'Creating Exam...') 
+                    : (editingExam ? 'Update Exam' : 'Create Exam & Send SMS')}
                 </Button>
               </div>
             </div>

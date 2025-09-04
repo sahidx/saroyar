@@ -27,6 +27,7 @@ import {
 export default function Exams() {
   const [, navigate] = useLocation();
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [editingExam, setEditingExam] = useState<any>(null);
   const [selectedExamForMarks, setSelectedExamForMarks] = useState<any>(null);
   const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -324,6 +325,10 @@ export default function Exams() {
                         variant="outline" 
                         className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
                         data-testid={`button-edit-exam-${exam.id}`}
+                        onClick={() => {
+                          setEditingExam(exam);
+                          setIsExamModalOpen(true);
+                        }}
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
@@ -357,10 +362,14 @@ export default function Exams() {
         )}
       </main>
 
-      {/* Exam Creation Modal */}
+      {/* Exam Creation/Edit Modal */}
       <ExamModal 
         isOpen={isExamModalOpen} 
-        onClose={() => setIsExamModalOpen(false)} 
+        onClose={() => {
+          setIsExamModalOpen(false);
+          setEditingExam(null);
+        }}
+        editingExam={editingExam}
       />
 
       {/* Offline Exam Marks Modal */}

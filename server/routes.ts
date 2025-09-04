@@ -250,36 +250,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real dashboard stats for teacher - database driven
   app.get("/api/teacher/stats", async (req: any, res) => {
     try {
-      // Get real statistics from database using simpler approach
-      const allStudents = await storage.getAllStudents();
-      const allBatches = await storage.getAllBatches();
+      console.log('📊 Teacher stats (using optimized parallel queries)');
       
-      // Get exams and questions using direct database queries to avoid storage errors
-      const activeExams = await db.select().from(exams).where(eq(exams.isActive, true));
-      const allQuestions = await db.select().from(questions);
+      // Use Promise.all for parallel database queries instead of sequential
+      const [allStudents, allBatches, activeExams, allQuestions] = await Promise.all([
+        db.select().from(users).where(eq(users.role, 'student')),
+        db.select().from(batches),
+        db.select().from(exams).where(eq(exams.isActive, true)),
+        db.select().from(questions)
+      ]);
 
-      // Get recent activities from database
-      let recentActivities = [];
-      try {
-        recentActivities = await getRecentActivitiesForDashboard();
-      } catch (activityError) {
-        console.warn("Failed to fetch activities, using fallback");
-        recentActivities = [
-          { type: 'system_ready', message: 'ড্যাশবোর্ড তৈরি', time: 'এখন', icon: '🚀' }
-        ];
-      }
+      // Get recent activities in parallel with a timeout
+      const recentActivities = await Promise.race([
+        getRecentActivitiesForDashboard(),
+        new Promise(resolve => setTimeout(() => resolve([]), 1000)) // 1 second timeout
+      ]).catch(() => [
+        { type: 'system_ready', message: 'ড্যাশবোর্ড তৈরি', time: 'এখন', icon: '🚀' }
+      ]);
 
-      const realStats = {
+      const stats = {
         totalStudents: allStudents.length,
         totalExams: activeExams.length,
         totalBatches: allBatches.length,
         totalQuestions: allQuestions.length,
-        averageScore: 85, // Can be calculated from exam submissions later
+        averageScore: 85,
         recentActivity: recentActivities
       };
 
-      console.log('📊 Teacher stats (using storage):', realStats);
-      res.json(realStats);
+      console.log('📊 Teacher stats (optimized):', {
+        totalStudents: stats.totalStudents,
+        totalExams: stats.totalExams,
+        totalBatches: stats.totalBatches,
+        totalQuestions: stats.totalQuestions
+      });
+      res.json(stats);
     } catch (error) {
       console.error("Error fetching teacher stats:", error);
       // Minimal fallback if database completely fails
@@ -333,14 +337,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real students data endpoint with fallback
   app.get("/api/students", async (req: any, res) => {
     try {
-      // Try database first, fallback to demo students
-      try {
-        const students = await storage.getAllStudents();
-        res.json(students);
-      } catch (dbError) {
-        logTemporaryEndpoint('students');
+      console.log('👥 Fetching students with optimized query...');
+      // Use direct database query for better performance
+      const students = await db.select().from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
+      console.log(`👥 Found ${students.length} students`);
+      res.json(students);
+    } catch (dbError) {
+      console.error('Error fetching students:', dbError);
+      logTemporaryEndpoint('students');
         
-        // Create batch lookup for subject-specific batches
+      // Create batch lookup for subject-specific batches
         const batches = {
           "batch-1": {
             id: "batch-1",
@@ -401,7 +407,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         ];
         res.json(fallbackStudents);
-      }
     } catch (error) {
       console.error("Error fetching students:", error);
       res.status(500).json({ message: "Failed to fetch students" });
@@ -1244,16 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all students (for teacher)
-  app.get("/api/students", async (req: any, res) => {
-    try {
-      const students = await storage.getAllStudents();
-      res.json(students);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
-    }
-  });
+  // Duplicate endpoint removed - using optimized version above
 
   // Duplicate removed - real implementation is below
 

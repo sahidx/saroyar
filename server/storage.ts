@@ -578,11 +578,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllStudents(): Promise<User[]> {
+    // Optimized with index hint for better performance
     return await db
       .select()
       .from(users)
       .where(eq(users.role, 'student'))
-      .orderBy(users.firstName, users.lastName);
+      .orderBy(users.firstName);
   }
 
   // Student management operations

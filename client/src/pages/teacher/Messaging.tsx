@@ -1,4 +1,4 @@
-import { TeacherMessaging } from '@/components/TeacherMessaging';
+import { WhatsAppMessaging } from '@/components/WhatsAppMessaging';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Users, Send, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -88,7 +88,7 @@ export default function Messaging() {
       </div>
 
       {/* Main Messaging Interface */}
-      <TeacherMessaging isDarkMode={false} />
+      <WhatsAppMessaging isDarkMode={false} />
 
       {/* Instructions */}
       <Card className="mt-8 bg-blue-50 dark:bg-blue-900/20">

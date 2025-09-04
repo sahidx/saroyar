@@ -3748,10 +3748,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add sender info for display
       const enrichedMessages = await Promise.all(messages.map(async (message) => {
-        const sender = await storage.getUser(message.senderId);
-        const receiver = await storage.getUser(message.receiverId);
+        const sender = await storage.getUser(message.fromUserId);
+        const receiver = await storage.getUser(message.toUserId);
         return {
           ...message,
+          senderId: message.fromUserId, // Add for frontend compatibility
+          receiverId: message.toUserId, // Add for frontend compatibility
           senderName: `${sender?.firstName} ${sender?.lastName}`,
           senderRole: sender?.role,
           receiverName: `${receiver?.firstName} ${receiver?.lastName}`,
@@ -3834,7 +3836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: lastMessage.content,
             createdAt: lastMessage.createdAt,
             isRead: lastMessage.isRead,
-            isFromMe: lastMessage.senderId === teacherId
+            isFromMe: lastMessage.fromUserId === teacherId
           } : null
         };
       }));

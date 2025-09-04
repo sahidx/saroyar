@@ -59,11 +59,13 @@ function Router() {
 
   return (
     <Switch>
+      {/* Always available login route */}
+      <Route path="/login" component={LoginPage} />
+      
       {/* Public routes - only show when not authenticated */}
       {!isAuthenticated && (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/login" component={LoginPage} />
         </>
       )}
       

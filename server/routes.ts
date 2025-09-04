@@ -453,10 +453,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let message = '';
       if (type === 'exam_created') {
         const examDateTime = new Date(examDate).toLocaleString();
-        message = `📝 পরীক্ষা: ${examTitle}\nতারিখ: ${examDateTime}\nবেলাল স্যার`;
+        message = `📝 ${examTitle} পরীক্ষা। বেলাল স্যার`;
       } else if (type === 'exam_result') {
         const { studentName, marks, totalMarks } = req.body;
-        message = `🎯 ${studentName}\n${examTitle}: ${marks}/${totalMarks}\nবেলাল স্যার`;
+        message = `🎯 ${studentName} ${examTitle}: ${marks}/${totalMarks}। বেলাল স্যার`;
       }
 
       // Create SMS logs for each recipient
@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Build custom SMS template or use default
           const smsTemplate = smsOptions.customTemplate || 
-            `🎯 {student_name}\n{exam_title}: {marks}/{total_marks}\nবেলাল স্যার`;
+            `🎯 {student_name} {exam_title}: {marks}/{total_marks}। বেলাল স্যার`;
           
           // Replace template variables
           const finalMessage = smsTemplate
@@ -1128,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (student?.parentPhoneNumber) {
             const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
             const subjectName = subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
-            const message = `${student.firstName} ${student.lastName} আজ ${subjectName} ক্লাসে ${status}। বেলাল স্যার`;
+            const message = `${student.firstName} ${student.lastName} ${subjectName} ক্লাসে ${status} ছিল। বেলাল স্যার`;
             
             try {
               // Send actual SMS using BulkSMS BD API

@@ -716,6 +716,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SMS Billing API Routes
+  app.get('/api/sms/logs', requireAuth, async (req: any, res) => {
+    try {
+      const logs = await storage.getSMSLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error('Error fetching SMS logs:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS logs' });
+    }
+  });
+
+  app.get('/api/sms/stats', requireAuth, async (req: any, res) => {
+    try {
+      const stats = await storage.getSMSStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching SMS stats:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS stats' });
+    }
+  });
+
   app.get("/api/exams/:id", async (req, res) => {
     try {
       const exam = await storage.getExamById(req.params.id);

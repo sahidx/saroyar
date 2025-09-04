@@ -12,6 +12,18 @@ interface SMSResponse {
   code: number;
   message: string;
   messageId?: string;
+  smsCount?: number;
+  totalCost?: number;
+  billing?: SMSBilling;
+}
+
+// SMS Billing Information Interface
+interface SMSBilling {
+  messageLength: number;
+  smsParts: number;
+  costPerPart: number; // 0.39 paisa
+  totalCost: number;
+  characterType: 'bengali' | 'english';
 }
 
 interface BulkSMSResult {
@@ -30,16 +42,48 @@ export class BulkSMSService {
   private apiKey: string;
   private baseUrl = 'http://bulksmsbd.net/api/smsapi';
   private senderId = '8809617628909'; // Exact sender ID as provided by user
+  private costPerPart = 0.39; // 0.39 paisa per SMS part
 
   constructor() {
     // Use API key from environment or fallback to provided key
     this.apiKey = process.env.BULKSMS_API_KEY || 'gsOKLO6XtKsANCvgPHNt';
-    console.log('📱 BulkSMS Bangladesh API initialized');
+    console.log('📱 BulkSMS Bangladesh API initialized with professional billing');
   }
 
-  // Send single SMS using exact BulkSMS BD API format
+  // Calculate SMS parts and billing information
+  private calculateSMSBilling(message: string): SMSBilling {
+    const messageLength = message.length;
+    
+    // Check if message contains Bengali characters
+    const hasBengaliChars = /[\u0980-\u09FF]/.test(message);
+    const characterType: 'bengali' | 'english' = hasBengaliChars ? 'bengali' : 'english';
+    
+    // Character limits per SMS part
+    const charLimit = characterType === 'bengali' ? 70 : 160;
+    
+    // Calculate SMS parts (minimum 1 part)
+    const smsParts = Math.max(1, Math.ceil(messageLength / charLimit));
+    
+    // Calculate total cost
+    const totalCost = smsParts * this.costPerPart;
+    
+    console.log(`📊 SMS Billing: ${messageLength} chars, ${smsParts} parts, ${totalCost.toFixed(2)} paisa (${characterType})`);
+    
+    return {
+      messageLength,
+      smsParts,
+      costPerPart: this.costPerPart,
+      totalCost,
+      characterType
+    };
+  }
+
+  // Send single SMS using exact BulkSMS BD API format with professional billing
   async sendSMS(phoneNumber: string, message: string): Promise<SMSResponse> {
     try {
+      // Calculate billing information first
+      const billing = this.calculateSMSBilling(message);
+      
       // Ensure phone number is in correct format (88017XXXXXXXX)
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       
@@ -76,13 +120,22 @@ export class BulkSMSService {
         responseCode = parseInt(responseText.trim()) || 0;
       }
       
-      return this.parseResponse(responseCode, responseText);
+      const result = this.parseResponse(responseCode, responseText);
+      
+      // Add billing information to response
+      result.smsCount = billing.smsParts;
+      result.totalCost = billing.totalCost;
+      result.billing = billing;
+      
+      return result;
     } catch (error) {
       console.error('❌ SMS sending error:', error);
       return {
         success: false,
         code: 1005,
-        message: 'Internal Error - Network or API issue'
+        message: 'Internal Error - Network or API issue',
+        smsCount: 0,
+        totalCost: 0
       };
     }
   }
@@ -111,9 +164,9 @@ export class BulkSMSService {
         
         if (smsResult.success) {
           result.sentCount++;
-          result.totalCreditsUsed++; // 0.39 paisha per SMS as specified
           
-          // Log successful SMS - only count if actually sent (code 202)
+          // Log successful SMS with professional billing
+          const billing = this.calculateSMSBilling(message);
           await this.logSMS({
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
@@ -122,9 +175,12 @@ export class BulkSMSService {
             smsType,
             message,
             status: 'sent',
-            credits: 1, // Fixed rate as specified
-            sentBy
+            credits: billing.smsParts,
+            sentBy,
+            billing
           });
+          
+          result.totalCreditsUsed += billing.smsParts;
           
           console.log(`✅ SMS sent successfully to ${recipient.name} (${recipient.phoneNumber})`);
         } else {
@@ -145,7 +201,14 @@ export class BulkSMSService {
             message,
             status: 'failed',
             credits: 0, // No charge for failed SMS
-            sentBy
+            sentBy,
+            billing: {
+              messageLength: message.length,
+              smsParts: 0,
+              costPerPart: this.costPerPart,
+              totalCost: 0,
+              characterType: /[\u0980-\u09FF]/.test(message) ? 'bengali' : 'english'
+            }
           });
           
           console.log(`❌ SMS failed to ${recipient.name}: ${smsResult.message}`);
@@ -232,7 +295,7 @@ export class BulkSMSService {
     };
   }
 
-  // Log SMS to database
+  // Log SMS to database with professional billing
   private async logSMS(data: {
     recipientType: string;
     recipientPhone: string;
@@ -243,8 +306,15 @@ export class BulkSMSService {
     status: string;
     credits: number;
     sentBy: string;
+    billing?: SMSBilling;
   }) {
     try {
+      // Calculate billing if not provided
+      let billing = data.billing;
+      if (!billing) {
+        billing = this.calculateSMSBilling(data.message);
+      }
+
       await db.insert(smsLogs).values({
         recipientType: data.recipientType,
         recipientPhone: data.recipientPhone,
@@ -253,11 +323,14 @@ export class BulkSMSService {
         smsType: data.smsType as any,
         message: data.message,
         status: data.status,
-        credits: data.credits,
+        credits: billing.smsParts, // Use calculated SMS parts
+        costPaisa: Math.round(billing.totalCost * 100), // Convert to paisa (0.39 Tk = 39 paisa)
         sentBy: data.sentBy,
         sentAt: new Date(),
         deliveredAt: data.status === 'sent' ? new Date() : null
       });
+      
+      console.log(`💾 SMS logged: ${billing.smsParts} parts, ${billing.totalCost.toFixed(2)} paisa cost`);
     } catch (error) {
       console.error('📝 Failed to log SMS to database:', error);
     }

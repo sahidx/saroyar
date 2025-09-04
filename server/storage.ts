@@ -619,6 +619,40 @@ export class DatabaseStorage implements IStorage {
     return updatedStudent;
   }
 
+  // SMS Billing Methods
+  async getSMSLogs(): Promise<any[]> {
+    const logs = await db.select().from(smsLogs)
+      .orderBy(sql`${smsLogs.sentAt} DESC`)
+      .limit(50);
+    return logs;
+  }
+
+  async getSMSStats(): Promise<any> {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+
+    // Get all logs for calculations
+    const allLogs = await db.select().from(smsLogs);
+    
+    const todayLogs = allLogs.filter(log => new Date(log.sentAt!) >= today);
+    const weekLogs = allLogs.filter(log => new Date(log.sentAt!) >= weekAgo);
+    const monthLogs = allLogs.filter(log => new Date(log.sentAt!) >= monthAgo);
+
+    return {
+      totalSent: allLogs.length,
+      totalCredits: allLogs.reduce((sum, log) => sum + (log.credits || 0), 0),
+      totalCostPaisa: allLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0),
+      todayCount: todayLogs.length,
+      todayCost: todayLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+      weeklyCount: weekLogs.length,
+      weeklyCost: weekLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+      monthlyCount: monthLogs.length,
+      monthlyCost: monthLogs.reduce((sum, log) => sum + (log.costPaisa || 0), 0) / 100,
+    };
+  }
+
   async deleteStudent(id: string): Promise<void> {
     // First delete all SMS logs that reference this student
     await db.delete(smsLogs).where(eq(smsLogs.studentId, id));

@@ -201,19 +201,32 @@ export class BulkSMSService {
             console.log(`⚠️ Warning: Could not deduct credits from ${sentBy}`);
           }
           
-          // Log successful SMS with professional billing
-          await this.logSMS({
+          // Log successful SMS with professional billing - fix SMS type enum
+          const validSmsType = ['attendance', 'exam_result', 'exam_notification', 'notice', 'reminder'].includes(smsType) 
+            ? smsType : 'reminder';
+            
+          // Only include studentId if it's a real student in database
+          const logData: any = {
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
             recipientName: recipient.name,
-            studentId: typeof recipient.id === 'string' ? recipient.id : undefined,
-            smsType,
+            smsType: validSmsType,
             message,
             status: 'sent',
             credits: billing.smsParts,
             sentBy,
             billing
-          });
+          };
+          
+          // Only add studentId if it exists in database (avoid foreign key errors)
+          if (recipient.id && !recipient.id.startsWith('test') && !recipient.id.startsWith('parent-')) {
+            const studentExists = await this.storage.getUser(recipient.id);
+            if (studentExists) {
+              logData.studentId = recipient.id;
+            }
+          }
+            
+          await this.logSMS(logData);
           
           result.totalCreditsUsed += billing.smsParts;
           
@@ -227,12 +240,15 @@ export class BulkSMSService {
           });
           
           // Log failed SMS - no credit deduction for failed SMS
+          const validSmsType = ['attendance', 'exam_result', 'exam_notification', 'notice', 'reminder'].includes(smsType) 
+            ? smsType : 'reminder';
+            
           await this.logSMS({
             recipientType: 'student',
             recipientPhone: recipient.phoneNumber,
             recipientName: recipient.name,
             studentId: typeof recipient.id === 'string' ? recipient.id : undefined,
-            smsType,
+            smsType: validSmsType,
             message,
             status: 'failed',
             credits: 0, // No charge for failed SMS

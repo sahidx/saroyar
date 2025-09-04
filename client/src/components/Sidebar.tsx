@@ -31,6 +31,7 @@ const teacherMenuItems = [
   { icon: CalendarCheck, label: 'Attendance', href: '/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/teacher/reports' },
   { icon: MessageSquare, label: 'SMS Management', href: '/teacher/sms' },
+  { icon: MessageSquare, label: 'Messaging', href: '/teacher/messaging' },
   { icon: Bell, label: 'Students', href: '/teacher/students' },
   { icon: Megaphone, label: 'AI Questions', href: '/teacher/ai-questions' },
 ];

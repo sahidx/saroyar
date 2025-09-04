@@ -79,7 +79,7 @@ export default function Messaging() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">< 1hr</div>
+            <div className="text-2xl font-bold">&lt; 1hr</div>
             <p className="text-xs text-muted-foreground">
               Average response time
             </p>

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   MessageSquare, 
   Send, 
@@ -28,6 +29,7 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -155,36 +157,68 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {(conversation as any[]).map((message: any) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.senderRole === 'student' ? 'justify-end' : 'justify-start'}`}
-                >
+              {(conversation as any[]).map((message: any) => {
+                // Determine if message is from current user (student)
+                const isFromCurrentUser = message.fromUserId === user?.id;
+                return (
                   <div
-                    className={`max-w-[85%] rounded-lg px-3 py-2 shadow-sm ${
-                      message.senderRole === 'student'
-                        ? 'bg-green-500 text-white rounded-br-sm'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border rounded-bl-sm'
-                    }`}
+                    key={message.id}
+                    className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <div className={`flex items-center gap-1 mt-1 ${
-                      message.senderRole === 'student' ? 'justify-end' : 'justify-start'
-                    }`}>
-                      <span className={`text-xs ${
-                        message.senderRole === 'student' 
-                          ? 'text-green-100' 
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {format(new Date(message.createdAt), 'HH:mm')}
-                      </span>
-                      {message.senderRole === 'student' && (
-                        <CheckCircle2 className="h-3 w-3 text-green-100" />
+                    <div className="flex items-start gap-2 max-w-[85%]">
+                      {!isFromCurrentUser && (
+                        <Avatar className="h-8 w-8 mt-1">
+                          <AvatarFallback className="bg-green-600 text-white text-xs">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div>
+                        {!isFromCurrentUser && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 ml-1">
+                            {teacher?.name || 'Teacher'}
+                          </p>
+                        )}
+                        <div
+                          className={`rounded-lg px-3 py-2 shadow-sm ${
+                            isFromCurrentUser
+                              ? 'bg-green-500 text-white rounded-br-sm ml-auto'
+                              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border rounded-bl-sm'
+                          }`}
+                        >
+                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          <div className={`flex items-center gap-1 mt-1 ${
+                            isFromCurrentUser ? 'justify-end' : 'justify-start'
+                          }`}>
+                            <span className={`text-xs ${
+                              isFromCurrentUser 
+                                ? 'text-green-100' 
+                                : 'text-gray-500 dark:text-gray-400'
+                            }`}>
+                              {format(new Date(message.createdAt), 'HH:mm')}
+                            </span>
+                            {isFromCurrentUser && (
+                              <CheckCircle2 className="h-3 w-3 text-green-100" />
+                            )}
+                          </div>
+                        </div>
+                        {isFromCurrentUser && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 mr-1 text-right">
+                            You
+                          </p>
+                        )}
+                      </div>
+                      {isFromCurrentUser && (
+                        <Avatar className="h-8 w-8 mt-1">
+                          <AvatarFallback className="bg-blue-600 text-white text-xs">
+                            R
+                          </AvatarFallback>
+                        </Avatar>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

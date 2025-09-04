@@ -171,49 +171,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Phone number and password required' });
       }
       
-      // Demo credentials mapping - using REAL database IDs with hashed passwords
-      const crypto = await import('crypto');
-      const hashPassword = (password: string) => {
-        return crypto.createHash('sha256').update(password).digest('hex');
-      };
+      console.log(`🔐 Login attempt for phone: ${phoneNumber}`);
       
-      const demoAccounts: Record<string, any> = {
-        '01712345678': {
-          passwordHash: hashPassword('sir123'),
-          userId: 'c71a0268-95ab-4ae1-82cf-3fefdf08116d', // Real database ID
-          role: 'teacher',
-          name: 'Belal Sir',
-          firstName: 'Belal',
-          lastName: 'Sir',
-          email: 'belal.sir@chemistry-ict.edu.bd'
-        },
-        '01798765432': {
-          passwordHash: hashPassword('student123'),
-          userId: 'student-rashid',
-          role: 'student',
-          name: 'Rashid Ahmed',
-          firstName: 'Rashid',
-          lastName: 'Ahmed',
-          email: 'rashid.ahmed@student.edu.bd'
-        }
-      };
+      // Look up user in database by phone number
+      const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
       
-      const account = demoAccounts[phoneNumber];
-      
-      if (!account || account.passwordHash !== hashPassword(password)) {
+      if (!user) {
+        console.log(`❌ User not found for phone: ${phoneNumber}`);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
+      // Check password (teachers use hashed, students use plaintext from password changes)
+      let isValidPassword = false;
+      
+      if (user.role === 'teacher') {
+        // Teachers use hashed passwords
+        const crypto = await import('crypto');
+        const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+        // For teacher, check against known hashed password (sir123)
+        const expectedHash = crypto.createHash('sha256').update('sir123').digest('hex');
+        isValidPassword = hashedPassword === expectedHash;
+      } else if (user.role === 'student') {
+        // Students use plaintext passwords from teacher updates
+        isValidPassword = user.studentPassword === password;
+      }
+      
+      if (!isValidPassword) {
+        console.log(`❌ Invalid password for user: ${phoneNumber}`);
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      console.log(`✅ Login successful for user: ${user.firstName} ${user.lastName} (${user.role})`);
+      
       // Store user in session
       const sessionUser = {
-        id: account.userId,
-        role: account.role,
-        name: account.name,
-        firstName: account.firstName,
-        lastName: account.lastName,
-        phoneNumber: phoneNumber,
+        id: user.id,
+        role: user.role,
+        name: `${user.firstName} ${user.lastName}`,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
         // Include avatar URL for teachers
-        avatarUrl: account.role === 'teacher' ? tempTeacherProfile.avatarUrl : undefined
+        avatarUrl: user.role === 'teacher' ? tempTeacherProfile.avatarUrl : undefined
       };
       
       (req as any).session.user = sessionUser;
@@ -342,71 +341,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const students = await db.select().from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
       console.log(`👥 Found ${students.length} students`);
       res.json(students);
-    } catch (dbError) {
-      console.error('Error fetching students:', dbError);
-      logTemporaryEndpoint('students');
-        
-      // Create batch lookup for subject-specific batches
-        const batches = {
-          "batch-1": {
-            id: "batch-1",
-            name: "HSC Chemistry Batch 2025",
-            subject: "chemistry",
-            batchCode: "CHEM25A"
-          },
-          "batch-2": {
-            id: "batch-2", 
-            name: "HSC ICT Batch 2025",
-            subject: "ict",
-            batchCode: "ICT25B"
-          }
-        };
-        
-        const fallbackStudents = [
-          {
-            id: "student-1",
-            studentId: "ST001",
-            firstName: "রাশিদ",
-            lastName: "আহমেদ", 
-            phoneNumber: "01798765432",
-            email: "rashid.ahmed@student.edu.bd",
-            batchId: "batch-1",
-            batch: batches["batch-1"],
-            studentPassword: "student123",
-            isActive: true,
-            lastLogin: new Date(),
-            createdAt: new Date()
-          },
-          {
-            id: "student-2", 
-            studentId: "ST002",
-            firstName: "ফাতেমা",
-            lastName: "খাতুন",
-            phoneNumber: "01712345679",
-            email: "fatema.khatun@student.edu.bd", 
-            batchId: "batch-1",
-            batch: batches["batch-1"],
-            studentPassword: "student123",
-            isActive: true,
-            lastLogin: new Date(),
-            createdAt: new Date()
-          },
-          {
-            id: "student-3",
-            studentId: "ST003", 
-            firstName: "করিম",
-            lastName: "উদ্দিন",
-            phoneNumber: "01798765433",
-            email: "karim.uddin@student.edu.bd",
-            batchId: "batch-2",
-            batch: batches["batch-2"],
-            studentPassword: "student123",
-            isActive: true,
-            lastLogin: new Date(),
-            createdAt: new Date()
-          }
-        ];
-        res.json(fallbackStudents);
     } catch (error) {
       console.error("Error fetching students:", error);
       res.status(500).json({ message: "Failed to fetch students" });

@@ -2,6 +2,7 @@ import React from 'react';
 import { 
   Bot, 
   MessageSquare, 
+  MessageCircle,
   FileText, 
   Trophy, 
   Users, 
@@ -138,10 +139,10 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/teacher/ai-questions')
   },
   {
-    id: 'sms',
-    icon: <MessageSquare className="w-full h-full" />,
-    label: 'SMS',
-    onClick: () => setLocation('/teacher/sms')
+    id: 'buy-sms',
+    icon: <ShoppingCart className="w-full h-full" />,
+    label: 'Buy SMS',
+    onClick: () => setLocation('/teacher/sms-purchase')
   },
   {
     id: 'exams',
@@ -156,10 +157,10 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/attendance')
   },
   {
-    id: 'quest',
-    icon: <Trophy className="w-full h-full" />,
-    label: 'Quest',
-    onClick: () => setLocation('/teacher/quest')
+    id: 'messages',
+    icon: <MessageCircle className="w-full h-full" />,
+    label: 'Messages',
+    onClick: () => setLocation('/teacher/messaging')
   },
   {
     id: 'students',
@@ -217,12 +218,6 @@ export const getStudentIcons = (setLocation: (path: string) => void): IconGridIt
     icon: <FileText className="w-full h-full" />,
     label: 'Exams',
     onClick: () => setLocation('/student/exams')
-  },
-  {
-    id: 'quest',
-    icon: <Trophy className="w-full h-full" />,
-    label: 'Quest',
-    onClick: () => setLocation('/student/quest')
   },
   {
     id: 'progress',

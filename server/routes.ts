@@ -1168,10 +1168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SMS Transaction routes - ENABLED
-  app.post("/api/sms/purchase", async (req: any, res) => {
+  // SMS Transaction routes - SECURED
+  app.post("/api/sms/purchase", requireAuth, async (req: any, res) => {
     try {
-      // Skip auth for development
+      // Security: Only authenticated users can purchase
+      const userId = req.session.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'super_user') {
+        return res.status(403).json({ message: "Only super users can purchase SMS credits" });
+      }
+      
       const { packageName, smsCount, price, paymentMethod, phoneNumber } = req.body;
       
       if (!packageName || !smsCount || !price || !paymentMethod) {

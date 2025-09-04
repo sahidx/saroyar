@@ -28,15 +28,33 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all students for messaging
+  // Fetch all students for messaging with real-time updates
   const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ["/api/messages/students"],
+    refetchInterval: 3000, // Auto-refresh every 3 seconds for new messages
   });
 
-  // Fetch conversation with selected student
+  // Auto-select first student with unread messages
+  useEffect(() => {
+    if (students.length > 0 && !selectedStudent) {
+      // Find first student with unread messages, or first student with any messages
+      const studentWithUnread = (students as any[]).find(s => 
+        s.lastMessage && !s.lastMessage.isRead && !s.lastMessage.isFromMe
+      );
+      const studentWithMessages = (students as any[]).find(s => s.lastMessage);
+      const defaultStudent = studentWithUnread || studentWithMessages || students[0];
+      
+      if (defaultStudent) {
+        setSelectedStudent(defaultStudent);
+      }
+    }
+  }, [students, selectedStudent]);
+
+  // Fetch conversation with selected student with real-time updates
   const { data: conversation = [], isLoading: conversationLoading } = useQuery({
     queryKey: ["/api/messages/conversation", selectedStudent?.id],
     enabled: !!selectedStudent?.id,
+    refetchInterval: 2000, // Auto-refresh conversation every 2 seconds
   });
 
   // Send message mutation
@@ -86,10 +104,15 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-blue-600" />
-            Students
+            Messages
+            {(students as any[]).filter((s: any) => s.lastMessage && !s.lastMessage.isRead && !s.lastMessage.isFromMe).length > 0 && (
+              <Badge className="bg-red-500 text-white text-xs">
+                {(students as any[]).filter((s: any) => s.lastMessage && !s.lastMessage.isRead && !s.lastMessage.isFromMe).length}
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
-            Select a student to send messages
+            Student conversations - new messages appear automatically
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -100,43 +123,92 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
               <div className="p-4 text-center text-gray-500">No students found</div>
             ) : (
               <div className="space-y-2 p-4">
-                {(students as any[]).map((student: any) => (
-                  <div
-                    key={student.id}
-                    onClick={() => setSelectedStudent(student)}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 border ${
-                      selectedStudent?.id === student.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent'
-                    }`}
-                    data-testid={`student-${student.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-                          {student.firstName?.[0]}{student.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {student.firstName} {student.lastName}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {student.phoneNumber}
-                        </p>
-                        {student.lastMessage && (
-                          <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-1">
-                            {student.lastMessage.isFromMe ? 'You: ' : ''}
-                            {student.lastMessage.content}
-                          </p>
-                        )}
+                {/* Sort students: unread messages first, then by last message time */}
+                {(students as any[])
+                  .sort((a: any, b: any) => {
+                    // First priority: unread messages from students
+                    const aHasUnread = a.lastMessage && !a.lastMessage.isRead && !a.lastMessage.isFromMe;
+                    const bHasUnread = b.lastMessage && !b.lastMessage.isRead && !b.lastMessage.isFromMe;
+                    
+                    if (aHasUnread && !bHasUnread) return -1;
+                    if (!aHasUnread && bHasUnread) return 1;
+                    
+                    // Second priority: most recent message
+                    if (a.lastMessage && b.lastMessage) {
+                      return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime();
+                    }
+                    if (a.lastMessage && !b.lastMessage) return -1;
+                    if (!a.lastMessage && b.lastMessage) return 1;
+                    
+                    // Fallback: alphabetical
+                    return (a.firstName + ' ' + a.lastName).localeCompare(b.firstName + ' ' + b.lastName);
+                  })
+                  .map((student: any) => {
+                    const hasUnreadMessage = student.lastMessage && !student.lastMessage.isRead && !student.lastMessage.isFromMe;
+                    
+                    return (
+                      <div
+                        key={student.id}
+                        onClick={() => setSelectedStudent(student)}
+                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border relative ${
+                          selectedStudent?.id === student.id
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                            : hasUnreadMessage
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent'
+                        } ${hasUnreadMessage ? 'ring-2 ring-green-200 dark:ring-green-800' : ''}`}
+                        data-testid={`student-${student.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
+                              {student.firstName?.[0]}{student.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-medium text-sm truncate ${
+                                hasUnreadMessage ? 'text-green-800 dark:text-green-200 font-bold' : ''
+                              }`}>
+                                {student.firstName} {student.lastName}
+                              </p>
+                              {hasUnreadMessage && (
+                                <Badge className="bg-green-500 text-white text-xs px-1.5 py-0.5">
+                                  NEW
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {student.phoneNumber}
+                            </p>
+                            {student.lastMessage && (
+                              <p className={`text-xs truncate mt-1 ${
+                                hasUnreadMessage 
+                                  ? 'text-green-700 dark:text-green-300 font-medium' 
+                                  : 'text-gray-400 dark:text-gray-500'
+                              }`}>
+                                {student.lastMessage.isFromMe ? '✓ You: ' : '💬 '}
+                                {student.lastMessage.content}
+                              </p>
+                            )}
+                            {student.lastMessage && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                {format(new Date(student.lastMessage.createdAt), 'MMM dd, HH:mm')}
+                              </p>
+                            )}
+                          </div>
+                          {hasUnreadMessage && (
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                New
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {student.lastMessage && !student.lastMessage.isRead && !student.lastMessage.isFromMe && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             )}
           </ScrollArea>
@@ -150,12 +222,19 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
             {selectedStudent ? (
               <>
                 <User className="h-5 w-5 text-green-600" />
-                Chat with {selectedStudent.firstName} {selectedStudent.lastName}
+                💬 {selectedStudent.firstName} {selectedStudent.lastName}
+                {(students as any[]).find((s: any) => 
+                  s.id === selectedStudent.id && s.lastMessage && !s.lastMessage.isRead && !s.lastMessage.isFromMe
+                ) && (
+                  <Badge className="bg-green-500 text-white text-xs ml-2">
+                    Unread Messages
+                  </Badge>
+                )}
               </>
             ) : (
               <>
                 <MessageSquare className="h-5 w-5 text-gray-400" />
-                Select a student to start messaging
+                💬 Messenger - Student Messages
               </>
             )}
           </CardTitle>

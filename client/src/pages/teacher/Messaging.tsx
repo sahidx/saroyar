@@ -24,7 +24,7 @@ export default function Messaging() {
           Student Messaging
         </h1>
         <p className="text-gray-600 dark:text-gray-300 mt-2">
-          Send messages directly to your students. Real-time communication for better learning support.
+          💬 Messenger-style communication with your students. New messages appear automatically - just like WhatsApp!
         </p>
       </div>
 

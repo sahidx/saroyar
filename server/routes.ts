@@ -3506,22 +3506,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Question Bank API Routes for NCTB Structure
   
-  // Get question bank items with filtering
-  app.get('/api/question-bank/items', async (req, res) => {
+  // Get question bank categories for filtering
+  app.get('/api/question-bank/categories', async (req, res) => {
     try {
-      const { classLevel, subject, paper, category, chapter } = req.query;
+      const { classLevel, subject, paper } = req.query;
       
-      if (!classLevel || !subject || !category || !chapter) {
-        return res.status(400).json({ message: 'Missing required parameters' });
+      if (!classLevel || !subject) {
+        return res.status(400).json({ message: 'classLevel and subject are required' });
       }
       
-      const items = await storage.getQuestionBankItems({
-        classLevel: classLevel as string,
-        subject: subject as string,
-        paper: paper as string,
-        category: category as string,
-        chapter: chapter as string
-      });
+      const categories = await storage.getQuestionBankCategoriesByFilter(
+        classLevel as string, 
+        subject as string, 
+        paper as string
+      );
+      
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching question bank categories:', error);
+      res.status(500).json({ message: 'Failed to fetch categories' });
+    }
+  });
+
+  // Get question bank items by category
+  app.get('/api/question-bank/items', async (req, res) => {
+    try {
+      const { categoryId, chapter } = req.query;
+      
+      if (!categoryId) {
+        return res.status(400).json({ message: 'categoryId is required' });
+      }
+      
+      let items;
+      if (chapter) {
+        items = await storage.getQuestionBankItemsByChapter(categoryId as string, chapter as string);
+      } else {
+        items = await storage.getQuestionBankItems(categoryId as string);
+      }
       
       res.json(items);
     } catch (error) {
@@ -3530,28 +3551,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new question bank item
-  app.post('/api/question-bank/items', async (req, res) => {
+  // Add new question bank category
+  app.post('/api/question-bank/categories', requireAuth, async (req: any, res) => {
     try {
-      const { classLevel, subject, paper, category, chapter, title, description, driveLink, questionType } = req.body;
+      const sessionUser = req.session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can create categories" });
+      }
+
+      const categoryData = {
+        ...req.body,
+        createdBy: sessionUser.id
+      };
       
-      if (!classLevel || !subject || !category || !chapter || !title || !driveLink) {
-        return res.status(400).json({ message: 'Missing required fields' });
+      const newCategory = await storage.createQuestionBankCategory(categoryData);
+      res.json(newCategory);
+    } catch (error) {
+      console.error('Error creating question bank category:', error);
+      res.status(500).json({ message: 'Failed to create category' });
+    }
+  });
+
+  // Add new question bank item
+  app.post('/api/question-bank/items', requireAuth, async (req: any, res) => {
+    try {
+      const sessionUser = req.session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can create items" });
+      }
+
+      const { categoryId, title, chapter, description, resourceType, resourceUrl, content, fileSize } = req.body;
+      
+      if (!categoryId || !title || !chapter || !resourceType) {
+        return res.status(400).json({ message: 'Missing required fields: categoryId, title, chapter, resourceType' });
       }
       
-      const newItem = await storage.createQuestionBankItem({
-        classLevel,
-        subject,
-        paper: paper || null,
-        category,
-        chapter,
+      const itemData = {
+        categoryId,
         title,
-        description: description || null,
-        resourceUrl: driveLink,
-        resourceType: questionType || 'pdf',
-        createdBy: 'teacher-belal-sir'
-      });
+        chapter,
+        description: description || '',
+        resourceType,
+        resourceUrl: resourceUrl || null,
+        content: content || null,
+        fileSize: fileSize || null,
+        createdBy: sessionUser.id
+      };
       
+      const newItem = await storage.createQuestionBankItem(itemData);
       res.json(newItem);
     } catch (error) {
       console.error('Error creating question bank item:', error);

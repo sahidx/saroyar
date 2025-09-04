@@ -703,6 +703,12 @@ export type InsertSmsTransaction = z.infer<typeof insertSmsTransactionSchema>;
 export type SmsTransaction = typeof smsTransactions.$inferSelect;
 export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 export type SmsLog = typeof smsLogs.$inferSelect;
+
+// Question Bank Types
+export type InsertQuestionBankCategory = z.infer<typeof insertQuestionBankCategorySchema>;
+export type QuestionBankCategory = typeof questionBankCategories.$inferSelect;
+export type InsertQuestionBankItem = z.infer<typeof insertQuestionBankItemSchema>;
+export type QuestionBankItem = typeof questionBankItems.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertNote = z.infer<typeof insertNotesSchema>;
@@ -717,7 +723,3 @@ export type InsertPraggoAIKey = z.infer<typeof insertPraggoAIKeySchema>;
 export type PraggoAIKey = typeof praggoAIKeys.$inferSelect;
 export type InsertPraggoAIUsage = z.infer<typeof insertPraggoAIUsageSchema>;
 export type PraggoAIUsage = typeof praggoAIUsage.$inferSelect;
-export type InsertQuestionBankCategory = z.infer<typeof insertQuestionBankCategorySchema>;
-export type QuestionBankCategory = typeof questionBankCategories.$inferSelect;
-export type InsertQuestionBankItem = z.infer<typeof insertQuestionBankItemSchema>;
-export type QuestionBankItem = typeof questionBankItems.$inferSelect;

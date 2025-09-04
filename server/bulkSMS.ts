@@ -162,12 +162,14 @@ export class BulkSMSService {
     const billing = this.calculateSMSBilling(message);
     const totalCreditsNeeded = billing.smsParts * recipients.length;
     
-    // Check if sender has enough SMS credits
+    // CRITICAL SECURITY: Check credits BEFORE any API calls
     const senderCredits = await this.storage.getUserSmsCredits(sentBy);
-    console.log(`💳 Checking SMS credits: Need ${totalCreditsNeeded}, Available ${senderCredits}`);
+    console.log(`💳 SECURITY CHECK: Need ${totalCreditsNeeded}, Available ${senderCredits}`);
     
     if (senderCredits < totalCreditsNeeded) {
-      console.log(`❌ Insufficient SMS credits: Need ${totalCreditsNeeded}, Have ${senderCredits}`);
+      console.log(`🔒 BLOCKED: Insufficient credits - NO API CALLS MADE for accurate tracking`);
+      // Return failure immediately WITHOUT making any SMS API calls
+      // This ensures super admin can track actual SMS usage accurately
       return {
         success: false,
         sentCount: 0,
@@ -175,7 +177,7 @@ export class BulkSMSService {
         totalCreditsUsed: 0,
         failedMessages: recipients.map(recipient => ({
           recipient,
-          error: `Insufficient SMS credits. Need ${totalCreditsNeeded}, available ${senderCredits}`,
+          error: `BLOCKED: Insufficient SMS credits. Need ${totalCreditsNeeded}, available ${senderCredits}`,
           code: 1003
         }))
       };

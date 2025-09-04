@@ -173,8 +173,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🔐 Login attempt for phone: ${phoneNumber}`);
       
-      // Look up user in database by phone number
-      const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
+      // Look up user in database by phone number (prioritize teacher role)
+      const users_found = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
+      
+      if (!users_found || users_found.length === 0) {
+        console.log(`❌ User not found for phone: ${phoneNumber}`);
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // If multiple users with same phone, prioritize teacher role
+      const user = users_found.find(u => u.role === 'teacher') || users_found[0];
       
       if (!user) {
         console.log(`❌ User not found for phone: ${phoneNumber}`);

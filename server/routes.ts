@@ -453,10 +453,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let message = '';
       if (type === 'exam_created') {
         const examDateTime = new Date(examDate).toLocaleString();
-        message = `📝 New Exam Alert!\n\nExam: ${examTitle}\nDate: ${examDateTime}\n\nPrepare well! Good luck from Chemistry & ICT Care by Belal Sir.`;
+        message = `📝 পরীক্ষা: ${examTitle}\nতারিখ: ${examDateTime}\nবেলাল স্যার`;
       } else if (type === 'exam_result') {
         const { studentName, marks, totalMarks } = req.body;
-        message = `🎯 Exam Result\n\nStudent: ${studentName}\nExam: ${examTitle}\nMarks: ${marks}/${totalMarks}\n\nFrom Chemistry & ICT Care by Belal Sir`;
+        message = `🎯 ${studentName}\n${examTitle}: ${marks}/${totalMarks}\nবেলাল স্যার`;
       }
 
       // Create SMS logs for each recipient
@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Build custom SMS template or use default
           const smsTemplate = smsOptions.customTemplate || 
-            `🎯 Exam Result Alert!\n\nDear {student_name},\n\nYour result for "{exam_title}" exam:\n📊 Marks: {marks}/{total_marks}\n📅 Exam Date: {exam_date}\n\n{feedback}\n\nBest of luck for future exams!\n\nChemistry & ICT Care by Belal Sir\n📞 Contact: 01712345678`;
+            `🎯 {student_name}\n{exam_title}: {marks}/{total_marks}\nবেলাল স্যার`;
           
           // Replace template variables
           const finalMessage = smsTemplate
@@ -1128,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (student?.parentPhoneNumber) {
             const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
             const subjectName = subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
-            const message = `${student.firstName} ${student.lastName} আজ ${subjectName} ক্লাসে ${status} ছিল। ব্যাচ: ${batchName}। - Belal Sir Chemistry & ICT`;
+            const message = `${student.firstName} ${student.lastName} আজ ${subjectName} ক্লাসে ${status}। বেলাল স্যার`;
             
             try {
               // Send actual SMS using BulkSMS BD API

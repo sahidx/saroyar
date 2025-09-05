@@ -29,19 +29,20 @@ export default function StudentDeveloper() {
   const [location, setLocation] = useLocation();
 
   const skills = [
-    { name: 'Civil Engineering', icon: Building2, color: 'bg-indigo-500' },
+    { name: 'Cyber Security Expert', icon: Building2, color: 'bg-red-500' },
+    { name: 'Bug Bounty Hunter', icon: Target, color: 'bg-orange-500' },
     { name: 'Web Development', icon: Code, color: 'bg-purple-500' },
-    { name: 'Project Management', icon: Award, color: 'bg-green-500' },
     { name: 'React', icon: Code, color: 'bg-cyan-500' },
     { name: 'TypeScript', icon: Code, color: 'bg-blue-600' },
-    { name: 'Educational Technology', icon: BookOpen, color: 'bg-orange-500' }
+    { name: 'Educational Technology', icon: BookOpen, color: 'bg-green-500' }
   ];
 
   const achievements = [
     { title: 'Founder & CEO of Praggo', year: '2020-Present', icon: Award },
     { title: 'Civil Engineering Student', year: '2021-Present', icon: GraduationCap },
-    { title: 'Full Stack Developer', year: '2019-Present', icon: Code },
-    { title: 'Educational App Creator', year: '2023', icon: Monitor }
+    { title: 'Cyber Security Expert', year: '2019-Present', icon: Target },
+    { title: 'Bug Bounty Hunter', year: '2020-Present', icon: Award },
+    { title: 'Doubt Solver at ACS', year: '2022-Present', icon: BookOpen }
   ];
 
   const praggoServices = [
@@ -86,7 +87,7 @@ export default function StudentDeveloper() {
           {/* Profile Card */}
           <Card className="border-2 border-blue-200 shadow-lg">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-24 h-24 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
+              <div className="mx-auto w-24 h-24 rounded-full mb-4 shadow-lg overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center">
                 <span className="text-2xl font-bold text-white">SR</span>
               </div>
               <CardTitle className="text-2xl font-bold text-gray-800">Md Sahid Rahman</CardTitle>
@@ -136,11 +137,11 @@ export default function StudentDeveloper() {
             <CardContent>
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
-                  আমি মোঃ সাহিদ রহমান, প্রাগো গ্রুপের প্রতিষ্ঠাতা ও প্রধান নির্বাহী কর্মকর্তা। আমি গোপালগঞ্জ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয় থেকে সিভিল ইঞ্জিনিয়ারিং অধ্যয়নরত আছি।
+                  আমি মোঃ সাহিদ রহমান, প্রাগো গ্রুপের প্রতিষ্ঠাতা ও প্রধান নির্বাহী কর্মকর্তা। আমি একজন সাইবার সিকিউরিটি এক্সপার্ট এবং বাগ বাউন্টি হান্টার। আমি গোপালগঞ্জ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয় থেকে সিভিল ইঞ্জিনিয়ারিং অধ্যয়নরত আছি।
                 </p>
                 
                 <p className="text-gray-700 leading-relaxed">
-                  আমার লক্ষ্য হলো প্রযুক্তি ও উদ্ভাবনের মাধ্যমে শিক্ষা, ব্যবসা এবং সমাজের উন্নয়নে অবদান রাখা। এই অ্যাপটি আমি ছাত্র-ছাত্রীদের শিক্ষার মানোন্নয়নের জন্য ডিজাইন করেছি।
+                  আমি ACS-এ একজন সন্দেহ নিরসনকারী হিসেবে কাজ করি এবং ছাত্র-ছাত্রীদের শিক্ষায় সহায়তা করি। প্রযুক্তি ও সাইবার নিরাপত্তার মাধ্যমে আমি শিক্ষা ক্ষেত্রে অবদান রাখতে চাই।
                 </p>
 
                 <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
@@ -152,7 +153,7 @@ export default function StudentDeveloper() {
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 gap-3 mt-4">
                   <a 
-                    href="https://facebook.com/sahidrahmanx" 
+                    href="https://www.facebook.com/share/16qPLuCvu8/" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"

@@ -215,6 +215,12 @@ export const getStudentIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/student/exams')
   },
   {
+    id: 'attendance',
+    icon: <CalendarCheck className="w-full h-full" />,
+    label: 'Attendance',
+    onClick: () => setLocation('/student/attendance')
+  },
+  {
     id: 'progress',
     icon: <BarChart3 className="w-full h-full" />,
     label: 'Reports',

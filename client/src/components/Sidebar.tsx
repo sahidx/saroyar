@@ -15,7 +15,10 @@ import {
   X,
   GraduationCap,
   BookOpen,
-  User
+  User,
+  CreditCard,
+  Settings,
+  Code
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,24 +27,26 @@ interface SidebarProps {
 
 const teacherMenuItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/' },
+  { icon: Megaphone, label: 'AI Questions', href: '/teacher/ai-questions' },
+  { icon: CreditCard, label: 'SMS Balance', href: '/teacher/sms-balance' },
   { icon: FileText, label: 'Exam Management', href: '/teacher/exams' },
+  { icon: CalendarCheck, label: 'Attendance', href: '/attendance' },
+  { icon: Bell, label: 'Students', href: '/teacher/students' },
+  { icon: BarChart3, label: 'Reports', href: '/teacher/reports' },
+  { icon: Settings, label: 'API Keys', href: '/teacher/api-settings' },
   { icon: HelpCircle, label: 'Question Bank', href: '/teacher/question-bank' },
   { icon: BookOpen, label: 'Course Management', href: '/courses' },
   { icon: User, label: 'Profile Management', href: '/profile' },
-  { icon: CalendarCheck, label: 'Attendance', href: '/attendance' },
-  { icon: BarChart3, label: 'Reports', href: '/teacher/reports' },
-  { icon: MessageSquare, label: 'SMS Management', href: '/teacher/sms' },
-  { icon: Bell, label: 'Students', href: '/teacher/students' },
-  { icon: Megaphone, label: 'AI Questions', href: '/teacher/ai-questions' },
 ];
 
 const studentMenuItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/' },
-  { icon: FileText, label: 'My Exams', href: '/student/exams' },
   { icon: HelpCircle, label: 'AI Help', href: '/student/ai-help' },
+  { icon: FileText, label: 'My Exams', href: '/student/exams' },
   { icon: CalendarCheck, label: 'Attendance', href: '/student/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/student/reports' },
   { icon: Bell, label: 'Question Bank', href: '/student/question-bank' },
+  { icon: Code, label: 'Developer', href: '/student/developer' },
 ];
 
 export function Sidebar({ className }: SidebarProps) {

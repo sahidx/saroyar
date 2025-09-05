@@ -407,21 +407,8 @@ export default function TeacherQuestionBank() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              // Format the link properly before opening
-                              const formatGoogleDriveLink = (originalLink: string) => {
-                                const fileMatch = originalLink.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-                                if (fileMatch) {
-                                  return `https://drive.google.com/file/d/${fileMatch[1]}/view?usp=sharing`;
-                                }
-                                const folderMatch = originalLink.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-                                if (folderMatch) {
-                                  return `https://drive.google.com/drive/folders/${folderMatch[1]}?usp=sharing`;
-                                }
-                                return originalLink.includes('usp=sharing') ? originalLink : originalLink + '?usp=sharing';
-                              };
-                              
-                              const formattedLink = formatGoogleDriveLink(resource.google_drive_link);
-                              window.open(formattedLink, '_blank');
+                              // Open the link as is, don't change anything
+                              window.open(resource.google_drive_link, '_blank');
                             }}
                             className="h-7 px-3 text-xs"
                           >

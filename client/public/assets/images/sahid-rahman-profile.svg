@@ -1,0 +1,52 @@
+<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Main circle background -->
+  <circle cx="75" cy="75" r="75" fill="url(#profileGradient)" filter="url(#shadow)"/>
+  
+  <!-- Professional avatar design -->
+  <!-- Head -->
+  <circle cx="75" cy="55" r="22" fill="#FED7AA" stroke="#F97316" stroke-width="1"/>
+  
+  <!-- Hair -->
+  <path d="M 53 45 Q 75 35 97 45 Q 95 40 75 38 Q 55 40 53 45" fill="#1F2937"/>
+  
+  <!-- Eyes -->
+  <circle cx="68" cy="52" r="2" fill="#1F2937"/>
+  <circle cx="82" cy="52" r="2" fill="#1F2937"/>
+  
+  <!-- Nose -->
+  <path d="M 75 56 L 73 59 L 77 59 Z" fill="#F97316" opacity="0.3"/>
+  
+  <!-- Mouth -->
+  <path d="M 70 62 Q 75 65 80 62" stroke="#1F2937" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Body/Shirt -->
+  <ellipse cx="75" cy="120" rx="35" ry="25" fill="#1E40AF"/>
+  <rect x="40" y="95" width="70" height="30" rx="35" fill="#1E40AF"/>
+  
+  <!-- Collar -->
+  <path d="M 65 95 L 75 105 L 85 95" fill="#FFFFFF" stroke="#1E40AF" stroke-width="1"/>
+  
+  <!-- Professional elements -->
+  <!-- Cyber security badge -->
+  <circle cx="45" cy="45" r="8" fill="#EF4444" opacity="0.9"/>
+  <text x="45" y="48" text-anchor="middle" fill="white" font-size="6" font-weight="bold">🔒</text>
+  
+  <!-- Bug bounty badge -->
+  <circle cx="105" cy="45" r="8" fill="#F59E0B" opacity="0.9"/>
+  <text x="105" y="48" text-anchor="middle" fill="white" font-size="6" font-weight="bold">🐛</text>
+  
+  <!-- Name initials overlay -->
+  <text x="75" y="132" text-anchor="middle" fill="white" font-size="14" font-weight="bold" font-family="Arial, sans-serif">SR</text>
+</svg>

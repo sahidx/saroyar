@@ -23,65 +23,43 @@ import {
   Eye
 } from 'lucide-react';
 import { useLocation } from 'wouter';
+import DEVELOPER_PROFILE from '@/data/developer-profile';
 
 export default function StudentDeveloper() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
 
-  const skills = [
-    { name: 'Cyber Security Expert', icon: Building2, color: 'bg-red-500' },
-    { name: 'Bug Bounty Hunter', icon: Target, color: 'bg-orange-500' },
-    { name: 'Web Development', icon: Code, color: 'bg-purple-500' },
-    { name: 'React', icon: Code, color: 'bg-cyan-500' },
-    { name: 'TypeScript', icon: Code, color: 'bg-blue-600' },
-    { name: 'Educational Technology', icon: BookOpen, color: 'bg-green-500' }
-  ];
+  // Get data from permanent profile
+  const skills = DEVELOPER_PROFILE.skills.map(skill => ({
+    name: skill.name,
+    icon: skill.name.includes('Cyber Security') ? Building2 : 
+          skill.name.includes('Bug Bounty') ? Target :
+          skill.name.includes('Web Development') ? Code :
+          skill.name.includes('React') ? Code :
+          skill.name.includes('TypeScript') ? Code : BookOpen,
+    color: skill.color
+  }));
 
-  const achievements = [
-    { title: 'Founder & CEO of Praggo', year: '2020-Present', icon: Award },
-    { title: 'Civil Engineering Student', year: '2021-Present', icon: GraduationCap },
-    { title: 'Cyber Security Expert', year: '2019-Present', icon: Target },
-    { title: 'Bug Bounty Hunter', year: '2020-Present', icon: Award },
-    { title: 'Doubt Solver at ACS', year: '2022-Present', icon: BookOpen }
-  ];
+  const achievements = DEVELOPER_PROFILE.achievements.map(achievement => ({
+    title: achievement.title,
+    year: achievement.year,
+    icon: achievement.type === 'leadership' ? Award :
+          achievement.type === 'education' ? GraduationCap :
+          achievement.type === 'professional' && achievement.title.includes('Cyber') ? Target :
+          achievement.type === 'professional' ? Award : BookOpen
+  }));
 
-  const praggoServices = [
-    { 
-      name: 'Praggo Civil Engineering Firm & Interior', 
-      namebn: 'স্থপতি উদ্ভাবনার ক্ষেত্র বাড়ির ডিজাইনে এবং ইন্টেরিয়ারে ডিজাইনে করে দেওয়া হয়',
-      icon: Building2 
-    },
-    { 
-      name: 'Praggo IT', 
-      namebn: 'এখানে বিভিন্ন ব্যবসা প্রতিষ্ঠান, শিক্ষা প্রতিষ্ঠান, কোম্পানির কর্পোরেটিভ Website, Software & Apps তৈরি করা হয় এবং সকল প্রকার IT সেবা প্রদান করা হয়',
-      icon: Monitor 
-    },
-    { 
-      name: 'Praggo Academy', 
-      namebn: 'এখানে বুয়েট সহ পাবলিক বিশ্ববিদ্যালয়ের শিক্ষার্থীদের ভর্তি একাডেমিক, চাকুরি এবং চৌকড় প্রস্তুতি বিষয়ক শিক্ষা প্রদান করা হয়',
-      icon: GraduationCap 
-    },
-    { 
-      name: 'Praggo Study Abroad', 
-      namebn: 'এখানে শিক্ষার্থীদের বিদেশে ভর্তি সংক্রান্ত বিষয়ে সহায়তা করা হয়',
-      icon: BookOpen 
-    },
-    { 
-      name: 'Praggo Ad Agency', 
-      namebn: 'এখানে বিভিন্ন ব্যবসা প্রতিষ্ঠানের অনলাইন মার্কেটিং, ফেসবুক বুস্টিং এবং ব্র্যান্ডিক গ্রাফিক্স কন্টেট তৈরি করে দেওয়া হয়',
-      icon: Target 
-    },
-    { 
-      name: 'Praggo Agro', 
-      namebn: 'কৃষি ক্ষেত্রে আধুনিক প্রযুক্তি ও সেবা প্রদান',
-      icon: Heart 
-    },
-    { 
-      name: 'Praggo Properties', 
-      namebn: 'রিয়েল এস্টেট ও সম্পত্তি সংক্রান্ত সেবা',
-      icon: Building2 
-    }
-  ];
+  // Get Praggo services from permanent profile
+  const praggoServices = DEVELOPER_PROFILE.company.services.map(service => ({
+    name: service.name,
+    namebn: service.nameBengali,
+    icon: service.category === 'construction' ? Building2 :
+          service.category === 'technology' ? Monitor :
+          service.category === 'education' ? (service.name.includes('Study Abroad') ? BookOpen : GraduationCap) :
+          service.category === 'marketing' ? Target :
+          service.category === 'agriculture' ? Heart :
+          service.category === 'real-estate' ? Building2 : Building2
+  }));
 
   return (
     <MobileWrapper>
@@ -116,12 +94,28 @@ export default function StudentDeveloper() {
           {/* Profile Card */}
           <Card className="border-2 border-blue-200 shadow-lg">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-24 h-24 rounded-full mb-4 shadow-lg overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">SR</span>
+              <div className="mx-auto w-24 h-24 rounded-full mb-4 shadow-lg overflow-hidden">
+                <img 
+                  src={DEVELOPER_PROFILE.personal.profileImage}
+                  alt={DEVELOPER_PROFILE.personal.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to gradient avatar with initials if SVG fails
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.parentElement!.innerHTML = `
+                      <div class="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
+                        <span class="text-2xl font-bold text-white">SR</span>
+                      </div>
+                    `;
+                  }}
+                />
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-800">Md Sahid Rahman</CardTitle>
+              <CardTitle className="text-2xl font-bold text-gray-800">
+                {DEVELOPER_PROFILE.personal.name}
+              </CardTitle>
               <CardDescription className="text-lg text-purple-600 font-medium">
-                Founder & CEO of Praggo • Civil Engineering Student
+                {DEVELOPER_PROFILE.personal.title} • {DEVELOPER_PROFILE.personal.subtitle}
               </CardDescription>
             </CardHeader>
             
@@ -166,23 +160,23 @@ export default function StudentDeveloper() {
             <CardContent>
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
-                  আমি মোঃ সাহিদ রহমান, প্রাগো গ্রুপের প্রতিষ্ঠাতা ও প্রধান নির্বাহী কর্মকর্তা। আমি একজন সাইবার সিকিউরিটি এক্সপার্ট এবং বাগ বাউন্টি হান্টার। আমি গোপালগঞ্জ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয় থেকে সিভিল ইঞ্জিনিয়ারিং অধ্যয়নরত আছি।
+                  {DEVELOPER_PROFILE.bio.bengali.intro}
                 </p>
                 
                 <p className="text-gray-700 leading-relaxed">
-                  আমি ACS-এ একজন সন্দেহ নিরসনকারী হিসেবে কাজ করি এবং ছাত্র-ছাত্রীদের শিক্ষায় সহায়তা করি। প্রযুক্তি ও সাইবার নিরাপত্তার মাধ্যমে আমি শিক্ষা ক্ষেত্রে অবদান রাখতে চাই।
+                  {DEVELOPER_PROFILE.bio.bengali.mission}
                 </p>
 
                 <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
                   <p className="text-purple-800 font-medium italic">
-                    "উদ্ভাবন ও প্রযুক্তির মাধ্যমে আমরা একটি উন্নত ভবিষ্যৎ গড়তে পারি।"
+                    "{DEVELOPER_PROFILE.bio.bengali.quote}"
                   </p>
                 </div>
 
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 gap-3 mt-4">
                   <a 
-                    href="https://www.facebook.com/share/16qPLuCvu8/" 
+                    href={DEVELOPER_PROFILE.personal.facebook}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
@@ -193,7 +187,7 @@ export default function StudentDeveloper() {
                   
                   <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
                     <Mail className="w-5 h-5 text-green-600" />
-                    <span className="text-gray-700">sahidrahmanx@gmail.com</span>
+                    <span className="text-gray-700">{DEVELOPER_PROFILE.personal.email}</span>
                   </div>
                 </div>
               </div>

@@ -1,0 +1,29 @@
+{
+  "developer": {
+    "name": "Md Sahid Rahman",
+    "title": "Founder & CEO of Praggo",
+    "subtitle": "Civil Engineering Student • Cyber Security Expert",
+    "profileImage": "/assets/images/sahid-rahman-profile.svg",
+    "email": "sahidrahmanx@gmail.com",
+    "facebook": "https://www.facebook.com/share/16qPLuCvu8/",
+    "university": "Gopalganj Science and Technology University",
+    "degree": "B.Sc Civil Engineering (ongoing)",
+    "founded": "2020",
+    "lastUpdated": "2025-01-05T12:58:30Z",
+    "deploymentReady": true,
+    "version": "1.0.0"
+  },
+  "company": {
+    "name": "Praggo Group",
+    "founded": "2020",
+    "totalServices": 7,
+    "industries": ["Construction", "Technology", "Education", "Marketing", "Agriculture", "Real Estate"],
+    "vision": "Leading technology and innovation for a better future",
+    "mission": "Providing comprehensive solutions across multiple industries"
+  },
+  "technical": {
+    "skills": ["Cyber Security", "Bug Bounty Hunting", "Full Stack Development", "React", "TypeScript", "Educational Technology"],
+    "experience": "6+ years in technology",
+    "specializations": ["Web Security", "Penetration Testing", "Educational Platforms", "System Architecture"]
+  }
+}

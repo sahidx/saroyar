@@ -804,6 +804,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enhanced SMS sending with multiple recipient options (students + parents)
       let totalSMSSent = 0;
+      let smsSkipped = false;
+      let skipReason = '';
       
       if (smsOptions.sendSMS) {
         console.log('📤 Processing SMS for exam marks...');
@@ -830,17 +832,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Check SMS balance - don't fail, just skip SMS if insufficient
-        const teacherCredits = await storage.getUserSmsCredits(teacherId);
-        console.log(`📊 SMS needed: ${totalSMSNeeded}, Available: ${teacherCredits}`);
-        
-        let smsSkipped = false;
-        let skipReason = '';
-        
-        if (totalSMSNeeded > teacherCredits) {
+        try {
+          const teacherCredits = await storage.getUserSmsCredits(teacherId);
+          console.log(`📊 SMS needed: ${totalSMSNeeded}, Available: ${teacherCredits}`);
+          
+          if (totalSMSNeeded > teacherCredits) {
+            smsSkipped = true;
+            skipReason = `Insufficient SMS credits. Need ${totalSMSNeeded} SMS, but only ${teacherCredits} available.`;
+            console.log(`⚠️ SMS SKIPPED: ${skipReason}`);
+            // Continue with marks saving, skip SMS sending
+          }
+        } catch (balanceError) {
+          console.error('Error checking SMS balance:', balanceError);
           smsSkipped = true;
-          skipReason = `Insufficient SMS credits. Need ${totalSMSNeeded} SMS, but only ${teacherCredits} available.`;
-          console.log(`⚠️ SMS SKIPPED: ${skipReason}`);
-          // Continue with marks saving, skip SMS sending
+          skipReason = 'Unable to check SMS balance. SMS sending skipped.';
         }
 
         // Send SMS to students and parents only if balance is sufficient
@@ -926,16 +931,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (totalSMSSent > 0) {
         successMessage.push(`SMS sent to ${totalSMSSent} recipients`);
       }
+      if (smsSkipped && smsOptions.sendSMS) {
+        successMessage.push(`SMS sending skipped: ${skipReason}`);
+      }
       
       res.json({
         success: hasSuccess,
         message: successMessage.length > 0 ? successMessage.join('. ') : 'No actions completed successfully',
         marksSaved: savedCount,
         marksFailed: failedCount,
-        smsSkipped: true, // Default to true since we're in the outer scope without smsSkipped
-        smsSkipReason: 'SMS functionality skipped',
+        smsSkipped: smsSkipped,
+        smsSkipReason: skipReason,
         smsResults: {
-          sent: 0,
+          sent: totalSMSSent,
           total: studentMarks.filter((mark: any) => mark.marks > 0).length
         }
       });

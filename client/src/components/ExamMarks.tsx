@@ -67,7 +67,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       setStudentMarks(
         examStudents.map((student: any) => ({
           studentId: student.id,
-          marks: 0,
+          marks: '', // Start with empty marks, not 0
           feedback: 'Good effort! Keep practicing for better results.'
         }))
       );
@@ -129,7 +129,19 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
   };
 
   const handleSubmit = () => {
-    const validMarks = studentMarks.filter(mark => mark.marks >= 0 && mark.marks <= (exam.totalMarks || 100));
+    // Check if all marks are filled (no empty strings or null values)
+    const allMarksFilled = studentMarks.every(mark => mark.marks !== '' && mark.marks !== null && mark.marks !== undefined);
+    
+    if (!allMarksFilled) {
+      toast({
+        title: "❌ Incomplete Marks Entry",
+        description: "দয়া করে সব ছাত্রের নম্বর দিন। খালি রাখা যাবে না।",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const validMarks = studentMarks.filter(mark => Number(mark.marks) >= 0 && Number(mark.marks) <= (exam.totalMarks || 100));
     
     if (validMarks.length === 0) {
       toast({
@@ -145,15 +157,22 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     // Check SMS credits if SMS is enabled
     if (smsOptions.sendSMS) {
       const studentsWithMarks = validMarks.filter(mark => mark.marks > 0);
-      let requiredCredits = studentsWithMarks.length; // Student SMS count
+      let requiredCredits = 0;
       
-      // Add parent SMS count if enabled
-      if (smsOptions.sendToParents) {
+      // Calculate SMS count correctly - don't double count students
+      if (smsOptions.sendToStudents && smsOptions.sendToParents) {
+        // Both student and parent SMS: count each student once (total recipients)
+        requiredCredits = studentsWithMarks.length;
+      } else if (smsOptions.sendToStudents) {
+        // Only student SMS
+        requiredCredits = studentsWithMarks.length;
+      } else if (smsOptions.sendToParents) {
+        // Only parent SMS
         const studentsWithParents = studentsWithMarks.filter(mark => {
           const student = getStudentInfo(mark.studentId);
           return student && student.parentPhoneNumber;
         });
-        requiredCredits += studentsWithParents.length;
+        requiredCredits = studentsWithParents.length;
       }
       
       if (currentCredits === 0) {
@@ -209,20 +228,27 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     );
   });
 
-  // Calculate SMS cost - including parents
+  // Calculate SMS cost - including parents (FIXED LOGIC)
   const getActiveSMSCount = () => {
-    const studentsWithMarks = studentMarks.filter(mark => mark.marks > 0);
+    const studentsWithMarks = studentMarks.filter(mark => Number(mark.marks) > 0);
     if (!smsOptions.sendSMS) return 0;
     
-    let totalSMS = studentsWithMarks.length; // Student SMS count
+    let totalSMS = 0;
     
-    // Add parent SMS count if enabled
-    if (smsOptions.sendToParents) {
+    // Fixed SMS counting logic - don't double count when both selected
+    if (smsOptions.sendToStudents && smsOptions.sendToParents) {
+      // Both student and parent SMS: count each student once (total recipients)
+      totalSMS = studentsWithMarks.length;
+    } else if (smsOptions.sendToStudents) {
+      // Only student SMS
+      totalSMS = studentsWithMarks.length;
+    } else if (smsOptions.sendToParents) {
+      // Only parent SMS
       const studentsWithParents = studentsWithMarks.filter(mark => {
         const student = getStudentInfo(mark.studentId);
-        return student && student.parent_phone_number;
+        return student && student.parentPhoneNumber;
       });
-      totalSMS += studentsWithParents.length;
+      totalSMS = studentsWithParents.length;
     }
     
     return totalSMS;
@@ -479,11 +505,21 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
               </Button>
               <Button 
                 onClick={handleSubmit}
-                disabled={updateMarksMutation.isPending || studentMarks.filter(mark => mark.marks > 0).length === 0}
-                className={smsOptions.sendSMS ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                disabled={updateMarksMutation.isPending || !studentMarks.every(mark => mark.marks !== '' && mark.marks !== null && mark.marks !== undefined)}
+                className={
+                  !studentMarks.every(mark => mark.marks !== '' && mark.marks !== null && mark.marks !== undefined)
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : (smsOptions.sendSMS ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white")
+                }
+                title={!studentMarks.every(mark => mark.marks !== '' && mark.marks !== null && mark.marks !== undefined) ? 'দয়া করে সব ছাত্রের নম্বর দিন' : ''}
               >
                 <Send className="w-4 h-4 mr-2" />
-                {updateMarksMutation.isPending ? 'Updating...' : (smsOptions.sendSMS ? `Save Marks & Send ${totalSMSCost} SMS` : 'Save Marks Only')}
+                {updateMarksMutation.isPending 
+                  ? 'Updating...' 
+                  : !studentMarks.every(mark => mark.marks !== '' && mark.marks !== null && mark.marks !== undefined)
+                    ? '🔒 সব নম্বর দিন প্রথমে'
+                    : (smsOptions.sendSMS ? `Save Marks & Send ${totalSMSCost} SMS` : 'Save Marks Only')
+                }
               </Button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExamModal } from '@/components/ExamModal';
 import { ExamMarks } from '@/components/ExamMarks';
 import { QuestionViewer } from '@/components/QuestionViewer';
+import { ExamResults } from '@/components/ExamResults';
 import { formatDistanceToNow } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +31,7 @@ export default function Exams() {
   const [editingExam, setEditingExam] = useState<any>(null);
   const [selectedExamForMarks, setSelectedExamForMarks] = useState<any>(null);
   const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
+  const [selectedExamForResults, setSelectedExamForResults] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('all');
   const [examToDelete, setExamToDelete] = useState<any>(null);
@@ -360,6 +362,7 @@ export default function Exams() {
                         variant="outline"
                         className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
                         data-testid={`button-view-results-exam-${exam.id}`}
+                        onClick={() => setSelectedExamForResults(exam)}
                       >
                         🏆 View Results & Performance
                       </Button>
@@ -397,6 +400,16 @@ export default function Exams() {
           exam={selectedExamForViewing}
           isOpen={!!selectedExamForViewing}
           onClose={() => setSelectedExamForViewing(null)}
+        />
+      )}
+
+      {/* Exam Results Modal */}
+      {selectedExamForResults && (
+        <ExamResults
+          exam={selectedExamForResults}
+          isOpen={!!selectedExamForResults}
+          onClose={() => setSelectedExamForResults(null)}
+          userRole="teacher"
         />
       )}
 

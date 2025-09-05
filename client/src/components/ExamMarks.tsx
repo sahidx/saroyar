@@ -188,7 +188,8 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     if (!student) return '';
 
     // Fixed SMS format (65 chars max) - teachers cannot edit
-    return `${student.firstName} ${student.lastName}: ${studentMark.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
+    const examName = exam.title.length > 12 ? exam.title.substring(0, 12) + '...' : exam.title;
+    return `${student.firstName} ${student.lastName}: Got ${studentMark.marks}/${exam.totalMarks} ${examName} -Belal Sir`;
   };
 
   // Filter students based on search
@@ -306,7 +307,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                   Available SMS Credits: {(smsCreditsData as any)?.smsCredits || 0}
                 </div>
                 <div className="mt-2 text-xs text-blue-600">
-                  📱 SMS Format: "Student Name: 85/100 ExamName -Belal Sir" (Fixed format, cannot edit)
+                  📱 SMS Format: "Student Name: Got 85/100 ExamName -Belal Sir" (Fixed format, cannot edit)
                 </div>
               </div>
               
@@ -395,7 +396,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                           <Label>Fixed SMS Format (Cannot Edit)</Label>
                           <div className="p-3 bg-gray-100 border rounded text-sm">
                             <div className="text-gray-600 font-mono">
-                              {student.firstName} {student.lastName}: {studentMark?.marks || 0}/{exam?.totalMarks} Chemistry Private -Belal Sir
+                              {student.firstName} {student.lastName}: Got {studentMark?.marks || 0}/{exam?.totalMarks} {exam?.title.length > 12 ? exam.title.substring(0, 12) + '...' : exam?.title} -Belal Sir
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               📏 Length: {previewSMS(studentMark || { studentId: student.id, marks: studentMark?.marks || 0, feedback: '' }).length} chars (Max: 65)

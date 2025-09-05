@@ -6,7 +6,7 @@ export const DEVELOPER_PROFILE = {
     name: 'Md Sahid Rahman',
     title: 'Founder & CEO of Praggo',
     subtitle: 'Civil Engineering Student',
-    profileImage: '/assets/images/sahid-rahman-real-photo.jpg',
+    profileImage: '/attached_assets/Untitled_1757081162417.jpg',
     university: 'Gopalganj Science and Technology University',
     degree: 'B.Sc Civil Engineering (ongoing)',
     email: 'sahidrahmanx@gmail.com',

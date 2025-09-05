@@ -1805,10 +1805,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Duplicate removed - real implementation is below
 
-  // Praggo AI Doubt Solver endpoint for students
+  // Praggo AI Doubt Solver endpoint for students (with streaming)
   app.post("/api/ai/solve-doubt", requireAuth, async (req: any, res) => {
     try {
-      const { doubt, subject } = req.body;
+      const { doubt, subject, stream = true } = req.body;
       const userId = (req as any).session.user.id;
       const user = await storage.getUser(userId);
       
@@ -1826,13 +1826,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure API keys are loaded from database before solving doubt
       await praggoAI.refreshKeys();
       
-      const solution = await praggoAI.solveDoubt(doubt, subject, userId, 'student');
+      if (stream) {
+        // Set up Server-Sent Events headers
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Cache-Control'
+        });
+
+        // Send initial connection message
+        res.write(`data: ${JSON.stringify({ type: 'start', message: 'AI চিন্তা করছে...' })}\n\n`);
+
+        try {
+          const solution = await praggoAI.solveDoubt(doubt, subject, userId, 'student');
+          
+          // Stream the solution word by word
+          const words = solution.split(' ');
+          for (let i = 0; i < words.length; i++) {
+            const chunk = words.slice(0, i + 1).join(' ');
+            res.write(`data: ${JSON.stringify({ 
+              type: 'chunk', 
+              content: chunk,
+              isComplete: i === words.length - 1 
+            })}\n\n`);
+            
+            // Add small delay for smooth streaming effect
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          
+          // Send completion message
+          res.write(`data: ${JSON.stringify({ 
+            type: 'complete', 
+            content: solution 
+          })}\n\n`);
+          
+        } catch (error) {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: error instanceof Error ? error.message : "AI সেবায় সমস্যা হয়েছে।" 
+          })}\n\n`);
+        }
+        
+        res.end();
+      } else {
+        // Fallback to regular response for compatibility
+        const solution = await praggoAI.solveDoubt(doubt, subject, userId, 'student');
+        res.json({ solution });
+      }
       
-      res.json({ solution });
     } catch (error) {
       console.error("Praggo AI doubt solving error:", error);
       const errorMessage = error instanceof Error ? error.message : "Praggo AI সেবায় সমস্যা হয়েছে।";
-      res.status(500).json({ error: errorMessage });
+      
+      if (req.body.stream) {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: errorMessage })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: errorMessage });
+      }
     }
   });
 

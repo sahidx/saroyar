@@ -16,8 +16,6 @@ import {
 } from 'lucide-react';
 import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 export default function StudentAIHelp() {
@@ -28,31 +26,108 @@ export default function StudentAIHelp() {
   const [conversation, setConversation] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const { toast } = useToast();
 
-  const aiHelpMutation = useMutation({
-    mutationFn: async (data: { doubt: string, subject: string }) => {
-      const response = await apiRequest('POST', '/api/ai/solve-doubt', data);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setConversation(prev => [...prev, 
-        { role: 'user', content: question },
-        { role: 'assistant', content: data.solution }
-      ]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [currentResponse, setCurrentResponse] = useState('');
+
+  const handleStreamingAI = async (doubt: string, subject: string) => {
+    setIsStreaming(true);
+    setCurrentResponse('');
+    
+    // Add user message immediately
+    setConversation(prev => [...prev, { role: 'user', content: doubt }]);
+    
+    // Add placeholder assistant message that will be updated
+    const assistantMessageIndex = conversation.length + 1;
+    setConversation(prev => [...prev, { role: 'assistant', content: 'AI চিন্তা করছে...' }]);
+    
+    try {
+      const response = await fetch('/api/ai/solve-doubt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ doubt, subject, stream: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response stream available');
+      }
+
+      let accumulatedContent = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'chunk') {
+                accumulatedContent = data.content;
+                setCurrentResponse(accumulatedContent);
+                
+                // Update the assistant message in real-time
+                setConversation(prev => {
+                  const updated = [...prev];
+                  updated[assistantMessageIndex] = { 
+                    role: 'assistant', 
+                    content: accumulatedContent 
+                  };
+                  return updated;
+                });
+              } else if (data.type === 'complete') {
+                accumulatedContent = data.content;
+                setCurrentResponse(accumulatedContent);
+                
+                // Final update with complete content
+                setConversation(prev => {
+                  const updated = [...prev];
+                  updated[assistantMessageIndex] = { 
+                    role: 'assistant', 
+                    content: accumulatedContent 
+                  };
+                  return updated;
+                });
+              } else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            } catch (parseError) {
+              // Ignore parse errors for incomplete chunks
+            }
+          }
+        }
+      }
+      
       setQuestion('');
-    },
-    onError: (error) => {
+    } catch (error) {
+      // Remove the placeholder assistant message on error
+      setConversation(prev => prev.slice(0, -1));
+      
       toast({
         title: "Error",
         description: "Failed to get AI help. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsStreaming(false);
+      setCurrentResponse('');
     }
-  });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
-    aiHelpMutation.mutate({ doubt: question, subject: 'chemistry' });
+    if (!question.trim() || isStreaming) return;
+    handleStreamingAI(question, 'chemistry');
   };
 
   const handleLogout = () => {
@@ -192,6 +267,13 @@ export default function StudentAIHelp() {
                         <div className="flex items-center gap-2 mb-2">
                           <Bot className="w-4 h-4 text-purple-500" />
                           <span className="font-semibold text-purple-500">Praggo AI</span>
+                          {isStreaming && idx === conversation.length - 1 && (
+                            <div className="flex space-x-1">
+                              <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                              <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                              <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce"></div>
+                            </div>
+                          )}
                         </div>
                       )}
                       <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -218,14 +300,14 @@ export default function StudentAIHelp() {
                   ? 'bg-slate-800 border-slate-600 text-white placeholder-gray-400' 
                   : 'bg-white border-gray-300'
                 } rounded-2xl resize-none`}
-                disabled={aiHelpMutation.isPending}
+                disabled={isStreaming}
               />
               <Button
                 type="submit"
-                disabled={!question.trim() || aiHelpMutation.isPending}
+                disabled={!question.trim() || isStreaming}
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white p-3 rounded-2xl min-w-[50px] h-[50px]"
               >
-                {aiHelpMutation.isPending ? (
+                {isStreaming ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <Send className="w-5 h-5" />

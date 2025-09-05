@@ -53,6 +53,9 @@ export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
+  // Hide mobile menu for Question Bank page
+  const showMobileMenu = !location.includes('/teacher/question-bank');
 
   const menuItems = (user as any)?.role === 'teacher' ? teacherMenuItems : studentMenuItems;
 
@@ -133,13 +136,15 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <>
       {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
-        data-testid="mobile-menu-toggle"
-      >
-        {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
+      {showMobileMenu && (
+        <button
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+          data-testid="mobile-menu-toggle"
+        >
+          {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      )}
 
       {/* Mobile Overlay */}
       {isMobileOpen && (

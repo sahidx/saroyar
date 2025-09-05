@@ -30,8 +30,12 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
 
   // Fetch all students for messaging with real-time updates
   const { data: students = [], isLoading: studentsLoading } = useQuery({
-    queryKey: ["/api/messages/students"],
+    queryKey: ["/api/messages/students", Date.now()], // Force fresh requests with timestamp
     refetchInterval: 3000, // Auto-refresh every 3 seconds for new messages
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Auto-select first student with unread messages
@@ -52,9 +56,13 @@ export function TeacherMessaging({ isDarkMode }: TeacherMessagingProps) {
 
   // Fetch conversation with selected student with real-time updates
   const { data: conversation = [], isLoading: conversationLoading } = useQuery({
-    queryKey: ["/api/messages/conversation", selectedStudent?.id],
+    queryKey: ["/api/messages/conversation", selectedStudent?.id, Date.now()], // Force fresh requests
     enabled: !!selectedStudent?.id,
     refetchInterval: 2000, // Auto-refresh conversation every 2 seconds
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Send message mutation

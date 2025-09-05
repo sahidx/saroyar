@@ -38,14 +38,20 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
 
   // Fetch teacher info
   const { data: teacher, isLoading: teacherLoading } = useQuery({
-    queryKey: ["/api/messages/teacher"],
+    queryKey: ["/api/messages/teacher", Date.now()], // Force fresh requests
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Fetch conversation with teacher
   const { data: conversation = [], isLoading: conversationLoading } = useQuery({
-    queryKey: ["/api/messages/conversation", teacher?.id],
+    queryKey: ["/api/messages/conversation", teacher?.id, Date.now()], // Force fresh requests  
     enabled: !!teacher?.id,
     refetchInterval: 3000, // Refresh every 3 seconds for real-time feel
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Auto-scroll when conversation updates

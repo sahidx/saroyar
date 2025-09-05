@@ -4143,6 +4143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get conversation between teacher and student
   app.get("/api/messages/conversation/:otherUserId", requireAuth, async (req: any, res) => {
     try {
+      // Prevent caching to ensure fresh message data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const currentUserId = req.session?.user?.id;
       const otherUserId = req.params.otherUserId;
       
@@ -4220,6 +4225,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all students for teacher to message (teacher side)
   app.get("/api/messages/students", requireAuth, async (req: any, res) => {
     try {
+      // Prevent caching to ensure fresh message data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const teacherId = req.session?.user?.id;
       const teacherRole = req.session?.user?.role;
       
@@ -4255,6 +4265,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get teacher info for student messaging (student side)
   app.get("/api/messages/teacher", requireAuth, async (req: any, res) => {
     try {
+      // Prevent caching to ensure fresh message data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const studentRole = req.session?.user?.role;
       
       if (studentRole !== 'student') {

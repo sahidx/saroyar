@@ -322,9 +322,16 @@ export default function TeacherQuestionBank() {
                 <Input
                   value={googleDriveLink}
                   onChange={(e) => setGoogleDriveLink(e.target.value)}
-                  placeholder="https://drive.google.com/drive/folders/..."
+                  placeholder="https://drive.google.com/drive/folders/... অথবা https://drive.google.com/file/d/..."
                   className="w-full"
                 />
+                <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                  <p className="font-medium mb-1">📝 Google Drive লিংক যোগ করার নিয়ম:</p>
+                  <p>১. Google Drive এ ফাইল/ফোল্ডার শেয়ার করুন (Anyone with the link can view)</p>
+                  <p>২. Copy link করে এখানে পেস্ট করুন</p>
+                  <p>৩. ফাইল লিংক: drive.google.com/file/d/FILE_ID/view</p>
+                  <p>৪. ফোল্ডার লিংক: drive.google.com/drive/folders/FOLDER_ID</p>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -399,7 +406,23 @@ export default function TeacherQuestionBank() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(resource.google_drive_link, '_blank')}
+                            onClick={() => {
+                              // Format the link properly before opening
+                              const formatGoogleDriveLink = (originalLink: string) => {
+                                const fileMatch = originalLink.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+                                if (fileMatch) {
+                                  return `https://drive.google.com/file/d/${fileMatch[1]}/view?usp=sharing`;
+                                }
+                                const folderMatch = originalLink.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+                                if (folderMatch) {
+                                  return `https://drive.google.com/drive/folders/${folderMatch[1]}?usp=sharing`;
+                                }
+                                return originalLink.includes('usp=sharing') ? originalLink : originalLink + '?usp=sharing';
+                              };
+                              
+                              const formattedLink = formatGoogleDriveLink(resource.google_drive_link);
+                              window.open(formattedLink, '_blank');
+                            }}
                             className="h-7 px-3 text-xs"
                           >
                             <ExternalLink className="w-3 h-3 mr-1" />

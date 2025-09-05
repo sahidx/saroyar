@@ -114,8 +114,40 @@ export default function StudentQuestionBank() {
     }
   };
 
+  // Function to format Google Drive links properly
+  const formatGoogleDriveLink = (originalLink: string) => {
+    // Extract file ID from various Google Drive link formats
+    let fileId = '';
+    
+    // Handle file links: https://drive.google.com/file/d/FILE_ID/view
+    const fileMatch = originalLink.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileMatch) {
+      fileId = fileMatch[1];
+      return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+    }
+    
+    // Handle folder links: https://drive.google.com/drive/folders/FOLDER_ID
+    const folderMatch = originalLink.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+    if (folderMatch) {
+      fileId = folderMatch[1];
+      return `https://drive.google.com/drive/folders/${fileId}?usp=sharing`;
+    }
+    
+    // If already has sharing parameter, return as is
+    if (originalLink.includes('usp=sharing')) {
+      return originalLink;
+    }
+    
+    // Return original link if no pattern matches
+    return originalLink;
+  };
+
   const handleOpenDriveLink = (resource: ChapterResource) => {
-    window.open(resource.google_drive_link, '_blank');
+    const formattedLink = formatGoogleDriveLink(resource.google_drive_link);
+    
+    // Open the formatted link
+    window.open(formattedLink, '_blank');
+    
     toast({
       title: "Google Drive লিংক",
       description: `${resource.chapter_name} এর রিসোর্স খোলা হচ্ছে...`,

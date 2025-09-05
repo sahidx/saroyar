@@ -3494,8 +3494,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ];
       
+      // Add teacher-added resources to sample data
+      const teacherAddedResources = Array.from(teacherResources.values());
+      
+      // Combine sample data with teacher resources
+      // Teacher resources will override sample data with same key
+      let allResources = [...sampleData];
+      
+      // Replace or add teacher resources
+      teacherAddedResources.forEach(teacherResource => {
+        const existingIndex = allResources.findIndex(item => 
+          item.class_level === teacherResource.class_level &&
+          item.subject === teacherResource.subject &&
+          item.chapter_name === teacherResource.chapter_name &&
+          (item.subcategory || '') === (teacherResource.subcategory || '')
+        );
+        
+        if (existingIndex !== -1) {
+          // Replace existing
+          allResources[existingIndex] = teacherResource;
+        } else {
+          // Add new
+          allResources.push(teacherResource);
+        }
+      });
+
       // Filter data based on query parameters
-      let filteredData = sampleData;
+      let filteredData = allResources;
       if (class_level) {
         filteredData = filteredData.filter(item => item.class_level === class_level);
       }
@@ -3517,26 +3542,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // In-memory storage for chapter resources (temporary until database implementation)
+  const teacherResources = new Map();
+
   // Teacher endpoint to add/update chapter resources
   app.post('/api/teacher/chapter-resources', async (req, res) => {
     try {
       const { class_level, subject, chapter_name, subcategory, google_drive_link, description } = req.body;
       
-      // For now, just return success - can implement database later
-      console.log(`📝 Teacher adding resource: ${chapter_name} -> ${google_drive_link}`);
+      // Create a unique key for this resource
+      const resourceKey = `${class_level}-${subject}-${chapter_name}${subcategory ? `-${subcategory}` : ''}`;
+      
+      // Check if resource already exists
+      const existingResource = teacherResources.get(resourceKey);
+      
+      const resourceData = {
+        id: existingResource?.id || Date.now().toString(),
+        class_level,
+        subject,
+        chapter_name,
+        subcategory,
+        google_drive_link,
+        description,
+        created_at: existingResource?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Store/update the resource
+      teacherResources.set(resourceKey, resourceData);
+      
+      console.log(`📝 Teacher ${existingResource ? 'updated' : 'added'} resource: ${chapter_name} -> ${google_drive_link}`);
       
       res.json({
         success: true,
-        message: 'Resource added successfully',
-        data: {
-          id: Date.now().toString(),
-          class_level,
-          subject,
-          chapter_name,
-          google_drive_link,
-          description,
-          created_at: new Date().toISOString()
-        }
+        message: existingResource ? 'Resource updated successfully' : 'Resource added successfully',
+        data: resourceData
       });
     } catch (error) {
       console.error('Error adding chapter resource:', error);

@@ -329,8 +329,11 @@ export default function TeacherQuestionBank() {
                   <p className="font-medium mb-1">📝 Google Drive লিংক যোগ করার নিয়ম:</p>
                   <p>১. Google Drive এ ফাইল/ফোল্ডার শেয়ার করুন (Anyone with the link can view)</p>
                   <p>২. Copy link করে এখানে পেস্ট করুন</p>
-                  <p>৩. ফাইল লিংক: drive.google.com/file/d/FILE_ID/view</p>
-                  <p>৪. ফোল্ডার লিংক: drive.google.com/drive/folders/FOLDER_ID</p>
+                  <p>ৃ. একই অধ্যায়ের পুরাতন লিংক স্বয়ংক্রিয়ভাবে প্রতিস্থাপিত হবে</p>
+                </div>
+                <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                  <p className="font-medium mb-1">⚠️ লিংক না খুললে:</p>
+                  <p>Google Drive এ গিয়ে ফাইল Right-click করে Share → Change to "Anyone with the link" করুন</p>
                 </div>
               </div>
 

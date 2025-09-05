@@ -188,8 +188,12 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     if (!student) return '';
 
     // Fixed SMS format (65 chars max) - teachers cannot edit
-    const examName = exam.title.length > 12 ? exam.title.substring(0, 12) + '...' : exam.title;
-    return `${student.firstName} ${student.lastName}: Got ${studentMark.marks}/${exam.totalMarks} ${examName} -Belal Sir`;
+    const studentName = `${student.firstName} ${student.lastName}`;
+    const scoreText = `Got ${studentMark.marks}/${exam.totalMarks}`;
+    const signature = " -Belal Sir";
+    const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
+    const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
+    return `${studentName}: ${scoreText} ${examName}${signature}`;
   };
 
   // Filter students based on search
@@ -396,7 +400,14 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                           <Label>Fixed SMS Format (Cannot Edit)</Label>
                           <div className="p-3 bg-gray-100 border rounded text-sm">
                             <div className="text-gray-600 font-mono">
-                              {student.firstName} {student.lastName}: Got {studentMark?.marks || 0}/{exam?.totalMarks} {exam?.title.length > 12 ? exam.title.substring(0, 12) + '...' : exam?.title} -Belal Sir
+                              {(() => {
+                                const studentName = `${student.firstName} ${student.lastName}`;
+                                const scoreText = `Got ${studentMark?.marks || 0}/${exam?.totalMarks}`;
+                                const signature = " -Belal Sir";
+                                const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4;
+                                const examName = exam?.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam?.title;
+                                return `${studentName}: ${scoreText} ${examName}${signature}`;
+                              })()}
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                               📏 Length: {previewSMS(studentMark || { studentId: student.id, marks: studentMark?.marks || 0, feedback: '' }).length} chars (Max: 65)

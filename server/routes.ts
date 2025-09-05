@@ -828,8 +828,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             for (const { student, mark } of validStudents) {
               // Fixed SMS format with exam name (65 chars max): "Name: Got 85/100 ExamName -Belal Sir"
-              const examName = exam.title.length > 12 ? exam.title.substring(0, 12) + '...' : exam.title;
-              const smsMessage = `${student.firstName} ${student.lastName}: Got ${mark.marks}/${exam.totalMarks} ${examName} -Belal Sir`;
+              const studentName = `${student.firstName} ${student.lastName}`;
+              const scoreText = `Got ${mark.marks}/${exam.totalMarks}`;
+              const signature = " -Belal Sir";
+              const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
+              const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
+              const smsMessage = `${studentName}: ${scoreText} ${examName}${signature}`;
               
               // Send to student
               if (student.phoneNumber) {

@@ -84,7 +84,8 @@ export default function TeacherQuestionBank() {
 
   // Subcategories for class 11-12
   const subcategories = [
-    'ইঞ্জিনিয়ারিং ভার্সিটি',
+    'ইঞ্জিনিয়ারিং',
+    'ভার্সিটি', 
     'মেডিকেল',
     'মূল বইয়ের প্রশ্ন'
   ];

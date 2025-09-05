@@ -485,6 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         batchId: users.batchId,
         role: users.role,
         studentId: users.studentId,
+        studentPassword: users.studentPassword, // Include student password for teacher management
         createdAt: users.createdAt
       }).from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
       console.log(`👥 Found ${students.length} students`);

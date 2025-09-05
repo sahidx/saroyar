@@ -35,7 +35,7 @@ import StudentMessages from "@/pages/student/StudentMessages";
 import StudentStudy from "@/pages/student/StudentStudy";
 import StudentExamView from "@/pages/student/StudentExamView";
 import StudentResults from "@/pages/student/StudentResults";
-import StudentQuestionBank from "@/pages/student/QuestionBank";
+import StudentQuestionBank from "@/pages/student/StudentQuestionBank";
 import StudentAttendance from "@/pages/student/StudentAttendance";
 import StudentDeveloper from "@/pages/student/StudentDeveloper";
 import TeacherQuestionBank from "@/pages/teacher/QuestionBank";

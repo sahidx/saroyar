@@ -214,14 +214,25 @@ export default function StudentExams() {
                             <FileText className="w-4 h-4 mr-2" />
                             প্রশ্নপত্র দেখুন
                           </Button>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setLocation(`/student/exam/${exam.id}/view`)}
-                          >
-                            <FileText className="w-4 h-4 mr-2" />
-                            উত্তর দিন
-                          </Button>
+                          {exam.hasSubmission ? (
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="bg-green-50 border-green-500 text-green-700 hover:bg-green-100"
+                            >
+                              <Trophy className="w-4 h-4 mr-2" />
+                              ফলাফল দেখুন
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setLocation(`/student/exam/${exam.id}/view`)}
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              উত্তর দিন
+                            </Button>
+                          )}
                         </div>
                         {!exam.hasSubmission && (
                           <Button className="w-full" size="sm">

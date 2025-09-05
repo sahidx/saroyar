@@ -352,6 +352,18 @@ export default function Exams() {
                         📝 Enter Marks
                       </Button>
                     </div>
+                    
+                    {/* Results View Button */}
+                    <div className="mt-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
+                        data-testid={`button-view-results-exam-${exam.id}`}
+                      >
+                        🏆 View Results & Performance
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );

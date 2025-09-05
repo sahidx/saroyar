@@ -151,7 +151,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       if (smsOptions.sendToParents) {
         const studentsWithParents = studentsWithMarks.filter(mark => {
           const student = getStudentInfo(mark.studentId);
-          return student && student.parent_phone_number;
+          return student && student.parentPhoneNumber;
         });
         requiredCredits += studentsWithParents.length;
       }
@@ -313,12 +313,12 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                         {studentMarks.filter(mark => {
                           if (mark.marks <= 0) return false;
                           const student = getStudentInfo(mark.studentId);
-                          return student && student.parent_phone_number;
+                          return student && student.parentPhoneNumber;
                         }).length} parents will receive SMS
                       </p>
                       {smsOptions.sendToParents && (
                         <div className="mt-1 text-xs text-green-700 font-mono">
-                          📞 Numbers: {examStudents.filter(s => s.parent_phone_number).map(s => s.parent_phone_number).join(', ') || 'No parent numbers'}
+                          📞 Numbers: {examStudents.filter(s => s.parentPhoneNumber).map(s => s.parentPhoneNumber).join(', ') || 'No parent numbers'}
                         </div>
                       )}
                     </div>

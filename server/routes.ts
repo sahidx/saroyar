@@ -476,8 +476,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('👥 Fetching students with optimized query...');
       // Use direct database query for better performance
-      const students = await db.select().from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
+      const students = await db.select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phoneNumber: users.phoneNumber,
+        parentPhoneNumber: users.parentPhoneNumber, // Ensure parent phone number is included
+        batchId: users.batchId,
+        role: users.role,
+        studentId: users.studentId,
+        createdAt: users.createdAt
+      }).from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
       console.log(`👥 Found ${students.length} students`);
+      console.log(`📱 Parent numbers found: ${students.filter(s => s.parentPhoneNumber).length}`);
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);

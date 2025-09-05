@@ -1874,7 +1874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update password in database
-      const updatedStudent = await storage.updateUserPassword(studentId, password);
+      const updatedStudent = await storage.updateStudentPassword(studentId, password);
       
       // Log activity
       await storage.logActivity({

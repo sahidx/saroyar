@@ -775,17 +775,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async authenticateStudent(studentId: string, batchCode: string, password: string): Promise<User | null> {
-    // First get the batch by code and password
+    // First get the batch by code
     const [batch] = await db
       .select()
       .from(batches)
-      .where(and(eq(batches.batchCode, batchCode), eq(batches.password, password)));
+      .where(eq(batches.batchCode, batchCode));
     
     if (!batch) {
-      return null; // Invalid batch code or password
+      return null; // Invalid batch code
     }
 
-    // Then get the student by studentId and batchId
+    // Get the student by studentId and batchId
     const [student] = await db
       .select()
       .from(users)
@@ -796,14 +796,25 @@ export class DatabaseStorage implements IStorage {
         eq(users.isActive, true)
       ));
 
-    if (student) {
-      // Update last login
-      await db.update(users)
-        .set({ lastLogin: new Date() })
-        .where(eq(users.id, student.id));
+    if (!student) {
+      return null; // Student not found in this batch
     }
 
-    return student || null;
+    // Check student's individual password first, fallback to batch password if no individual password set
+    const isPasswordValid = 
+      (student.studentPassword && student.studentPassword === password) ||
+      (!student.studentPassword && batch.password === password);
+    
+    if (!isPasswordValid) {
+      return null; // Wrong password
+    }
+
+    // Update last login
+    await db.update(users)
+      .set({ lastLogin: new Date() })
+      .where(eq(users.id, student.id));
+
+    return student;
   }
 
   // Batch management operations

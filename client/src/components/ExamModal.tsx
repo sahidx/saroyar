@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -53,19 +53,7 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
 
   const form = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
-    defaultValues: editingExam ? {
-      title: editingExam.title || '',
-      subject: editingExam.subject || 'chemistry',
-      examDate: editingExam.examDate ? new Date(editingExam.examDate).toISOString().split('T')[0] : '',
-      duration: editingExam.duration || 90,
-      examType: editingExam.examType || 'mcq',
-      examMode: editingExam.examMode || 'online',
-      batchId: editingExam.batchId || undefined,
-      questionSource: editingExam.questionSource || 'drive_link',
-      questionContent: editingExam.questionContent || '',
-      totalMarks: editingExam.totalMarks || 100,
-      instructions: editingExam.instructions || '',
-    } : {
+    defaultValues: {
       title: '',
       subject: 'chemistry',
       examDate: '',
@@ -79,6 +67,50 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
       instructions: '',
     },
   });
+
+  // Effect to populate form when editing an exam
+  useEffect(() => {
+    if (editingExam && isOpen) {
+      // Helper function to format date properly
+      const formatDateForInput = (dateString: string) => {
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM format for datetime-local
+        } catch {
+          return '';
+        }
+      };
+
+      form.reset({
+        title: editingExam.title || '',
+        subject: editingExam.subject || 'chemistry',
+        examDate: editingExam.examDate ? formatDateForInput(editingExam.examDate) : '',
+        duration: editingExam.duration || 90,
+        examType: editingExam.examType || 'mcq',
+        examMode: editingExam.examMode || 'online',
+        batchId: editingExam.batchId || '',
+        questionSource: editingExam.questionSource || 'drive_link',
+        questionContent: editingExam.questionContent || '',
+        totalMarks: editingExam.totalMarks || 100,
+        instructions: editingExam.instructions || '',
+      });
+    } else if (!editingExam && isOpen) {
+      // Reset to default values when creating new exam
+      form.reset({
+        title: '',
+        subject: 'chemistry',
+        examDate: '',
+        duration: 90,
+        examType: 'mcq',
+        examMode: 'online',
+        batchId: '',
+        questionSource: 'drive_link',
+        questionContent: '',
+        totalMarks: 100,
+        instructions: '',
+      });
+    }
+  }, [editingExam, isOpen, form]);
 
   const createExamMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
@@ -112,20 +144,8 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
         title: "Success",
         description: editingExam ? "Exam updated successfully!" : "Exam created successfully!",
       });
-      // Reset form properly when done
-      form.reset(editingExam ? undefined : {
-        title: '',
-        subject: 'chemistry',
-        examDate: '',
-        duration: 90,
-        examType: 'mcq',
-        examMode: 'online',
-        batchId: undefined,
-        questionSource: 'drive_link',
-        questionContent: '',
-        totalMarks: 100,
-        instructions: '',
-      });
+      // Reset form and close modal
+      form.reset();
       onClose();
     },
     onError: (error) => {

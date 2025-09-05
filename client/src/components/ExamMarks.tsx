@@ -235,19 +235,26 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
 
   // Calculate SMS cost - including parents (FIXED LOGIC)
   const getActiveSMSCount = () => {
-    const studentsWithMarks = studentMarks.filter(mark => Number(mark.marks) > 0);
-    if (!smsOptions.sendSMS) return 0;
+    // Count students with any marks entered (not just > 0)
+    const studentsWithMarks = studentMarks.filter(mark => 
+      mark.marks !== null && 
+      mark.marks !== undefined && 
+      mark.marks !== '' && 
+      String(mark.marks).trim() !== ''
+    );
+    
+    if (!smsOptions.sendSMS || studentsWithMarks.length === 0) return 0;
     
     let totalSMS = 0;
     
     // Fixed SMS counting logic - ADDITIVE when both selected
     if (smsOptions.sendToStudents) {
-      // Student SMS count
+      // Student SMS count - all students with marks
       totalSMS += studentsWithMarks.length;
     }
     
     if (smsOptions.sendToParents) {
-      // Parent SMS count (additive, not replacement)
+      // Parent SMS count - students with marks AND parent phone numbers
       const studentsWithParents = studentsWithMarks.filter(mark => {
         const student = getStudentInfo(mark.studentId);
         return student && student.parentPhoneNumber;
@@ -451,9 +458,22 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                             type="number"
                             min="0"
                             max={exam?.totalMarks}
+                            step="1"
                             value={studentMark?.marks === null || studentMark?.marks === undefined ? '' : studentMark?.marks}
-                            onChange={(e) => handleMarkChange(student.id, 'marks', e.target.value || null)}
-                            placeholder="Required: Enter marks"
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Only allow valid numbers or empty string
+                              if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                                handleMarkChange(student.id, 'marks', value === '' ? null : Number(value));
+                              }
+                            }}
+                            onKeyPress={(e) => {
+                              // Only allow numbers, backspace, delete, tab, escape, enter
+                              if (!/[\d\.\-\+eE]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            placeholder="Required: Enter marks (0-100)"
                             className="w-full"
                             required
                           />

@@ -300,8 +300,7 @@ export default function Exams() {
                             <img 
                               src={exam.questionContent} 
                               alt="Exam Question" 
-                              className="w-full max-h-32 object-contain rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => window.open(exam.questionContent, '_blank')}
+                              className="w-full max-h-32 object-contain rounded border"
                             />
                           ) : (
                             <div className="text-xs text-gray-500">

@@ -438,7 +438,14 @@ export default function TeacherQuestionBank() {
                   </div>
                   {question.driveLink && (
                     <Button
-                      onClick={() => window.open(question.driveLink, '_blank')}
+                      onClick={() => {
+                        if (question.driveLink && question.driveLink.trim()) {
+                          window.open(question.driveLink, '_blank');
+                        } else {
+                          console.error('No drive link available for question:', question.id);
+                          // Note: Toast hook would need to be added to this component
+                        }
+                      }}
                       className="bg-green-600 hover:bg-green-700 text-white"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />

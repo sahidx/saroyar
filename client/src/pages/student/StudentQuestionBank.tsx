@@ -348,7 +348,18 @@ export default function StudentQuestionBank() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => window.open(question.driveLink, '_blank')}
+                              onClick={() => {
+                                if (question.driveLink && question.driveLink.trim()) {
+                                  window.open(question.driveLink, '_blank');
+                                } else {
+                                  console.error('No drive link available for question:', question.id);
+                                  toast({
+                                    title: "লিংক উপলব্ধ নেই",
+                                    description: "এই প্রশ্নের জন্য কোনো লিংক পাওয়া যায়নি",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
                             >
                               <ExternalLink className="w-3 h-3 mr-1" />
                               দেখুন

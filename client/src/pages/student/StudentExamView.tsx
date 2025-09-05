@@ -161,7 +161,13 @@ export default function StudentExamView({ params }: ExamViewProps) {
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => window.open(exam.questionContent, '_blank')}
+                      onClick={() => {
+                        if (exam.questionContent && exam.questionContent.trim()) {
+                          window.open(exam.questionContent, '_blank');
+                        } else {
+                          console.error('No question content available for exam:', exam.id);
+                        }
+                      }}
                       className="ml-2"
                     >
                       খুলুন
@@ -283,7 +289,13 @@ export default function StudentExamView({ params }: ExamViewProps) {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(question.driveLink, '_blank')}
+                            onClick={() => {
+                              if (question.driveLink && question.driveLink.trim()) {
+                                window.open(question.driveLink, '_blank');
+                              } else {
+                                console.error('No drive link available for question:', question.id);
+                              }
+                            }}
                           >
                             দেখুন
                           </Button>

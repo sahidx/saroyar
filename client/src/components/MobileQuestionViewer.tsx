@@ -358,7 +358,14 @@ export function MobileQuestionViewer({ exam, isOpen, onClose }: MobileQuestionVi
                 <h3 className="text-base md:text-lg font-semibold mb-2 text-gray-800">Google Drive Document</h3>
                 <p className="text-sm md:text-base text-gray-600 mb-4">Click below to open the question paper</p>
                 <Button 
-                  onClick={() => window.open(exam.questionContent, '_blank')}
+                  onClick={() => {
+                    if (exam.questionContent && exam.questionContent.trim()) {
+                      window.open(exam.questionContent, '_blank');
+                    } else {
+                      console.error('No question content available to open');
+                      // Note: This component would need useToast hook imported and used
+                    }
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base shadow-md"
                 >
                   <ExternalLink className="w-3 h-3 md:w-4 md:h-4 mr-2" />

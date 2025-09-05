@@ -34,7 +34,7 @@ export const DEVELOPER_PROFILE = {
 
   achievements: [
     { title: 'Founder & CEO of Praggo', year: '2025-Present', type: 'leadership' },
-    { title: 'Civil Engineering Student', year: '2022-Present', type: 'education' },
+    { title: 'Civil Engineering Student', year: '2023-Present', type: 'education' },
     { title: 'Cyber Security Expert', year: '2023-Present', type: 'professional' },
     { title: 'Bug Bounty Hunter', year: '2023-Present', type: 'professional' },
     { title: 'Doubt Solver at ACS', year: '2024-Present', type: 'education' }

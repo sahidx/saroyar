@@ -943,7 +943,7 @@ export default function TeacherDashboard() {
                     </div>
                     <div>
                       <div className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-yellow-800'}`}>
-                        {statsLoading ? '...' : 0}
+                        {statsLoading ? '...' : (teacherStats as any)?.unreadMessages || 0}
                       </div>
                       <p className={`text-xs font-medium ${isDarkMode ? 'text-yellow-200' : 'text-yellow-600'}`}>Messages</p>
                     </div>

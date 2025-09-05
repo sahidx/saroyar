@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { initializeBulkSMSService, bulkSMSService } from "./bulkSMS";
 import session from 'express-session';
-import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoticeSchema, insertSmsTransactionSchema, insertStudentSchema, insertNotesSchema, insertQuestionBankSchema, insertCourseSchema, insertTeacherProfileSchema, exams, examSubmissions, questions, questionBank, courses, teacherProfiles, users, batches } from "@shared/schema";
+import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoticeSchema, insertSmsTransactionSchema, insertStudentSchema, insertNotesSchema, insertQuestionBankSchema, insertCourseSchema, insertTeacherProfileSchema, exams, examSubmissions, questions, questionBank, courses, teacherProfiles, users, batches, messages } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
@@ -388,13 +388,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/teacher/stats", async (req: any, res) => {
     try {
       console.log('📊 Teacher stats (using optimized parallel queries)');
+      const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
       
-      // Use Promise.all for parallel database queries instead of sequential
-      const [allStudents, allBatches, activeExams, allQuestions] = await Promise.all([
+      // Use Promise.all for parallel database queries - filter by teacher ID
+      const [allStudents, allBatches, teacherExams, teacherQuestions] = await Promise.all([
         db.select().from(users).where(eq(users.role, 'student')),
         db.select().from(batches),
-        db.select().from(exams).where(eq(exams.isActive, true)),
-        db.select().from(questions)
+        db.select().from(exams).where(and(eq(exams.isActive, true), eq(exams.teacherId, teacherId))),
+        db.select().from(questions).where(eq(questions.teacherId, teacherId))
       ]);
 
       // Get recent activities in parallel with a timeout
@@ -405,11 +406,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { type: 'system_ready', message: 'ড্যাশবোর্ড তৈরি', time: 'এখন', icon: '🚀' }
       ]);
 
+      // Get unread messages count for the teacher
+      const unreadMessages = await db.select({ count: sql<number>`count(*)` })
+        .from(messages)
+        .where(and(
+          eq(messages.receiverId, teacherId),
+          eq(messages.isRead, false)
+        ));
+      
       const stats = {
         totalStudents: allStudents.length,
-        totalExams: activeExams.length,
+        totalExams: teacherExams.length,
         totalBatches: allBatches.length,
-        totalQuestions: allQuestions.length,
+        totalQuestions: teacherQuestions.length,
+        unreadMessages: unreadMessages[0]?.count || 0,
         averageScore: 85,
         recentActivity: recentActivities
       };

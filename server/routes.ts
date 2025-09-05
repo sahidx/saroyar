@@ -714,41 +714,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const mark of studentMarks) {
         if (mark.marks > 0) {
           try {
-            const submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
+            // Force re-check if submission exists
+            let submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
+            
             const submissionData = {
               answers: JSON.stringify([]), // Empty answers array for manual entries
               score: mark.marks,
               manualMarks: mark.marks,
               totalMarks: exam.totalMarks,
-              feedback: mark.feedback || '',
+              feedback: mark.feedback || 'Good effort! Keep practicing for better results.',
               isSubmitted: true,
-              submittedAt: new Date(),
-              isManualEntry: true
+              submittedAt: new Date()
             };
             
+            let savedSubmission;
+            
             if (submission) {
-              // Update existing submission
-              const updated = await storage.updateSubmission(submission.id, submissionData);
-              markResults.push(updated);
+              // Update existing submission - force update
+              console.log(`🔄 Updating existing submission ${submission.id} for student ${mark.studentId}`);
+              savedSubmission = await storage.updateSubmission(submission.id, submissionData);
               console.log(`✅ UPDATED marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (submission ID: ${submission.id})`);
             } else {
-              // Create new submission
-              const created = await storage.createSubmission({
+              // Create completely new submission
+              console.log(`🆕 Creating new submission for student ${mark.studentId}`);
+              savedSubmission = await storage.createSubmission({
                 examId: examId,
                 studentId: mark.studentId,
                 answers: JSON.stringify([]), // Explicitly set empty answers for manual entry
                 score: mark.marks,
                 manualMarks: mark.marks,
                 totalMarks: exam.totalMarks,
-                feedback: mark.feedback || '',
+                feedback: mark.feedback || 'Good effort! Keep practicing for better results.',
                 isSubmitted: true,
-                submittedAt: new Date(),
-                isManualEntry: true
+                submittedAt: new Date()
               });
-              markResults.push(created);
-              console.log(`✅ CREATED new submission for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (new ID: ${created.id})`);
+              console.log(`✅ CREATED new submission for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (new ID: ${savedSubmission.id})`);
             }
-            savedCount++;
+            
+            // Verify the save actually worked
+            const verifySubmission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
+            if (verifySubmission && (verifySubmission.score === mark.marks || verifySubmission.manualMarks === mark.marks)) {
+              console.log(`✅ VERIFIED: Marks successfully saved for student ${mark.studentId}`);
+              markResults.push(savedSubmission);
+              savedCount++;
+            } else {
+              console.error(`❌ VERIFICATION FAILED: Marks not saved correctly for student ${mark.studentId}`);
+              failedCount++;
+            }
+            
           } catch (error) {
             console.error(`❌ CRITICAL ERROR saving marks for student ${mark.studentId}:`, error);
             failedCount++;
@@ -810,8 +823,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let totalFailed = 0;
             
             for (const { student, mark } of validStudents) {
-              // Fixed SMS format (65 chars max): "Name: 85/100 Chemistry Private -Belal Sir"
-              const smsMessage = `${student.firstName} ${student.lastName}: ${mark.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
+              // Fixed SMS format with exam name (65 chars max): "Name: 85/100 Exam_Name -Belal Sir"
+              const examName = exam.title.length > 15 ? exam.title.substring(0, 15) + '...' : exam.title;
+              const smsMessage = `${student.firstName} ${student.lastName}: ${mark.marks}/${exam.totalMarks} ${examName} -Belal Sir`;
               
               // Send to student
               if (student.phoneNumber) {

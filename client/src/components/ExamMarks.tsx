@@ -81,9 +81,18 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
         title: "✅ Marks Updated Successfully!",
         description: result.message || `Results saved for ${studentMarks.length} students.`,
       });
+      // Force refresh all related queries
       queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
       queryClient.invalidateQueries({ queryKey: ['/api/student-results'] });
       queryClient.invalidateQueries({ queryKey: [`/api/exams/${exam.id}`] });
+      // Invalidate all student exam queries
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0]?.toString().includes('/api/student/exams')
+      });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0]?.toString().includes('/api/student/exam')
+      });
+      queryClient.refetchQueries(); // Force refetch all queries
       onClose();
     },
     onError: (error: any) => {

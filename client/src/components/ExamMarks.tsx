@@ -90,6 +90,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
         toast({
           title: "✅ Marks Updated Successfully!",
           description: result.message || `Results saved for ${studentMarks.length} students.`,
+          variant: "default",
         });
       }
       
@@ -195,12 +196,13 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
         requiredCredits += studentsWithParents.length;
       }
       
-      if (currentCredits === 0) {
+      if (currentCredits === 0 || requiredCredits > currentCredits) {
         willSkipSMS = true;
-        smsSkipMessage = 'আপনার SMS ব্যালেন্স শেষ! নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।';
-      } else if (requiredCredits > currentCredits) {
-        willSkipSMS = true;
-        smsSkipMessage = `${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।`;
+        if (currentCredits === 0) {
+          smsSkipMessage = 'আপনার SMS ব্যালেন্স শেষ! নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।';
+        } else {
+          smsSkipMessage = `${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।`;
+        }
       }
     }
 

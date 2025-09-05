@@ -31,7 +31,6 @@ const teacherMenuItems = [
   { icon: CalendarCheck, label: 'Attendance', href: '/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/teacher/reports' },
   { icon: MessageSquare, label: 'SMS Management', href: '/teacher/sms' },
-  { icon: MessageSquare, label: 'Messaging', href: '/teacher/messaging' },
   { icon: Bell, label: 'Students', href: '/teacher/students' },
   { icon: Megaphone, label: 'AI Questions', href: '/teacher/ai-questions' },
 ];
@@ -40,8 +39,6 @@ const studentMenuItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/' },
   { icon: FileText, label: 'My Exams', href: '/student/exams' },
   { icon: HelpCircle, label: 'AI Help', href: '/student/ai-help' },
-  { icon: MessageSquare, label: 'Messages', href: '/student/messages' },
-  { icon: BookOpen, label: 'Study Materials', href: '/student/study' },
   { icon: CalendarCheck, label: 'Attendance', href: '/student/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/student/reports' },
   { icon: Bell, label: 'Question Bank', href: '/student/question-bank' },
@@ -94,11 +91,6 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <Icon className="w-5 h-5" />
               <span>{item.label}</span>
-              {item.label === 'Messages' && (
-                <span className="ml-auto bg-accent text-white text-xs px-2 py-1 rounded-full">
-                  3
-                </span>
-              )}
             </Link>
           );
         })}

@@ -227,18 +227,6 @@ export const getStudentIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/student/reports')
   },
   {
-    id: 'messages',
-    icon: <MessageSquare className="w-full h-full" />,
-    label: 'Messages',
-    onClick: () => setLocation('/student/messages')
-  },
-  {
-    id: 'resources',
-    icon: <BookOpen className="w-full h-full" />,
-    label: 'Study',
-    onClick: () => setLocation('/student/study')
-  },
-  {
     id: 'question-bank',
     icon: <FileText className="w-full h-full" />,
     label: 'প্রশ্নব্যাংক',

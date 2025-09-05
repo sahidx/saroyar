@@ -207,13 +207,28 @@ export default function StudentHome() {
                       </h3>
                       <div className="space-y-2">
                         {recentResults.slice(0, 3).map((result: any) => (
-                          <div key={result.id} className={`text-sm flex justify-between items-center p-2 rounded ${isDarkMode ? 'bg-slate-700/50' : 'bg-white/60'}`}>
-                            <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              {result.examTitle}
-                            </span>
-                            <Badge className={`${result.marks >= (result.totalMarks * 0.6) ? 'bg-green-600' : 'bg-orange-600'} text-white`}>
-                              {result.marks || result.manualMarks}/{result.totalMarks}
-                            </Badge>
+                          <div 
+                            key={result.id} 
+                            className={`text-sm p-3 rounded cursor-pointer transition-all hover:shadow-md ${isDarkMode ? 'bg-slate-700/50 hover:bg-slate-600' : 'bg-white/60 hover:bg-white/80'}`}
+                            onClick={() => setLocation('/student/exams')}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {result.examTitle}
+                              </span>
+                              <Badge className={`${(result.marks || result.manualMarks || 0) >= (result.totalMarks * 0.6) ? 'bg-green-600' : 'bg-orange-600'} text-white`}>
+                                {result.marks || result.manualMarks || 0}/{result.totalMarks}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                              <span>{result.examSubject} • {result.examDate ? new Date(result.examDate).toLocaleDateString() : 'No date'}</span>
+                              <span className="text-blue-600">👆 ক্লিক করুন</span>
+                            </div>
+                            {result.feedback && (
+                              <div className="text-xs text-gray-600 mt-1 italic">
+                                💬 {result.feedback}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

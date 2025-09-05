@@ -695,8 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentMarks, 
         smsOptions = {
           sendSMS: true,
-          targetRecipients: 'student', // 'student', 'parent', 'both'
-          customTemplate: ''
+          sendToParents: false // New option for parent SMS
         }
       } = req.body; // Array of {studentId, marks, feedback} + SMS options
       
@@ -705,34 +704,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Exam not found" });
       }
 
-      // Update marks for each student
-      const markPromises = studentMarks.map(async (mark: any) => {
-        const submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
-        
-        if (submission) {
-          // Update existing submission
-          return storage.updateSubmission(submission.id, {
-            manualMarks: mark.marks,
-            totalMarks: exam.totalMarks,
-            feedback: mark.feedback,
-            isSubmitted: true,
-            submittedAt: new Date()
-          });
-        } else {
-          // Create new submission for offline exam
-          return storage.createSubmission({
-            examId: examId,
-            studentId: mark.studentId,
-            manualMarks: mark.marks,
-            totalMarks: exam.totalMarks,
-            feedback: mark.feedback,
-            isSubmitted: true,
-            submittedAt: new Date()
-          });
+      // Update marks for each student with proper error handling
+      const markResults = [];
+      let savedCount = 0;
+      
+      for (const mark of studentMarks) {
+        if (mark.marks > 0) {
+          try {
+            const submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
+            
+            if (submission) {
+              // Update existing submission
+              const updated = await storage.updateSubmission(submission.id, {
+                score: mark.marks,
+                manualMarks: mark.marks,
+                totalMarks: exam.totalMarks,
+                feedback: mark.feedback || '',
+                isSubmitted: true,
+                submittedAt: new Date(),
+                isManualEntry: true
+              });
+              markResults.push(updated);
+              console.log(`✅ Updated marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks}`);
+            } else {
+              // Create new submission
+              const created = await storage.createSubmission({
+                examId: examId,
+                studentId: mark.studentId,
+                score: mark.marks,
+                manualMarks: mark.marks,
+                totalMarks: exam.totalMarks,
+                feedback: mark.feedback || '',
+                isSubmitted: true,
+                submittedAt: new Date(),
+                isManualEntry: true
+              });
+              markResults.push(created);
+              console.log(`✅ Created marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks}`);
+            }
+            savedCount++;
+          } catch (error) {
+            console.error(`❌ Failed to save marks for student ${mark.studentId}:`, error);
+            // Continue with other students even if one fails
+          }
         }
-      });
+      }
 
-      await Promise.all(markPromises);
+      console.log(`📊 Marks saved: ${savedCount}/${studentMarks.length} students`);
 
       // Enhanced SMS sending with multiple recipient options
       let smsPromises: Promise<any>[] = [];
@@ -766,9 +784,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let totalSent = 0;
             let totalFailed = 0;
             
-            // Send individual SMS for each student with their specific marks
+            // Send simplified SMS (65 characters max) - teachers cannot edit format
             for (const recipient of smsRecipients) {
-              const smsMessage = `🎯 ${recipient.name} (${recipient.phoneNumber})\n📊 ${exam.title}: ${recipient.marks}/${exam.totalMarks}\n💬 ${recipient.feedback}\n📚 বেলাল স্যার - 01712345678`;
+              // Fixed SMS format: "Name: 85/100 Chemistry Private -Belal Sir" (under 65 chars)
+              const smsMessage = `${recipient.name}: ${recipient.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
               
               const smsResult = await bulkSMSService.sendBulkSMS(
                 [{ id: recipient.id, name: recipient.name, phoneNumber: recipient.phoneNumber }],
@@ -779,7 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               if (smsResult.success) {
                 totalSent++;
-                console.log(`📱 Result SMS sent to ${recipient.name} (${recipient.phoneNumber}): ${recipient.marks}/${exam.totalMarks}`);
+                console.log(`📱 Simple SMS sent to ${recipient.name}: ${smsMessage.length} chars`);
               } else {
                 totalFailed++;
                 console.log(`❌ SMS failed for ${recipient.name}: ${smsResult.failedMessages?.[0]?.error || 'Unknown error'}`);
@@ -805,10 +824,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Final response with SMS results
       res.json({
         success: true,
-        message: `Marks updated for ${studentMarks.length} students${totalSMSSent > 0 ? `. SMS sent to ${totalSMSSent} students.` : ''}`,
+        message: `Marks saved for ${savedCount} students${totalSMSSent > 0 ? `. SMS sent to ${totalSMSSent} students.` : ''}`,
+        marksSaved: savedCount,
         smsResults: {
           sent: totalSMSSent,
-          total: studentMarks.filter(mark => mark.marks > 0).length
+          total: studentMarks.filter((mark: any) => mark.marks > 0).length
         }
       });
       

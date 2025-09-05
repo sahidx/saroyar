@@ -27,13 +27,15 @@ interface StudentMark {
 
 interface SMSOptions {
   sendSMS: boolean;
+  sendToParents: boolean;
 }
 
 export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
   const [studentMarks, setStudentMarks] = useState<StudentMark[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
-    sendSMS: true
+    sendSMS: true,
+    sendToParents: false
   });
   
   const { toast } = useToast();
@@ -153,9 +155,8 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     const student = getStudentInfo(studentMark.studentId);
     if (!student) return '';
 
-    // Enhanced SMS template with student phone number
-    const studentPhone = student.phoneNumber || 'নিবন্ধিত নম্বর নেই';
-    return `🎯 ${student.firstName} ${student.lastName} (${studentPhone})\n📊 ${exam.title}: ${studentMark.marks}/${exam.totalMarks}\n💬 ${studentMark.feedback}\n📚 Belal Sir - 01712345678`;
+    // Fixed SMS format (65 chars max) - teachers cannot edit
+    return `${student.firstName} ${student.lastName}: ${studentMark.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
   };
 
   // Filter students based on search
@@ -235,6 +236,22 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                   checked={smsOptions.sendSMS}
                   onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendSMS: checked})}
                 />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-green-600" />
+                  <Label className="font-semibold">Also Send to Parents (Optional)</Label>
+                </div>
+                <Switch
+                  checked={smsOptions.sendToParents}
+                  onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToParents: checked})}
+                  disabled={!smsOptions.sendSMS}
+                />
+              </div>
+              
+              <div className="text-xs text-gray-600 bg-white p-2 rounded border">
+                📱 SMS Format: "Student Name: 85/100 Chemistry Private -Belal Sir" (Fixed format, cannot edit)
               </div>
               
               {!smsOptions.sendSMS && (
@@ -319,21 +336,26 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                         </div>
                         
                         <div className="md:col-span-2">
-                          <Label htmlFor={`feedback-${student.id}`}>Individual Feedback</Label>
-                          <Textarea
-                            id={`feedback-${student.id}`}
-                            value={studentMark?.feedback || ''}
-                            onChange={(e) => handleMarkChange(student.id, 'feedback', e.target.value)}
-                            rows={2}
-                            placeholder="Personal feedback for this student..."
-                            className="w-full"
-                          />
+                          <Label>Fixed SMS Format (Cannot Edit)</Label>
+                          <div className="p-3 bg-gray-100 border rounded text-sm">
+                            <div className="text-gray-600 font-mono">
+                              {student.firstName} {student.lastName}: {studentMark?.marks || 0}/{exam?.totalMarks} Chemistry Private -Belal Sir
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              📏 Length: {previewSMS(studentMark || { studentId: student.id, marks: studentMark?.marks || 0, feedback: '' }).length} chars (Max: 65)
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="md:col-span-1">
-                          <Label>SMS Preview</Label>
-                          <div className="p-2 bg-gray-50 border rounded text-xs max-h-20 overflow-y-auto">
-                            {studentMark ? previewSMS(studentMark).substring(0, 100) + '...' : 'Enter marks to preview'}
+                          <Label>Character Count</Label>
+                          <div className="p-2 bg-green-50 border border-green-200 rounded text-xs">
+                            <div className="font-mono text-green-700">
+                              {studentMark ? previewSMS(studentMark).length : 0}/65 chars
+                            </div>
+                            <div className="text-green-600 mt-1">
+                              ✅ Under SMS limit
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -178,8 +178,8 @@ export default function Landing() {
                 <FlaskConical className="text-white text-lg" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Chemistry & ICT Care</h1>
-                <p className="text-sm text-cyan-300">by Belal Sir</p>
+                <h1 className="text-2xl font-bold text-white">Chemistry and ICT Care by Belal Sir</h1>
+                <p className="text-sm text-cyan-300">Expert Coaching Center Bangladesh</p>
               </div>
             </div>
             <div className="flex space-x-3">
@@ -208,12 +208,12 @@ export default function Landing() {
             </div>
             <h1 className="text-7xl font-bold text-white mb-6 tracking-tight" data-testid="hero-title">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Chemistry & ICT Care
+                Chemistry and ICT Care
               </span>
             </h1>
             <h2 className="text-3xl font-semibold text-cyan-300 mb-4">by Belal Sir</h2>
             <div className="text-2xl font-bold text-white mb-6 opacity-90">
-              কেমিস্ট্রি অ্যান্ড আইসিটি কেয়ার বেলাল স্যার
+              কেমিস্ট্রি এন্ড আইসিটি কেয়ার বাই বেলাল স্যার
             </div>
             <p className="text-xl text-blue-200 mb-8 max-w-4xl mx-auto" data-testid="hero-subtitle">
               Unlock the mysteries of Chemistry and master Information & Communication Technology 

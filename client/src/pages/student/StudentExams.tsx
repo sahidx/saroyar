@@ -19,14 +19,12 @@ import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { QuestionViewer } from '@/components/QuestionViewer';
-import { ExamResults } from '@/components/ExamResults';
 
 export default function StudentExams() {
   const { user } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [, setLocation] = useLocation();
   const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
-  const [selectedExamForResults, setSelectedExamForResults] = useState<any>(null);
 
   const handleLogout = () => {
     window.location.href = '/api/logout';
@@ -220,7 +218,9 @@ export default function StudentExams() {
                             <Button 
                               size="sm"
                               variant="outline"
+                              onClick={() => setLocation(`/student/results/${exam.id}`)}
                               className="bg-green-50 border-green-500 text-green-700 hover:bg-green-100"
+                              data-testid={`button-view-result-${exam.id}`}
                             >
                               <Trophy className="w-4 h-4 mr-2" />
                               ফলাফল দেখুন
@@ -327,15 +327,6 @@ export default function StudentExams() {
           />
         )}
 
-        {/* Exam Results Modal */}
-        {selectedExamForResults && (
-          <ExamResults
-            exam={selectedExamForResults}
-            isOpen={!!selectedExamForResults}
-            onClose={() => setSelectedExamForResults(null)}
-            userRole="student"
-          />
-        )}
       </div>
     </MobileWrapper>
   );

@@ -206,16 +206,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       
-      // Check password (teachers use hashed, students use plaintext, super users use plaintext)
+      // Check password (teachers use bcrypt hashed, students use plaintext, super users use plaintext)
       let isValidPassword = false;
       
       if (user.role === 'teacher') {
-        // Teachers use hashed passwords or updated password from super user
-        const crypto = await import('crypto');
-        const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-        // Check against both hashed password and direct password (for super user updates)
-        const expectedHash = crypto.createHash('sha256').update('sir123').digest('hex');
-        isValidPassword = hashedPassword === expectedHash || user.password === password;
+        // Teachers use bcrypt hashed passwords
+        const bcrypt = await import('bcrypt');
+        try {
+          isValidPassword = await bcrypt.compare(password, user.password);
+        } catch (error) {
+          console.log(`❌ Error comparing bcrypt password for ${phoneNumber}:`, error);
+          isValidPassword = false;
+        }
       } else if (user.role === 'student') {
         // Students use plaintext passwords from teacher updates
         isValidPassword = user.studentPassword === password;

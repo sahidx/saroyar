@@ -63,7 +63,18 @@ export default function StudentQuestionBank() {
   // Track download mutation
   const trackDownloadMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      return await apiRequest('POST', `/api/question-bank/items/${itemId}/download`);
+      try {
+        const response = await fetch(`/api/question-bank/items/${itemId}/download`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        return response.ok;
+      } catch (error) {
+        console.error('Download tracking error:', error);
+        return false;
+      }
     }
   });
 
@@ -88,8 +99,21 @@ export default function StudentQuestionBank() {
   const { data: subjectsData } = useQuery({
     queryKey: ['/api/student/question-bank/subjects'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/student/question-bank/subjects');
-      return await response.json();
+      try {
+        const response = await fetch('/api/student/question-bank/subjects', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Subjects API Error:', error);
+        return [];
+      }
     }
   });
 
@@ -190,10 +214,11 @@ export default function StudentQuestionBank() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation('/student')}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2"
                 data-testid="button-back-to-dashboard"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
               </Button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-gray-900">Question Bank</h1>

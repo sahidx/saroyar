@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Plus, Clock, Users, Calendar, FileText, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExamModal } from '@/components/ExamModal';
-import { OfflineExamMarks } from '@/components/OfflineExamMarks';
+import { ExamMarks } from '@/components/ExamMarks';
 import { QuestionViewer } from '@/components/QuestionViewer';
 import { formatDistanceToNow } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -370,9 +370,9 @@ export default function Exams() {
         editingExam={editingExam}
       />
 
-      {/* Offline Exam Marks Modal */}
+      {/* Exam Marks Modal */}
       {selectedExamForMarks && (
-        <OfflineExamMarks
+        <ExamMarks
           exam={selectedExamForMarks}
           isOpen={!!selectedExamForMarks}
           onClose={() => setSelectedExamForMarks(null)}

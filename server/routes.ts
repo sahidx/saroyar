@@ -741,55 +741,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (smsOptions.sendSMS) {
         console.log('📤 Processing SMS for exam marks...');
         
-        // Get teacher and check SMS credits
+        // Get teacher ID for SMS sending
         const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
-        const teacher = await storage.getUser(teacherId);
-        
-        if (!teacher) {
-          return res.status(404).json({ message: "Teacher not found" });
-        }
-
         const studentsWithMarks = studentMarks.filter((mark: any) => mark.marks > 0);
-        const requiredCredits = studentsWithMarks.length;
-        
-        // Check credit availability
-        if ((teacher.smsCredits || 0) < requiredCredits) {
-          return res.status(400).json({ 
-            message: `❌ Insufficient SMS credits: Need ${requiredCredits}, available ${teacher.smsCredits || 0}`,
-            success: false
-          });
-        }
 
-        // Send SMS to each student with marks
+        // Prepare SMS recipients and messages
+        const smsRecipients = [];
         for (const mark of studentsWithMarks) {
           const student = await storage.getUser(mark.studentId);
           if (!student || !student.phoneNumber) continue;
 
-          // Enhanced SMS message with student phone number
-          const studentPhone = student.phoneNumber;
-          const smsMessage = `🎯 ${student.firstName} ${student.lastName} (${studentPhone})\n📊 ${exam.title}: ${mark.marks}/${exam.totalMarks}\n💬 ${mark.feedback || 'চালিয়ে যান!'}\n📚 বেলাল স্যার - 01712345678`;
-          
+          smsRecipients.push({
+            id: student.id,
+            name: `${student.firstName} ${student.lastName}`,
+            phoneNumber: student.phoneNumber,
+            marks: mark.marks,
+            feedback: mark.feedback || 'চালিয়ে যান!'
+          });
+        }
+
+        // Send bulk SMS with consistent logic like attendance
+        if (smsRecipients.length > 0) {
           try {
-            // Send SMS to student
-            const smsRecipients = [{
-              id: student.id,
-              name: `${student.firstName} ${student.lastName}`,
-              phoneNumber: student.phoneNumber
-            }];
+            let totalSent = 0;
+            let totalFailed = 0;
+            
+            // Send individual SMS for each student with their specific marks
+            for (const recipient of smsRecipients) {
+              const smsMessage = `🎯 ${recipient.name} (${recipient.phoneNumber})\n📊 ${exam.title}: ${recipient.marks}/${exam.totalMarks}\n💬 ${recipient.feedback}\n📚 বেলাল স্যার - 01712345678`;
+              
+              const smsResult = await bulkSMSService.sendBulkSMS(
+                [{ id: recipient.id, name: recipient.name, phoneNumber: recipient.phoneNumber }],
+                smsMessage,
+                teacherId,
+                'exam_result'
+              );
 
-            const smsResult = await bulkSMSService.sendBulkSMS(
-              smsRecipients,
-              smsMessage,
-              teacherId,
-              'exam_result'
-            );
-
-            if (smsResult.success && smsResult.sentCount > 0) {
-              totalSMSSent++;
-              console.log(`📱 Result SMS sent to ${student.firstName} ${student.lastName} (${studentPhone}): ${mark.marks}/${exam.totalMarks}`);
+              if (smsResult.success) {
+                totalSent++;
+                console.log(`📱 Result SMS sent to ${recipient.name} (${recipient.phoneNumber}): ${recipient.marks}/${exam.totalMarks}`);
+              } else {
+                totalFailed++;
+                console.log(`❌ SMS failed for ${recipient.name}: ${smsResult.failedMessages?.[0]?.error || 'Unknown error'}`);
+              }
             }
+            
+            totalSMSSent = totalSent;
+            
+            // Log marks SMS activity like attendance
+            await storage.logActivity({
+              type: 'exam_result_sms',
+              message: `Exam marks SMS: ${totalSent} sent, ${totalFailed} failed`,
+              details: `Exam: ${exam.title}`,
+              userId: teacherId
+            });
           } catch (smsError) {
-            console.error(`❌ SMS failed for ${student.firstName}:`, smsError);
+            console.error(`Failed to send marks SMS:`, smsError);
+            // Don't fail the mark entry, just log SMS failure
           }
         }
       }

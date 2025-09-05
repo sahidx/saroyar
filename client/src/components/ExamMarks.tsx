@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
-interface OfflineExamMarksProps {
+interface ExamMarksProps {
   exam: any;
   isOpen: boolean;
   onClose: () => void;
@@ -29,7 +29,7 @@ interface SMSOptions {
   sendSMS: boolean;
 }
 
-export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProps) {
+export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
   const [studentMarks, setStudentMarks] = useState<StudentMark[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
@@ -186,7 +186,7 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
             📝 Exam Marks Entry - {exam?.title}
           </DialogTitle>
           <DialogDescription>
-            Enter marks for {exam?.batchId ? `${exam.batchId} batch` : 'all'} students and send SMS with phone numbers
+            Enter marks for {exam?.batchId ? `${exam.batchId} batch` : 'all'} students and send SMS notifications
           </DialogDescription>
         </DialogHeader>
 

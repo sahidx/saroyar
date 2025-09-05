@@ -6,7 +6,7 @@ import session from 'express-session';
 import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoticeSchema, insertSmsTransactionSchema, insertStudentSchema, insertNotesSchema, insertQuestionBankSchema, insertCourseSchema, insertTeacherProfileSchema, exams, examSubmissions, questions, questionBank, courses, teacherProfiles, users, batches, messages } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { setupAuth, getSession } from "./replitAuth";
 
 // Helper function to generate random password
@@ -389,14 +389,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('📊 Teacher stats (using optimized parallel queries)');
       const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
+      console.log('🎯 Using teacher ID:', teacherId);
       
-      // Use Promise.all for parallel database queries - filter by teacher ID
-      const [allStudents, allBatches, teacherExams, teacherQuestions] = await Promise.all([
-        db.select().from(users).where(eq(users.role, 'student')),
-        db.select().from(batches),
-        db.select().from(exams).where(and(eq(exams.isActive, true), eq(exams.teacherId, teacherId))),
-        db.select().from(questions).where(eq(questions.teacherId, teacherId))
-      ]);
+      // Try each query individually to identify issues
+      let allStudents = [];
+      let allBatches = [];
+      let teacherExams = [];
+      let teacherQuestions = [];
+      
+      try {
+        allStudents = await db.select().from(users).where(eq(users.role, 'student'));
+        console.log('✅ Students query success:', allStudents.length);
+      } catch (error) {
+        console.log('❌ Students query failed:', error.message);
+      }
+      
+      try {
+        allBatches = await db.select().from(batches);
+        console.log('✅ Batches query success:', allBatches.length);
+      } catch (error) {
+        console.log('❌ Batches query failed:', error.message);
+      }
+      
+      try {
+        teacherExams = await db.select().from(exams).where(and(eq(exams.isActive, true), eq(exams.createdBy, teacherId)));
+        console.log('✅ Teacher exams query success:', teacherExams.length);
+      } catch (error) {
+        console.log('❌ Teacher exams query failed:', error.message);
+      }
+      
+      try {
+        // Questions are associated with exams, so count questions from teacher's exams
+        teacherQuestions = [];
+        if (teacherExams.length > 0) {
+          // Count questions for each teacher exam
+          for (const exam of teacherExams) {
+            const examQuestions = await db.select().from(questions).where(eq(questions.examId, exam.id));
+            teacherQuestions.push(...examQuestions);
+          }
+        }
+        console.log('✅ Teacher questions query success:', teacherQuestions.length);
+      } catch (error) {
+        console.log('❌ Teacher questions query failed:', error.message);
+      }
 
       // Get recent activities in parallel with a timeout
       const recentActivities = await Promise.race([
@@ -412,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(and(
           eq(messages.receiverId, teacherId),
           eq(messages.isRead, false)
-        ));
+        )).catch(() => [{ count: 0 }]);
       
       const stats = {
         totalStudents: allStudents.length,

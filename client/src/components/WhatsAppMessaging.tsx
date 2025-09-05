@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 import { 
   Send,
   Phone,
   MoreVertical,
   ArrowLeft,
   Check,
-  CheckCheck
+  CheckCheck,
+  MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -29,6 +31,7 @@ export function WhatsAppMessaging({ isDarkMode }: WhatsAppMessagingProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [, setLocation] = useLocation();
 
   // Check for mobile view
   useEffect(() => {
@@ -41,9 +44,10 @@ export function WhatsAppMessaging({ isDarkMode }: WhatsAppMessagingProps) {
   }, []);
 
   // Fetch all students for messaging with real-time updates
-  const { data: students = [], isLoading: studentsLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading, error: studentsError } = useQuery({
     queryKey: ["/api/messages/students"],
-    refetchInterval: 2000, // Auto-refresh every 2 seconds for new messages
+    refetchInterval: 5000, // Auto-refresh every 5 seconds for new messages
+    staleTime: 2000, // Consider data fresh for 2 seconds
   });
 
   // Auto-select first student with unread messages
@@ -66,7 +70,8 @@ export function WhatsAppMessaging({ isDarkMode }: WhatsAppMessagingProps) {
   const { data: conversation = [], isLoading: conversationLoading } = useQuery({
     queryKey: ["/api/messages/conversation", selectedStudent?.id],
     enabled: !!selectedStudent?.id,
-    refetchInterval: 1000, // Auto-refresh conversation every 1 second
+    refetchInterval: 3000, // Auto-refresh conversation every 3 seconds
+    staleTime: 1000, // Consider data fresh for 1 second
   });
 
   // Auto-scroll to bottom when new messages arrive

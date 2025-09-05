@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
 import { 
   MessageSquare, 
   Send, 
@@ -32,6 +33,7 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -143,7 +145,13 @@ export function StudentMessaging({ isDarkMode }: StudentMessagingProps) {
       {/* WhatsApp-like Header */}
       <div className="bg-green-600 text-white px-4 py-3 shadow-lg">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-white p-1 hover:bg-green-700">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-white p-1 hover:bg-green-700"
+            onClick={() => setLocation('/student')}
+            data-testid="back-to-dashboard"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           

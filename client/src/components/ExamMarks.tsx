@@ -118,24 +118,24 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     },
   });
 
-  const handleMarkChange = (studentId: string, field: 'marks' | 'feedback', value: string | number) => {
+  const handleMarkChange = (studentId: string, field: 'marks' | 'feedback', value: string | number | null) => {
     setStudentMarks(prev => 
       prev.map(mark => 
         mark.studentId === studentId 
-          ? { ...mark, [field]: field === 'marks' ? Number(value) : value }
+          ? { ...mark, [field]: field === 'marks' ? (value === null ? null : Number(value)) : value }
           : mark
       )
     );
   };
 
   const handleSubmit = () => {
-    // Check if all marks are filled (no empty strings, null, undefined, or empty values)
+    // Check if all marks are filled (no empty strings, null, undefined, but 0 is valid)
     const allMarksFilled = studentMarks.every(mark => 
       mark.marks !== '' && 
       mark.marks !== null && 
       mark.marks !== undefined && 
-      mark.marks !== 0 && 
-      String(mark.marks).trim() !== ''
+      String(mark.marks).trim() !== '' &&
+      Number(mark.marks) >= 0
     );
     
     if (!allMarksFilled) {
@@ -162,18 +162,19 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     
     // Check SMS credits if SMS is enabled
     if (smsOptions.sendSMS) {
-      const studentsWithMarks = validMarks.filter(mark => mark.marks > 0);
       let requiredCredits = 0;
       
-      // Calculate SMS count correctly - ADDITIVE when both selected
+      // Calculate SMS count correctly - ADDITIVE when both selected (include 0 marks)
+      const allStudentsWithMarks = validMarks; // Include students with 0 marks too
+      
       if (smsOptions.sendToStudents) {
-        // Student SMS count
-        requiredCredits += studentsWithMarks.length;
+        // Student SMS count (including 0 marks)
+        requiredCredits += allStudentsWithMarks.length;
       }
       
       if (smsOptions.sendToParents) {
-        // Parent SMS count (separate from students)
-        const studentsWithParents = studentsWithMarks.filter(mark => {
+        // Parent SMS count (separate from students, including 0 marks)
+        const studentsWithParents = allStudentsWithMarks.filter(mark => {
           const student = getStudentInfo(mark.studentId);
           return student && student.parentPhoneNumber;
         });
@@ -233,28 +234,29 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     );
   });
 
-  // Calculate SMS cost - including parents (FIXED LOGIC)
+  // Calculate SMS cost - including parents (FIXED LOGIC) 
   const getActiveSMSCount = () => {
-    // Count students with any marks entered (not just > 0)
+    // Count students with any marks entered (including 0, but not null/empty)
     const studentsWithMarks = studentMarks.filter(mark => 
       mark.marks !== null && 
       mark.marks !== undefined && 
       mark.marks !== '' && 
-      String(mark.marks).trim() !== ''
+      String(mark.marks).trim() !== '' &&
+      Number(mark.marks) >= 0  // Include 0 marks as valid
     );
     
     if (!smsOptions.sendSMS || studentsWithMarks.length === 0) return 0;
     
     let totalSMS = 0;
     
-    // Fixed SMS counting logic - ADDITIVE when both selected
+    // Fixed SMS counting logic - ADDITIVE when both selected (include 0 marks)
     if (smsOptions.sendToStudents) {
-      // Student SMS count - all students with marks
+      // Student SMS count - all students with marks (including 0)
       totalSMS += studentsWithMarks.length;
     }
     
     if (smsOptions.sendToParents) {
-      // Parent SMS count - students with marks AND parent phone numbers
+      // Parent SMS count - students with marks AND parent phone numbers (including 0)
       const studentsWithParents = studentsWithMarks.filter(mark => {
         const student = getStudentInfo(mark.studentId);
         return student && student.parentPhoneNumber;
@@ -326,7 +328,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                     <div>
                       <Label className="font-semibold">Send to Students</Label>
                       <p className="text-xs text-gray-600">
-                        {studentMarks.filter(mark => mark.marks > 0).length} students with marks will receive SMS
+                        {studentMarks.filter(mark => mark.marks !== null && mark.marks !== undefined && mark.marks !== '' && Number(mark.marks) >= 0).length} students with marks will receive SMS
                       </p>
                       {smsOptions.sendToStudents && (
                         <div className="mt-1 text-xs text-blue-700 font-mono">
@@ -348,7 +350,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                       <Label className="font-semibold">Send to Parents</Label>
                       <p className="text-xs text-gray-600">
                         {studentMarks.filter(mark => {
-                          if (mark.marks <= 0) return false;
+                          if (mark.marks === null || mark.marks === undefined || mark.marks === '' || Number(mark.marks) < 0) return false;
                           const student = getStudentInfo(mark.studentId);
                           return student && student.parentPhoneNumber;
                         }).length} parents will receive SMS
@@ -521,7 +523,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-gray-600">
               📊 Total students: {examStudents.length} | 
-              ✅ Marks entered: {studentMarks.filter(mark => mark.marks > 0).length} |
+              ✅ Marks entered: {studentMarks.filter(mark => mark.marks !== null && mark.marks !== undefined && mark.marks !== '' && Number(mark.marks) >= 0).length} |
               💸 SMS cost: {totalSMSCost} credits
             </div>
             
@@ -535,7 +537,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                   mark.marks !== '' && 
                   mark.marks !== null && 
                   mark.marks !== undefined && 
-                  mark.marks !== 0 && 
+                  Number(mark.marks) >= 0 && 
                   String(mark.marks).trim() !== ''
                 )}
                 className={
@@ -543,7 +545,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                     mark.marks !== '' && 
                     mark.marks !== null && 
                     mark.marks !== undefined && 
-                    mark.marks !== 0 && 
+                    Number(mark.marks) >= 0 && 
                     String(mark.marks).trim() !== ''
                   )
                     ? "bg-gray-400 cursor-not-allowed text-white"
@@ -553,7 +555,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                   mark.marks !== '' && 
                   mark.marks !== null && 
                   mark.marks !== undefined && 
-                  mark.marks !== 0 && 
+                  Number(mark.marks) >= 0 && 
                   String(mark.marks).trim() !== ''
                 ) ? 'দয়া করে সব ছাত্রের নম্বর দিন' : ''}
               >

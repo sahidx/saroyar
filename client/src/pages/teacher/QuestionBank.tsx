@@ -1,602 +1,378 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Sidebar } from '@/components/Sidebar';
+import { ArrowLeft, BookOpen, ExternalLink, Plus, Save, Link as LinkIcon } from 'lucide-react';
 import { useLocation } from 'wouter';
-import { 
-  BookOpen, 
-  Plus, 
-  Search, 
-  Download, 
-  Edit, 
-  Trash2, 
-  ExternalLink,
-  ArrowRight,
-  ArrowLeft,
-  ChevronLeft,
-  GraduationCap,
-  BookMarked
-} from 'lucide-react';
-import { CHAPTERS, CATEGORIES } from '@shared/questionBankConstants';
+import { useToast } from '@/hooks/use-toast';
 
-export default function QuestionBank() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+interface ChapterResource {
+  id: string;
+  class_level: string;
+  subject: string;
+  chapter_name: string;
+  google_drive_link: string;
+  description: string;
+  created_at: string;
+}
+
+// Chapter structure from previous constants - EXACT match with student version
+const CHAPTER_STRUCTURE = {
+  '9-10': {
+    chemistry: [
+      '১. রসায়নের ধারণা',
+      '২. পদার্থের অবস্থা', 
+      '৩. পদার্থের গঠন',
+      '৪. পর্যায় সারণী',
+      '৫. রাসায়নিক বন্ধন',
+      '৬. মৌলের ধারণা ও রাসায়নিক গণনা',
+      '৭. রাসায়নিক বিক্রিয়া',
+      '৮. রসায়ন ও শক্তি',
+      '৯. এসিড‑ক্ষার সমতা',
+      '১০. খনিজ সম্পদ: ধাতু ও অধাতু',
+      '১১. খনিজ সম্পদ: জীবাশ্ম',
+      '১২. আমাদের জীবনে রসায়ন'
+    ],
+    ict: [
+      'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+      'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
+      'তথ্য ও সমাজ',
+      'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
+      'উদীয়মান প্রযুক্তি প্রবণতা'
+    ]
+  },
+  '11-12': {
+    chemistry: [
+      'ল্যাবরেটোরির নিরাপদ ব্যবহার',
+      'গুণগত রসায়ন',
+      'মৌলের পর্যায়বৃত্ত ধর্ম ও রাসায়নিক বন্ধন',
+      'রাসায়নিক পরিবর্তন',
+      'কর্মমুখী রসায়ন',
+      'পরিমাণগত রসায়ন',
+      'অর্থনৈতিক রসায়ন',
+      'তড়িৎ রসায়ন',
+      'জৈব রসায়ন'
+    ],
+    ict: [
+      'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+      'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
+      'তথ্য ও সমাজ',
+      'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
+      'উদীয়মান প্রযুক্তি প্রবণতা'
+    ]
+  }
+};
+
+export default function TeacherQuestionBank() {
   const [, setLocation] = useLocation();
-  
-  // Navigation state
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedPaper, setSelectedPaper] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState('');
-  
-  // Form state
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [newItem, setNewItem] = useState({
-    title: '',
-    description: '',
-    driveLink: '',
-    questionType: 'pdf'
-  });
+  const { toast } = useToast();
+  const [resources, setResources] = useState<ChapterResource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>('9-10');
+  const [selectedSubject, setSelectedSubject] = useState<string>('chemistry');
+  const [selectedChapter, setSelectedChapter] = useState<string>('');
+  const [googleDriveLink, setGoogleDriveLink] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [saving, setSaving] = useState(false);
 
-  // Get available chapters for current selection
-  const getAvailableChapters = () => {
-    if (!selectedClass || !selectedSubject) return [];
-    
-    if (selectedClass === '9-10') {
-      return (CHAPTERS['9-10'] as any)[selectedSubject] || [];
-    } else {
-      const subject = (CHAPTERS['11-12'] as any)[selectedSubject];
-      if (selectedSubject === 'ict') {
-        // ICT doesn't have papers, return chapters directly
-        return subject || [];
-      } else if (subject && selectedPaper) {
-        return (subject as any)[selectedPaper] || [];
-      }
-    }
-    return [];
-  };
+  useEffect(() => {
+    fetchResources();
+  }, [selectedClass, selectedSubject]);
 
-  // Fetch question items for current selection
-  const { data: questionItems = [], isLoading } = useQuery({
-    queryKey: ['question-bank-items', selectedClass, selectedSubject, selectedPaper, selectedCategory, selectedChapter],
-    enabled: !!(selectedClass && selectedSubject && selectedCategory && selectedChapter),
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        classLevel: selectedClass,
-        subject: selectedSubject,
-        category: selectedCategory,
-        chapter: selectedChapter
-      });
-      if (selectedPaper) params.append('paper', selectedPaper);
+  const fetchResources = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (selectedClass) params.append('class_level', selectedClass);
+      if (selectedSubject) params.append('subject', selectedSubject);
       
-      const response = await apiRequest('GET', `/api/question-bank/items?${params}`);
-      return await response.json();
-    }
-  });
-
-  // Add new question mutation
-  const addQuestionMutation = useMutation({
-    mutationFn: async (questionData: any) => {
-      const data = {
-        ...questionData,
-        classLevel: selectedClass,
-        subject: selectedSubject,
-        paper: selectedPaper,
-        category: selectedCategory,
-        chapter: selectedChapter
-      };
-      return await apiRequest('POST', '/api/question-bank/items', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['question-bank-items'] });
-      setShowAddDialog(false);
-      setNewItem({ title: '', description: '', driveLink: '', questionType: 'pdf' });
-      toast({
-        title: "সফল!",
-        description: "প্রশ্নটি সফলভাবে যোগ করা হয়েছে"
-      });
-    },
-    onError: () => {
-      toast({
-        title: "ত্রুটি",
-        description: "প্রশ্ন যোগ করতে সমস্যা হয়েছে",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Delete question mutation
-  const deleteQuestionMutation = useMutation({
-    mutationFn: async (itemId: string) => {
-      return await apiRequest('DELETE', `/api/question-bank/items/${itemId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['question-bank-items'] });
-      toast({
-        title: "সফল!",
-        description: "প্রশ্নটি মুছে ফেলা হয়েছে"
-      });
-    }
-  });
-
-  // Reset navigation when going back
-  const handleStepChange = (step: number) => {
-    setCurrentStep(step);
-    if (step <= 1) {
-      setSelectedClass('');
-      setSelectedSubject('');
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 2) {
-      setSelectedSubject('');
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 3) {
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 4) {
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 5) {
-      setSelectedChapter('');
+      const response = await fetch(`/api/chapter-resources?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setResources(data);
+      }
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = () => {
-    if (!newItem.title || !newItem.driveLink) {
+  const handleSaveResource = async () => {
+    if (!selectedChapter || !googleDriveLink.trim()) {
       toast({
         title: "ত্রুটি",
-        description: "দয়া করে সকল ক্ষেত্র পূরণ করুন",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate Google Drive link format
-    if (!newItem.driveLink.includes('drive.google.com')) {
-      toast({
-        title: "ত্রুটি",
-        description: "অনুগ্রহ করে একটি সঠিক Google Drive লিংক প্রদান করুন",
+        description: "অধ্যায় ও Google Drive লিংক পূরণ করুন",
         variant: "destructive"
       });
       return;
     }
 
-    const questionData = {
-      ...newItem,
-      classLevel: selectedClass,
-      subject: selectedSubject,
-      paper: selectedPaper,
-      category: selectedCategory,
-      chapter: selectedChapter
-    };
-    
-    addQuestionMutation.mutate(questionData);
+    try {
+      setSaving(true);
+      const response = await fetch('/api/teacher/chapter-resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          class_level: selectedClass,
+          subject: selectedSubject,
+          chapter_name: selectedChapter,
+          google_drive_link: googleDriveLink.trim(),
+          description: description.trim()
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "সফল",
+          description: "Google Drive লিংক সংরক্ষণ হয়েছে"
+        });
+        
+        // Clear form
+        setSelectedChapter('');
+        setGoogleDriveLink('');
+        setDescription('');
+        
+        // Refresh resources
+        fetchResources();
+      }
+    } catch (error) {
+      toast({
+        title: "ত্রুটি", 
+        description: "লিংক সংরক্ষণে সমস্যা হয়েছে",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const getSubjectName = (subject: string) => {
+    return subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
+  };
+
+  const getClassDisplayName = (classLevel: string) => {
+    return classLevel === '9-10' ? 'নবম-দশম শ্রেণী' : 'একাদশ-দ্বাদশ শ্রেণী';
+  };
+
+  const getAvailableChapters = () => {
+    return CHAPTER_STRUCTURE[selectedClass as keyof typeof CHAPTER_STRUCTURE]?.[selectedSubject as 'chemistry' | 'ict'] || [];
+  };
+
+  const getResourceForChapter = (chapterName: string) => {
+    return resources.find(r => r.chapter_name === chapterName);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-gray-600">প্রশ্নব্যাংক লোড হচ্ছে...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
-          {/* Back button */}
-          <div className="flex items-center space-x-4 mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setLocation('/teacher')}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-              data-testid="button-back-to-dashboard"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </Button>
-          </div>
-          
-          {/* Mobile-optimized header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক ব্যবস্থাপনা</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন সংগঠন</p>
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/teacher')}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                ফিরে যান
+              </Button>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">প্রশ্ন ব্যাংক ব্যবস্থাপনা</h1>
+                <p className="text-xs sm:text-sm text-gray-600">অধ্যায়ভিত্তিক Google Drive লিংক যোগ করুন</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-              <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-4 py-1 sm:py-2">
-                পদক্ষেপ {currentStep}/6
-              </Badge>
-            </div>
+            <BookOpen className="w-6 h-6 text-blue-600" />
           </div>
-
-      {/* Mobile-responsive breadcrumb with navigation controls */}
-      <div className="space-y-3">
-        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 breadcrumb-mobile">
-          <span className={currentStep >= 1 ? 'font-semibold text-blue-600' : ''}>শ্রেণী</span>
-          {selectedClass && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 2 ? 'font-semibold text-blue-600' : ''}>{selectedClass}</span>
-            </>
-          )}
-          {selectedSubject && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 3 ? 'font-semibold text-blue-600' : ''}>{selectedSubject}</span>
-            </>
-          )}
-          {selectedPaper && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 4 ? 'font-semibold text-blue-600' : ''}>{selectedPaper}</span>
-            </>
-          )}
-          {selectedCategory && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 5 ? 'font-semibold text-blue-600' : ''}>{selectedCategory}</span>
-            </>
-          )}
-          {selectedChapter && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="font-semibold text-blue-600">{selectedChapter}</span>
-            </>
-          )}
         </div>
       </div>
 
-      {/* Step 1: Class Selection */}
-      {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <GraduationCap className="w-5 h-5" />
-              <span>শ্রেণী নির্বাচন করুন</span>
+      {/* Content */}
+      <div className="p-4 space-y-6">
+        
+        {/* Class & Subject Selection */}
+        <Card className="border-blue-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              শ্রেণী ও বিষয় নির্বাচন
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
-                onClick={() => {
-                  setSelectedClass('9-10');
-                  setCurrentStep(2);
-                }}
-                data-testid="button-select-class-9-10"
-              >
-                <div className="text-center">
-                  <div className="font-bold">নবম-দশম শ্রেণী</div>
-                  <div className="text-sm text-gray-600">SSC</div>
-                </div>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
-                onClick={() => {
-                  setSelectedClass('11-12');
-                  setCurrentStep(2);
-                }}
-                data-testid="button-select-class-11-12"
-              >
-                <div className="text-center">
-                  <div className="font-bold">একাদশ-দ্বাদশ শ্রেণী</div>
-                  <div className="text-sm text-gray-600">HSC</div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Subject Selection */}
-      {currentStep === 2 && selectedClass && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <BookMarked className="w-5 h-5" />
-                <span>বিষয় নির্বাচন করুন</span>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">শ্রেণী</label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="9-10">নবম-দশম শ্রেণী</SelectItem>
+                    <SelectItem value="11-12">একাদশ-দ্বাদশ শ্রেণী</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(1)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-green-50"
-                onClick={() => {
-                  setSelectedSubject('chemistry');
-                  setCurrentStep(selectedClass === '11-12' ? 3 : 4);
-                }}
-                data-testid="button-select-subject-chemistry"
-              >
-                <div className="text-center">
-                  <div className="font-bold">রসায়ন</div>
-                  <div className="text-sm text-gray-600">Chemistry</div>
-                </div>
-              </Button>
-              {selectedClass === '11-12' && (
-                <Button 
-                  variant="outline" 
-                  className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-purple-50"
-                  onClick={() => {
-                    setSelectedSubject('ict');
-                    setCurrentStep(4); // Skip paper selection for ICT
-                  }}
-                  data-testid="button-select-subject-ict"
-                >
-                  <div className="text-center">
-                    <div className="font-bold">তথ্য ও যোগাযোগ প্রযুক্তি</div>
-                    <div className="text-sm text-gray-600">ICT</div>
-                  </div>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Step 3: Paper Selection (only for 11-12) */}
-      {currentStep === 3 && selectedClass === '11-12' && selectedSubject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>পত্র নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(2)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-orange-50"
-                onClick={() => {
-                  setSelectedPaper('paper-1');
-                  setCurrentStep(4);
-                }}
-                data-testid="button-select-paper-1"
-              >
-                <div className="text-center">
-                  <div className="font-bold">প্রথম পত্র</div>
-                  <div className="text-sm text-gray-600">Paper 1</div>
-                </div>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-orange-50"
-                onClick={() => {
-                  setSelectedPaper('paper-2');
-                  setCurrentStep(4);
-                }}
-                data-testid="button-select-paper-2"
-              >
-                <div className="text-center">
-                  <div className="font-bold">দ্বিতীয় পত্র</div>
-                  <div className="text-sm text-gray-600">Paper 2</div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 4: Category Selection */}
-      {currentStep === 4 && selectedClass && selectedSubject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>প্রশ্নের ধরন নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(selectedClass === '11-12' ? 3 : 2)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {CATEGORIES[selectedClass].map((category) => (
-                <Button 
-                  key={category}
-                  variant="outline" 
-                  className="h-16 text-sm"
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setCurrentStep(5);
-                  }}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 5: Chapter Selection */}
-      {currentStep === 5 && selectedCategory && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>অধ্যায় নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(4)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getAvailableChapters().map((chapter) => (
-                <Button 
-                  key={chapter}
-                  variant="outline" 
-                  className="h-16 text-sm"
-                  onClick={() => {
-                    setSelectedChapter(chapter);
-                    setCurrentStep(6);
-                  }}
-                >
-                  {chapter}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 6: Question Management */}
-      {currentStep === 6 && selectedChapter && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{selectedChapter} - প্রশ্ন ব্যবস্থাপনা</span>
-              <div className="flex space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => handleStepChange(5)}>
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  পূর্ববর্তী
-                </Button>
-                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      নতুন প্রশ্ন যোগ করুন
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>নতুন প্রশ্ন যোগ করুন</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="title">প্রশ্নের শিরোনাম</Label>
-                        <Input
-                          id="title"
-                          value={newItem.title}
-                          onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                          placeholder="যেমন: HSC 2023 Board Question"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="description">বিবরণ</Label>
-                        <Textarea
-                          id="description"
-                          value={newItem.description}
-                          onChange={(e) => setNewItem({...newItem, description: e.target.value})}
-                          placeholder="প্রশ্নের সংক্ষিপ্ত বিবরণ"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="driveLink">Google Drive লিংক</Label>
-                        <Input
-                          id="driveLink"
-                          value={newItem.driveLink}
-                          onChange={(e) => setNewItem({...newItem, driveLink: e.target.value})}
-                          placeholder="https://drive.google.com/file/d/..."
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="questionType">প্রশ্নের ধরন</Label>
-                        <Select value={newItem.questionType} onValueChange={(value) => setNewItem({...newItem, questionType: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pdf">PDF ফাইল</SelectItem>
-                            <SelectItem value="document">ডকুমেন্ট</SelectItem>
-                            <SelectItem value="link">লিংক</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                          বাতিল
-                        </Button>
-                        <Button onClick={handleSubmit} disabled={addQuestionMutation.isPending}>
-                          {addQuestionMutation.isPending ? 'যোগ করা হচ্ছে...' : 'যোগ করুন'}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">বিষয়</label>
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="chemistry">রসায়ন</SelectItem>
+                    <SelectItem value="ict">তথ্য ও যোগাযোগ প্রযুক্তি</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Add New Resource Form */}
+        <Card className="border-green-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              নতুন Google Drive লিংক যোগ করুন
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">লোড হচ্ছে...</div>
-            ) : (
-              <div className="space-y-4">
-                {questionItems.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    এই অধ্যায়ে এখনো কোনো প্রশ্ন যোগ করা হয়নি
-                  </div>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">অধ্যায় নির্বাচন করুন</label>
+                <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableChapters().map(chapter => (
+                      <SelectItem key={chapter} value={chapter}>
+                        {chapter}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Google Drive লিংক</label>
+                <Input
+                  value={googleDriveLink}
+                  onChange={(e) => setGoogleDriveLink(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">বিবরণ (ঐচ্ছিক)</label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="এই অধ্যায়ের রিসোর্স সম্পর্কে কিছু লিখুন..."
+                  rows={3}
+                />
+              </div>
+
+              <Button 
+                onClick={handleSaveResource}
+                disabled={saving}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                    সংরক্ষণ করা হচ্ছে...
+                  </>
                 ) : (
-                  questionItems.map((item: any) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{item.title}</h3>
-                          {item.description && (
-                            <p className="text-gray-600 mt-1">{item.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                            <span>ডাউনলোড: {item.downloadCount || 0}</span>
-                            <span>যোগ করা হয়েছে: {new Date(item.createdAt).toLocaleDateString('bn-BD')}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {item.driveLink && (
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={item.driveLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" onClick={() => setEditingItem(item)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => deleteQuestionMutation.mutate(item.id)}
-                            disabled={deleteQuestionMutation.isPending}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    লিংক সংরক্ষণ করুন
+                  </>
                 )}
-              </div>
-            )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      )}
-        </div>
+
+        {/* Current Resources */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                বর্তমান রিসোর্স ({getClassDisplayName(selectedClass)} - {getSubjectName(selectedSubject)})
+              </span>
+              <Badge variant="outline">{getAvailableChapters().length}টি অধ্যায়</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {getAvailableChapters().map((chapter, index) => {
+              const resource = getResourceForChapter(chapter);
+              return (
+                <div
+                  key={chapter}
+                  className={`p-3 rounded-lg border ${
+                    resource?.google_drive_link 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 mb-1">
+                        {chapter}
+                      </h4>
+                      {resource?.description && (
+                        <p className="text-sm text-gray-600 mb-2">
+                          {resource.description}
+                        </p>
+                      )}
+                      {resource?.google_drive_link ? (
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            Google Drive লিংক যোগ করা হয়েছে
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(resource.google_drive_link, '_blank')}
+                            className="h-7 px-3 text-xs"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            দেখুন
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-gray-500">
+                          এখনো যোগ করা হয়নি
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );

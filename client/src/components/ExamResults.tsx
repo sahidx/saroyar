@@ -61,6 +61,15 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
     refetchOnMount: true,
   });
 
+  // Debug: Log the results data to console
+  React.useEffect(() => {
+    if (resultsData) {
+      console.log('🔍 ExamResults - API Response:', resultsData);
+      console.log('🔍 ExamResults - Results Array:', resultsData.results);
+      console.log('🔍 ExamResults - Results Length:', resultsData.results?.length || 0);
+    }
+  }, [resultsData]);
+
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>

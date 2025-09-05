@@ -4989,6 +4989,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
+      // Debug: Log the exam results being returned
+      console.log(`🔍 API /api/exams/${examId}/results - Returning:`, {
+        examId,
+        examTitle: exam.title,
+        totalResults: formattedResults.length,
+        hasResults: formattedResults.length > 0,
+        studentIds: formattedResults.map(r => r.id)
+      });
+
       res.json({
         exam,
         results: formattedResults,

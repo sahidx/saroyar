@@ -19,14 +19,18 @@ import {
   Trophy,
   User,
   Atom,
-  Cpu
+  Cpu,
+  Download
 } from 'lucide-react';
 import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StudentQuestionBank() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [, setLocation] = useLocation();
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
@@ -35,6 +39,30 @@ export default function StudentQuestionBank() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAnswers, setShowAnswers] = useState<{ [key: string]: boolean }>({});
+
+  // Track download mutation
+  const trackDownloadMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      return await apiRequest('POST', `/api/question-bank/items/${itemId}/download`);
+    }
+  });
+
+  const handleDownload = (item: any) => {
+    if (item.driveLink) {
+      trackDownloadMutation.mutate(item.id);
+      window.open(item.driveLink, '_blank');
+      toast({
+        title: "ডাউনলোড শুরু",
+        description: "প্রশ্নের লিংক খোলা হচ্ছে...",
+      });
+    } else {
+      toast({
+        title: "ত্রুটি",
+        description: "ডাউনলোড লিংক পাওয়া যায়নি",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Fetch subjects and chapters for filtering
   const { data: subjectsData } = useQuery({
@@ -297,23 +325,35 @@ export default function StudentQuestionBank() {
                       </div>
                     )}
 
-                    {/* Drive Link */}
+                    {/* Drive Link with Download */}
                     {question.driveLink && (
                       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ExternalLink className="w-4 h-4 text-blue-600" />
+                            <Download className="w-4 h-4 text-blue-600" />
                             <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                              অতিরিক্ত রিসোর্স
+                              প্রশ্নের ফাইল ডাউনলোড করুন
                             </span>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(question.driveLink, '_blank')}
-                          >
-                            দেখুন
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(question)}
+                              disabled={trackDownloadMutation.isPending}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              ডাউনলোড
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(question.driveLink, '_blank')}
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              দেখুন
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}

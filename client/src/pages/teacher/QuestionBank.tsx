@@ -52,14 +52,14 @@ export default function QuestionBank() {
     if (!selectedClass || !selectedSubject) return [];
     
     if (selectedClass === '9-10') {
-      return CHAPTERS['9-10'][selectedSubject] || [];
+      return (CHAPTERS['9-10'] as any)[selectedSubject] || [];
     } else {
-      const subject = CHAPTERS['11-12'][selectedSubject];
+      const subject = (CHAPTERS['11-12'] as any)[selectedSubject];
       if (selectedSubject === 'ict') {
         // ICT doesn't have papers, return chapters directly
         return subject || [];
       } else if (subject && selectedPaper) {
-        return subject[selectedPaper] || [];
+        return (subject as any)[selectedPaper] || [];
       }
     }
     return [];
@@ -162,7 +162,27 @@ export default function QuestionBank() {
       });
       return;
     }
-    addQuestionMutation.mutate(newItem);
+    
+    // Validate Google Drive link format
+    if (!newItem.driveLink.includes('drive.google.com')) {
+      toast({
+        title: "ত্রুটি",
+        description: "অনুগ্রহ করে একটি সঠিক Google Drive লিংক প্রদান করুন",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const questionData = {
+      ...newItem,
+      classLevel: selectedClass,
+      subject: selectedSubject,
+      paper: selectedPaper,
+      category: selectedCategory,
+      chapter: selectedChapter
+    };
+    
+    addQuestionMutation.mutate(questionData);
   };
 
   return (

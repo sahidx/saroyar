@@ -778,15 +778,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Send bulk SMS with consistent logic like attendance
+        // Send SMS using consistent logic exactly like attendance system
         if (smsRecipients.length > 0) {
           try {
             let totalSent = 0;
             let totalFailed = 0;
             
-            // Send simplified SMS (65 characters max) - teachers cannot edit format
+            // Send individual SMS for each student result using consistent pattern like attendance
             for (const recipient of smsRecipients) {
-              // Fixed SMS format: "Name: 85/100 Chemistry Private -Belal Sir" (under 65 chars)
+              // Fixed SMS format (65 chars max): "Name: 85/100 Chemistry Private -Belal Sir"
               const smsMessage = `${recipient.name}: ${recipient.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
               
               const smsResult = await bulkSMSService.sendBulkSMS(
@@ -795,13 +795,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 teacherId,
                 'exam_result'
               );
-
-              if (smsResult.success) {
-                totalSent++;
-                console.log(`📱 Simple SMS sent to ${recipient.name}: ${smsMessage.length} chars`);
-              } else {
-                totalFailed++;
-                console.log(`❌ SMS failed for ${recipient.name}: ${smsResult.failedMessages?.[0]?.error || 'Unknown error'}`);
+              
+              totalSent += smsResult.sentCount;
+              totalFailed += smsResult.failedCount;
+              
+              // Stop if no more credits available (like attendance)
+              if (!smsResult.success && smsResult.sentCount === 0) {
+                break;
               }
             }
             

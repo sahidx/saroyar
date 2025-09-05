@@ -212,6 +212,9 @@ export default function Landing() {
               </span>
             </h1>
             <h2 className="text-3xl font-semibold text-cyan-300 mb-4">by Belal Sir</h2>
+            <div className="text-2xl font-bold text-white mb-6 opacity-90">
+              কেমিস্ট্রি অ্যান্ড আইসিটি কেয়ার বেলাল স্যার
+            </div>
             <p className="text-xl text-blue-200 mb-8 max-w-4xl mx-auto" data-testid="hero-subtitle">
               Unlock the mysteries of Chemistry and master Information & Communication Technology 
               with cutting-edge scientific education and personalized guidance

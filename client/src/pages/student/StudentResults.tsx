@@ -47,11 +47,21 @@ export default function StudentResults() {
   const { data: resultsData, isLoading: resultsLoading } = useQuery({
     queryKey: [`/api/exams/${examId}/results`],
     enabled: !!examId,
+    refetchOnMount: true,
   });
 
+  // Debug: Log the API response
+  console.log('🔍 StudentResults - API Response:', resultsData);
+  console.log('🔍 StudentResults - User ID:', user?.id);
+
   const exam = examData;
-  const results = resultsData || [];
-  const currentUserResult = results.find ? results.find((r: any) => r.studentId === user?.id) : null;
+  // Fix: Extract results array from API response properly
+  const results = resultsData?.results || [];
+  const currentUserResult = Array.isArray(results) ? results.find((r: any) => r.id === user?.id) : null;
+  
+  // Debug: Log processing results
+  console.log('🔍 StudentResults - Results Array:', results);
+  console.log('🔍 StudentResults - Current User Result:', currentUserResult);
 
   const getGradeColor = (grade: string) => {
     switch (grade) {

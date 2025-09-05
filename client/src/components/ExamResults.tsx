@@ -54,11 +54,14 @@ const getGradeColor = (grade: string) => {
 };
 
 export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: ExamResultsProps) {
-  // Fetch real exam results data
+  // Fetch real exam results data with cache busting
   const { data: resultsData, isLoading, error } = useQuery({
-    queryKey: [`/api/exams/${exam?.id}/results`],
+    queryKey: [`/api/exams/${exam?.id}/results`, Date.now()], // Cache busting
     enabled: isOpen && !!exam?.id,
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always treat as stale
+    cacheTime: 0, // Don't cache
   });
 
   // Debug: Log the results data to console

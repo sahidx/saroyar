@@ -240,31 +240,6 @@ export default function QuestionBank() {
             </>
           )}
         </div>
-        
-        {/* Mobile navigation controls */}
-        {currentStep > 1 && (
-          <div className="flex items-center space-x-2 sm:hidden">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleStepChange(currentStep - 1)}
-              className="flex-1 touch-target"
-              data-testid="button-mobile-nav-back"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              পূর্ববর্তী
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleStepChange(1)}
-              className="flex-1 touch-target"
-              data-testid="button-mobile-nav-reset"
-            >
-              প্রথম থেকে
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Step 1: Class Selection */}

@@ -46,12 +46,41 @@ export default function StudentDeveloper() {
   ];
 
   const praggoServices = [
-    { name: 'Praggo Civil Engineering Firm & Interior', icon: Building2 },
-    { name: 'Praggo IT', icon: Monitor },
-    { name: 'Praggo Academy', icon: GraduationCap },
-    { name: 'Praggo Study Abroad', icon: BookOpen },
-    { name: 'Praggo Ad Agency', icon: Target },
-    { name: 'Praggo Agro & Properties', icon: Heart }
+    { 
+      name: 'Praggo Civil Engineering Firm & Interior', 
+      namebn: 'স্থপতি উদ্ভাবনার ক্ষেত্র বাড়ির ডিজাইনে এবং ইন্টেরিয়ারে ডিজাইনে করে দেওয়া হয়',
+      icon: Building2 
+    },
+    { 
+      name: 'Praggo IT', 
+      namebn: 'এখানে বিভিন্ন ব্যবসা প্রতিষ্ঠান, শিক্ষা প্রতিষ্ঠান, কোম্পানির কর্পোরেটিভ Website, Software & Apps তৈরি করা হয় এবং সকল প্রকার IT সেবা প্রদান করা হয়',
+      icon: Monitor 
+    },
+    { 
+      name: 'Praggo Academy', 
+      namebn: 'এখানে বুয়েট সহ পাবলিক বিশ্ববিদ্যালয়ের শিক্ষার্থীদের ভর্তি একাডেমিক, চাকুরি এবং চৌকড় প্রস্তুতি বিষয়ক শিক্ষা প্রদান করা হয়',
+      icon: GraduationCap 
+    },
+    { 
+      name: 'Praggo Study Abroad', 
+      namebn: 'এখানে শিক্ষার্থীদের বিদেশে ভর্তি সংক্রান্ত বিষয়ে সহায়তা করা হয়',
+      icon: BookOpen 
+    },
+    { 
+      name: 'Praggo Ad Agency', 
+      namebn: 'এখানে বিভিন্ন ব্যবসা প্রতিষ্ঠানের অনলাইন মার্কেটিং, ফেসবুক বুস্টিং এবং ব্র্যান্ডিক গ্রাফিক্স কন্টেট তৈরি করে দেওয়া হয়',
+      icon: Target 
+    },
+    { 
+      name: 'Praggo Agro', 
+      namebn: 'কৃষি ক্ষেত্রে আধুনিক প্রযুক্তি ও সেবা প্রদান',
+      icon: Heart 
+    },
+    { 
+      name: 'Praggo Properties', 
+      namebn: 'রিয়েল এস্টেট ও সম্পত্তি সংক্রান্ত সেবা',
+      icon: Building2 
+    }
   ];
 
   return (
@@ -207,11 +236,14 @@ export default function StudentDeveloper() {
             <CardContent>
               <div className="grid grid-cols-1 gap-3">
                 {praggoServices.map((service, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
-                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <div key={index} className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg">
+                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                       <service.icon className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{service.name}</span>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-indigo-800 mb-1">{service.name}</h3>
+                      <p className="text-xs text-gray-600 leading-relaxed">{service.namebn}</p>
+                    </div>
                   </div>
                 ))}
               </div>

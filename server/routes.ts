@@ -716,6 +716,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
             const submissionData = {
+              answers: JSON.stringify([]), // Empty answers array for manual entries
               score: mark.marks,
               manualMarks: mark.marks,
               totalMarks: exam.totalMarks,
@@ -735,7 +736,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const created = await storage.createSubmission({
                 examId: examId,
                 studentId: mark.studentId,
-                ...submissionData
+                answers: JSON.stringify([]), // Explicitly set empty answers for manual entry
+                score: mark.marks,
+                manualMarks: mark.marks,
+                totalMarks: exam.totalMarks,
+                feedback: mark.feedback || '',
+                isSubmitted: true,
+                submittedAt: new Date(),
+                isManualEntry: true
               });
               markResults.push(created);
               console.log(`✅ CREATED new submission for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (new ID: ${created.id})`);
@@ -753,15 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📊 Marks saved: ${savedCount}/${studentMarks.length} students, Failed: ${failedCount}`);
 
-      // Return early if marks saving failed completely
-      if (savedCount === 0 && failedCount > 0) {
-        return res.status(500).json({
-          success: false,
-          message: "Failed to save any marks to database. Please check the logs and try again.",
-          savedCount: 0,
-          failedCount
-        });
-      }
+      // Note: Don't return early even if marks saving failed - still allow SMS sending
 
       // Enhanced SMS sending with multiple recipient options (students + parents)
       let totalSMSSent = 0;
@@ -868,11 +868,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Final response with SMS results
+      // Final response with both marks and SMS results
+      const hasSuccess = savedCount > 0 || totalSMSSent > 0;
+      const successMessage = [];
+      
+      if (savedCount > 0) {
+        successMessage.push(`Marks saved for ${savedCount} students`);
+      }
+      if (failedCount > 0) {
+        successMessage.push(`${failedCount} marks failed to save`);
+      }
+      if (totalSMSSent > 0) {
+        successMessage.push(`SMS sent to ${totalSMSSent} recipients`);
+      }
+      
       res.json({
-        success: true,
-        message: `Marks saved for ${savedCount} students${totalSMSSent > 0 ? `. SMS sent to ${totalSMSSent} students.` : ''}`,
+        success: hasSuccess,
+        message: successMessage.length > 0 ? successMessage.join('. ') : 'No actions completed successfully',
         marksSaved: savedCount,
+        marksFailed: failedCount,
         smsResults: {
           sent: totalSMSSent,
           total: studentMarks.filter((mark: any) => mark.marks > 0).length

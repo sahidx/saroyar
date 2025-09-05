@@ -158,12 +158,6 @@ export const getTeacherIcons = (setLocation: (path: string) => void): IconGridIt
     onClick: () => setLocation('/attendance')
   },
   {
-    id: 'messages',
-    icon: <MessageCircle className="w-full h-full" />,
-    label: 'Messages',
-    onClick: () => setLocation('/teacher/messaging')
-  },
-  {
     id: 'students',
     icon: <GraduationCap className="w-full h-full" />,
     label: 'Students',

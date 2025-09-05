@@ -1196,36 +1196,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Message routes (DISABLED - using mock below)
-  /* app.get("/api/messages", isAuthenticated, async (req: any, res) => {
+  // Message routes - ENABLED for student-teacher communication
+  
+  // Get teacher information for student messaging
+  app.get("/api/messages/teacher", requireAuth, async (req: any, res) => {
     try {
-      const userId = (req as any).session.user.id;
-      const messages = await storage.getRecentMessagesForUser(userId);
-      res.json(messages);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ message: "Failed to fetch messages" });
-    }
-  }); */
+      const currentUser = req.session?.user;
+      
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
-  /* app.post("/api/messages", isAuthenticated, async (req: any, res) => {
+      // If current user is a student, find their assigned teacher
+      if (currentUser.role === 'student') {
+        // Find a teacher (for now, return the first teacher found)
+        const teachers = await storage.getAllTeachers();
+        const teacher = teachers[0]; // Get first teacher
+        
+        if (!teacher) {
+          return res.status(404).json({ message: "No teacher found" });
+        }
+
+        res.json({
+          id: teacher.id,
+          firstName: teacher.firstName || 'Belal',
+          lastName: teacher.lastName || 'Sir',
+          role: teacher.role,
+          profileImageUrl: teacher.profileImageUrl
+        });
+      } else {
+        return res.status(403).json({ message: "Only students can access teacher info" });
+      }
+    } catch (error) {
+      console.error("Error fetching teacher info:", error);
+      res.status(500).json({ message: "Failed to fetch teacher info" });
+    }
+  });
+
+  // Get conversation between student and teacher
+  app.get("/api/messages/conversation/:teacherId", requireAuth, async (req: any, res) => {
     try {
-      const userId = (req as any).session.user.id;
+      const currentUser = req.session?.user;
+      const teacherId = req.params.teacherId;
+      
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get conversation between current user and teacher
+      const conversation = await storage.getMessagesBetweenUsers(currentUser.id, teacherId);
+      
+      // Format messages for frontend
+      const formattedMessages = conversation.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        timestamp: msg.createdAt,
+        isFromMe: msg.fromUserId === currentUser.id,
+        isRead: msg.isRead,
+        sender: {
+          id: msg.fromUserId,
+          name: msg.fromUserId === currentUser.id ? 
+            `${currentUser.firstName} ${currentUser.lastName}` : 'Teacher'
+        }
+      }));
+
+      res.json(formattedMessages);
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
+    }
+  });
+
+  // Alternative route for conversation (matches frontend query)
+  app.get("/api/messages/conversation", requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = req.session?.user;
+      const teacherId = req.query.teacherId as string;
+      
+      if (!teacherId) {
+        return res.json([]); // Return empty array if no teacher specified
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get conversation between current user and teacher
+      const conversation = await storage.getMessagesBetweenUsers(currentUser.id, teacherId);
+      
+      // Format messages for frontend
+      const formattedMessages = conversation.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        timestamp: msg.createdAt,
+        isFromMe: msg.fromUserId === currentUser.id,
+        isRead: msg.isRead,
+        sender: {
+          id: msg.fromUserId,
+          name: msg.fromUserId === currentUser.id ? 
+            `${currentUser.firstName} ${currentUser.lastName}` : 'Teacher'
+        }
+      }));
+
+      res.json(formattedMessages);
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
+    }
+  });
+
+  // Send message
+  app.post("/api/messages/send", requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = req.session?.user;
+      
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const messageData = insertMessageSchema.parse({
-        ...req.body,
-        senderId: userId,
+        fromUserId: currentUser.id,
+        toUserId: req.body.receiverId,
+        content: req.body.content,
       });
 
       const message = await storage.createMessage(messageData);
-      res.json(message);
+      
+      res.json({
+        success: true,
+        message: {
+          id: message.id,
+          content: message.content,
+          timestamp: message.createdAt,
+          isFromMe: true,
+          sender: {
+            id: currentUser.id,
+            name: `${currentUser.firstName} ${currentUser.lastName}`
+          }
+        }
+      });
     } catch (error) {
-      console.error("Error creating message:", error);
+      console.error("Error sending message:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid message data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create message" });
+      res.status(500).json({ message: "Failed to send message" });
     }
-  }); */
+  });
+
+  // Get all students for teacher messaging
+  app.get("/api/messages/students", requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = req.session?.user;
+      
+      if (!currentUser || currentUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can access student list" });
+      }
+
+      const students = await storage.getAllStudents();
+      
+      // Format students with last message info
+      const studentsWithMessages = await Promise.all(
+        students.map(async (student) => {
+          const messages = await storage.getMessagesBetweenUsers(currentUser.id, student.id);
+          const lastMessage = messages[messages.length - 1];
+          
+          return {
+            id: student.id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            profileImageUrl: student.profileImageUrl,
+            lastMessage: lastMessage ? {
+              content: lastMessage.content,
+              timestamp: lastMessage.createdAt,
+              isFromMe: lastMessage.fromUserId === currentUser.id,
+              isRead: lastMessage.isRead
+            } : null
+          };
+        })
+      );
+
+      res.json(studentsWithMessages);
+    } catch (error) {
+      console.error("Error fetching students for messaging:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
 
   // Notice routes (DISABLED - using mock below)
   /* app.get("/api/notices", isAuthenticated, async (req, res) => {

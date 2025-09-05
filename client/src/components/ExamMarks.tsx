@@ -79,14 +79,25 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       return await apiRequest('POST', `/api/exams/${exam.id}/marks`, data);
     },
     onSuccess: (result: any) => {
-      toast({
-        title: "✅ Marks Updated Successfully!",
-        description: result.message || `Results saved for ${studentMarks.length} students.`,
-      });
+      // Check if SMS was skipped due to insufficient balance
+      if (result.smsSkipped) {
+        toast({
+          title: "✅ Marks Saved - SMS Not Sent",
+          description: `নম্বর সংরক্ষিত হয়েছে (${studentMarks.length} students)। SMS ব্যালেন্স অপর্যাপ্ত - SMS পাঠানো হয়নি।`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "✅ Marks Updated Successfully!",
+          description: result.message || `Results saved for ${studentMarks.length} students.`,
+        });
+      }
+      
       // Force refresh all related queries
       queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
       queryClient.invalidateQueries({ queryKey: ['/api/student-results'] });
       queryClient.invalidateQueries({ queryKey: [`/api/exams/${exam.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/exams/results-status'] });
       // Invalidate all student exam queries
       queryClient.invalidateQueries({ 
         predicate: (query) => query.queryKey[0]?.toString().includes('/api/student/exams')
@@ -160,7 +171,10 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
 
     const currentCredits = (smsCreditsData as any)?.smsCredits || 0;
     
-    // Check SMS credits if SMS is enabled
+    // Check SMS credits if SMS is enabled - but still allow marks saving
+    let willSkipSMS = false;
+    let smsSkipMessage = '';
+    
     if (smsOptions.sendSMS) {
       let requiredCredits = 0;
       
@@ -182,27 +196,20 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       }
       
       if (currentCredits === 0) {
-        toast({
-          title: "❌ SMS Balance End",
-          description: "আপনার SMS ব্যালেন্স শেষ! Admin এর সাথে যোগাযোগ করুন নতুন SMS এর জন্য।",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (requiredCredits > currentCredits) {
-        toast({
-          title: "❌ Insufficient SMS Credits",
-          description: `আপনার ${requiredCredits} SMS প্রয়োজন (${smsOptions.sendToParents ? 'students + parents' : 'students only'}) কিন্তু ${currentCredits} আছে। Admin এর সাথে যোগাযোগ করুন।`,
-          variant: "destructive",
-        });
-        return;
+        willSkipSMS = true;
+        smsSkipMessage = 'আপনার SMS ব্যালেন্স শেষ! নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।';
+      } else if (requiredCredits > currentCredits) {
+        willSkipSMS = true;
+        smsSkipMessage = `${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। নম্বর সংরক্ষিত হয়েছে কিন্তু SMS পাঠানো হয়নি।`;
       }
     }
 
+    // Submit marks with modified SMS options if balance insufficient
+    const finalSMSOptions = willSkipSMS ? { ...smsOptions, sendSMS: false } : smsOptions;
+    
     updateMarksMutation.mutate({ 
       studentMarks: validMarks, 
-      smsOptions 
+      smsOptions: finalSMSOptions 
     });
   };
 

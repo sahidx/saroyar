@@ -818,21 +818,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           validStudents.push({ student, mark });
         }
 
-        // Check SMS balance before sending
+        // Check SMS balance - don't fail, just skip SMS if insufficient
         const teacherCredits = await storage.getUserSmsCredits(teacherId);
         console.log(`📊 SMS needed: ${totalSMSNeeded}, Available: ${teacherCredits}`);
         
+        let smsSkipped = false;
+        let skipReason = '';
+        
         if (totalSMSNeeded > teacherCredits) {
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient SMS credits. Need ${totalSMSNeeded} SMS, but only ${teacherCredits} available.`,
-            required: totalSMSNeeded,
-            available: teacherCredits
-          });
+          smsSkipped = true;
+          skipReason = `Insufficient SMS credits. Need ${totalSMSNeeded} SMS, but only ${teacherCredits} available.`;
+          console.log(`⚠️ SMS SKIPPED: ${skipReason}`);
+          // Continue with marks saving, skip SMS sending
         }
 
-        // Send SMS to students and parents
-        if (validStudents.length > 0) {
+        // Send SMS to students and parents only if balance is sufficient
+        if (validStudents.length > 0 && !smsSkipped) {
           try {
             let totalSent = 0;
             let totalFailed = 0;
@@ -920,6 +921,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: successMessage.length > 0 ? successMessage.join('. ') : 'No actions completed successfully',
         marksSaved: savedCount,
         marksFailed: failedCount,
+        smsSkipped: smsSkipped,
+        smsSkipReason: skipReason,
         smsResults: {
           sent: totalSMSSent,
           total: studentMarks.filter((mark: any) => mark.marks > 0).length

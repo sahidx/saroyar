@@ -82,7 +82,8 @@ export default function QuestionBank() {
       });
       if (selectedPaper) params.append('paper', selectedPaper);
       
-      return await apiRequest(`/api/question-bank/items?${params}`);
+      const response = await apiRequest('GET', `/api/question-bank/items?${params}`);
+      return await response.json();
     }
   });
 

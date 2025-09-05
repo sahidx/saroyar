@@ -4073,23 +4073,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get question bank items by category
+  // Get question bank items by filtering parameters
   app.get('/api/question-bank/items', async (req, res) => {
     try {
-      const { categoryId, chapter } = req.query;
+      const { classLevel, subject, category, chapter, paper } = req.query;
       
-      if (!categoryId) {
-        return res.status(400).json({ message: 'categoryId is required' });
+      if (!classLevel || !subject || !category || !chapter) {
+        return res.status(400).json({ 
+          message: 'classLevel, subject, category, and chapter are required' 
+        });
       }
       
-      let items;
-      if (chapter) {
-        items = await storage.getQuestionBankItemsByChapter(categoryId as string, chapter as string);
-      } else {
-        items = await storage.getQuestionBankItems(categoryId as string);
-      }
+      // Get items from questionBank table based on filter criteria
+      const items = await db.select().from(questionBank)
+        .where(
+          and(
+            eq(questionBank.subject, subject as string),
+            eq(questionBank.category, category as string),
+            eq(questionBank.chapter, chapter as string)
+          )
+        )
+        .orderBy(desc(questionBank.createdAt));
       
-      res.json(items);
+      // Format items for frontend
+      const formattedItems = items.map(item => ({
+        id: item.id,
+        title: `${item.questionText.substring(0, 50)}...`,
+        description: item.questionText,
+        driveLink: item.driveLink,
+        questionType: item.questionType,
+        subject: item.subject,
+        category: item.category,
+        chapter: item.chapter,
+        difficulty: item.difficulty,
+        marks: item.marks,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      }));
+      
+      res.json(formattedItems);
     } catch (error) {
       console.error('Error fetching question bank items:', error);
       res.status(500).json({ message: 'Failed to fetch items' });
@@ -4125,26 +4147,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only teachers can create items" });
       }
 
-      const { categoryId, title, chapter, description, resourceType, resourceUrl, content, fileSize } = req.body;
+      const { title, description, driveLink, questionType, classLevel, subject, category, chapter, paper } = req.body;
       
-      if (!categoryId || !title || !chapter || !resourceType) {
-        return res.status(400).json({ message: 'Missing required fields: categoryId, title, chapter, resourceType' });
+      if (!title || !driveLink || !subject || !category || !chapter) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: title, driveLink, subject, category, chapter' 
+        });
       }
       
-      const itemData = {
-        categoryId,
-        title,
+      // Insert directly into questionBank table
+      const [newItem] = await db.insert(questionBank).values({
+        teacherId: sessionUser.id,
+        subject,
+        category,
+        subCategory: paper || 'Board',
         chapter,
-        description: description || '',
-        resourceType,
-        resourceUrl: resourceUrl || null,
-        content: content || null,
-        fileSize: fileSize || null,
-        createdBy: sessionUser.id
-      };
+        questionText: title,
+        questionType: questionType || 'pdf',
+        driveLink,
+        difficulty: 'medium',
+        marks: 1,
+        isPublic: true
+      }).returning();
       
-      const newItem = await storage.createQuestionBankItem(itemData);
-      res.json(newItem);
+      res.json({
+        id: newItem.id,
+        title: newItem.questionText,
+        description: newItem.questionText,
+        driveLink: newItem.driveLink,
+        questionType: newItem.questionType,
+        subject: newItem.subject,
+        category: newItem.category,
+        chapter: newItem.chapter,
+        createdAt: newItem.createdAt
+      });
     } catch (error) {
       console.error('Error creating question bank item:', error);
       res.status(500).json({ message: 'Failed to create item' });
@@ -4152,10 +4188,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete question bank item
-  app.delete('/api/question-bank/items/:itemId', async (req, res) => {
+  app.delete('/api/question-bank/items/:itemId', requireAuth, async (req: any, res) => {
     try {
+      const sessionUser = req.session?.user;
+      if (!sessionUser || sessionUser.role !== 'teacher') {
+        return res.status(403).json({ message: "Only teachers can delete items" });
+      }
+
       const { itemId } = req.params;
-      await storage.deleteQuestionBankItem(itemId);
+      
+      // Delete from questionBank table
+      await db.delete(questionBank)
+        .where(
+          and(
+            eq(questionBank.id, itemId),
+            eq(questionBank.teacherId, sessionUser.id)
+          )
+        );
+      
       res.json({ success: true });
     } catch (error) {
       console.error('Error deleting question bank item:', error);
@@ -4167,11 +4217,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/question-bank/items/:itemId/download', async (req, res) => {
     try {
       const { itemId } = req.params;
-      await storage.incrementQuestionBankDownload(itemId);
+      
+      // For now, just return success - we can add download tracking later
+      console.log(`📥 Question bank item ${itemId} downloaded`);
       res.json({ success: true });
     } catch (error) {
       console.error('Error tracking download:', error);
       res.status(500).json({ message: 'Failed to track download' });
+    }
+  });
+
+  // Student Question Bank endpoints
+  app.get('/api/student/question-bank/subjects', async (req, res) => {
+    try {
+      // Get unique subjects and chapters from question bank
+      const subjects = await db.selectDistinct({
+        subject: questionBank.subject,
+        category: questionBank.category,
+        chapter: questionBank.chapter
+      }).from(questionBank).where(eq(questionBank.isPublic, true));
+
+      // Group by subject
+      const subjectsData = subjects.reduce((acc: any, item: any) => {
+        const existingSubject = acc.find((s: any) => s.subject === item.subject);
+        if (existingSubject) {
+          if (!existingSubject.chapters.includes(item.chapter)) {
+            existingSubject.chapters.push(item.chapter);
+          }
+        } else {
+          acc.push({
+            subject: item.subject,
+            categories: [item.category],
+            chapters: [item.chapter]
+          });
+        }
+        return acc;
+      }, []);
+
+      res.json(subjectsData);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      res.status(500).json({ message: 'Failed to fetch subjects' });
+    }
+  });
+
+  app.get('/api/student/question-bank', async (req, res) => {
+    try {
+      const { subject = 'all', chapter = 'all', difficulty = 'all', page = '1', limit = '8' } = req.query;
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Build where conditions
+      let whereConditions = [eq(questionBank.isPublic, true)];
+      
+      if (subject !== 'all') {
+        whereConditions.push(eq(questionBank.subject, subject as string));
+      }
+      if (chapter !== 'all') {
+        whereConditions.push(eq(questionBank.chapter, chapter as string));
+      }
+      if (difficulty !== 'all') {
+        whereConditions.push(eq(questionBank.difficulty, difficulty as string));
+      }
+
+      // Get total count
+      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(questionBank)
+        .where(and(...whereConditions));
+
+      const totalCount = countResult.count;
+      const totalPages = Math.ceil(totalCount / limitNum);
+
+      // Get questions with pagination
+      const questions = await db.select().from(questionBank)
+        .where(and(...whereConditions))
+        .orderBy(desc(questionBank.createdAt))
+        .limit(limitNum)
+        .offset(offset);
+
+      res.json({
+        questions,
+        totalPages,
+        totalCount,
+        currentPage: pageNum
+      });
+    } catch (error) {
+      console.error('Error fetching student question bank:', error);
+      res.status(500).json({ message: 'Failed to fetch question bank' });
     }
   });
 

@@ -2,7 +2,8 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, Star, TrendingUp, Target } from 'lucide-react';
+import { Trophy, Medal, Award, Star, TrendingUp, Target, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface ExamResultsProps {
   exam: any;
@@ -23,32 +24,6 @@ interface StudentResult {
   grade: string;
   feedback?: string;
 }
-
-// Mock data - will be replaced with real API data
-const mockResults: StudentResult[] = [
-  {
-    id: '1',
-    firstName: 'Ahmed',
-    lastName: 'Rahman',
-    studentId: 'ST2025004',
-    marks: 95,
-    percentage: 95,
-    rank: 1,
-    grade: 'A+',
-    feedback: 'Outstanding performance!'
-  },
-  {
-    id: '2',
-    firstName: 'Safayet',
-    lastName: 'Abid',
-    studentId: 'ST2025001',
-    marks: 87,
-    percentage: 87,
-    rank: 2,
-    grade: 'A',
-    feedback: 'Excellent work!'
-  }
-];
 
 const getRankIcon = (rank: number) => {
   switch (rank) {
@@ -79,11 +54,55 @@ const getGradeColor = (grade: string) => {
 };
 
 export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: ExamResultsProps) {
-  const sortedResults = mockResults.sort((a, b) => b.marks - a.marks);
+  // Fetch real exam results data
+  const { data: resultsData, isLoading, error } = useQuery({
+    queryKey: [`/api/exams/${exam?.id}/results`],
+    enabled: isOpen && !!exam?.id,
+    refetchOnMount: true,
+  });
+
+  if (isLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🏆 Loading Exam Results...
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin mr-2" />
+            <span>Loading results data...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (error || !resultsData) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              ❌ No Results Available
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">
+              {error ? 'Failed to load results. Please try again.' : 'No results found for this exam. Marks may not be entered yet.'}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const sortedResults = (resultsData.results || []).sort((a: StudentResult, b: StudentResult) => b.marks - a.marks);
   const totalStudents = sortedResults.length;
-  const averageMarks = sortedResults.reduce((sum, result) => sum + result.marks, 0) / totalStudents;
+  const averageMarks = totalStudents > 0 ? sortedResults.reduce((sum: number, result: StudentResult) => sum + result.marks, 0) / totalStudents : 0;
   const highestMarks = sortedResults[0]?.marks || 0;
-  const currentUserResult = currentUserId ? sortedResults.find(r => r.id === currentUserId) : null;
+  const currentUserResult = currentUserId ? sortedResults.find((r: StudentResult) => r.id === currentUserId) : null;
 
   const getPerformanceStats = () => {
     const aPlus = sortedResults.filter(r => r.percentage >= 90).length;

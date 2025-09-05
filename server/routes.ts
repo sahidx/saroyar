@@ -4275,6 +4275,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Get exams results status (whether marks have been entered)
+  app.get('/api/exams/results-status', async (req, res) => {
+    try {
+      const exams = await storage.getExams();
+      const resultsStatus: Record<string, { hasResults: boolean }> = {};
+      
+      // Check each exam for results
+      for (const exam of exams) {
+        const results = await storage.getExamResults(exam.id);
+        resultsStatus[exam.id] = { hasResults: results.length > 0 };
+      }
+      
+      res.json(resultsStatus);
+    } catch (error) {
+      console.error('Error fetching exam results status:', error);
+      res.status(500).json({ error: 'Failed to fetch results status' });
+    }
+  });
+
   // Get exam results with student performance (for result view)
   app.get('/api/exams/:examId/results', async (req, res) => {
     try {
@@ -4309,11 +4328,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Rank students by marks (highest first)
       const rankedResults = enrichedResults.sort((a, b) => b.marks - a.marks);
       
-      // Add ranking to results
-      const rankedWithPosition = rankedResults.map((result, index) => ({
-        ...result,
-        rank: index + 1
-      }));
+      // Add ranking and format results for frontend
+      const formattedResults = rankedResults.map((result, index) => {
+        const percentage = Math.round((result.marks / (exam.totalMarks || 100)) * 100);
+        let grade = 'F';
+        if (percentage >= 90) grade = 'A+';
+        else if (percentage >= 80) grade = 'A';
+        else if (percentage >= 70) grade = 'B';
+        else if (percentage >= 60) grade = 'C';
+        
+        return {
+          id: result.student.id,
+          firstName: result.student.firstName,
+          lastName: result.student.lastName,
+          studentId: result.student.studentId,
+          marks: result.marks,
+          percentage: percentage,
+          rank: index + 1,
+          grade: grade,
+          feedback: result.feedback || 'Good effort! Keep practicing for better results.'
+        };
+      });
       
       // Calculate statistics
       const totalStudents = rankedResults.length;
@@ -4346,7 +4381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         exam,
-        results: rankedWithPosition,
+        results: formattedResults,
         stats
       });
     } catch (error) {

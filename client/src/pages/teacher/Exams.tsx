@@ -43,6 +43,12 @@ export default function Exams() {
     queryKey: ['/api/exams'],
   });
 
+  // Function to check if exam has marks entered
+  const { data: examResultsStatus = {}, isLoading: isLoadingResults } = useQuery({
+    queryKey: ['/api/exams/results-status'],
+    enabled: exams.length > 0,
+  });
+
   // Delete exam mutation
   const deleteExamMutation = useMutation({
     mutationFn: async (examId: string) => {
@@ -355,27 +361,26 @@ export default function Exams() {
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                        data-testid={`button-marks-exam-${exam.id}`}
-                        onClick={() => setSelectedExamForMarks(exam)}
-                      >
-                        📝 Enter Marks
-                      </Button>
-                    </div>
-                    
-                    {/* Results View Button */}
-                    <div className="mt-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
-                        data-testid={`button-view-results-exam-${exam.id}`}
-                        onClick={() => setSelectedExamForResults(exam)}
-                      >
-                        🏆 View Results & Performance
-                      </Button>
+                      {/* Conditional Button - Either Enter Marks OR View Results */}
+                      {examResultsStatus[exam.id]?.hasResults ? (
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                          data-testid={`button-view-results-exam-${exam.id}`}
+                          onClick={() => setSelectedExamForResults(exam)}
+                        >
+                          🏆 View Results
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          data-testid={`button-marks-exam-${exam.id}`}
+                          onClick={() => setSelectedExamForMarks(exam)}
+                        >
+                          📝 Enter Marks
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

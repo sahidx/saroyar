@@ -3360,8 +3360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chapter-wise Google Drive resources endpoint
   app.get('/api/chapter-resources', async (req, res) => {
     try {
-      const { class_level, subject } = req.query;
-      console.log(`📚 Fetching resources for class: ${class_level}, subject: ${subject}`);
+      const { class_level, subject, chapter_name, subcategory } = req.query;
+      console.log(`📚 Fetching resources for class: ${class_level}, subject: ${subject}, chapter: ${chapter_name}, subcategory: ${subcategory}`);
       
       // Updated sample data with NCTB curriculum chapter names
       const sampleData = [
@@ -3455,8 +3455,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           class_level: '11-12',
           subject: 'ict',
           chapter_name: 'তথ্য ও যোগাযোগ প্রযুক্তি — বিশ্ব ও বাংলাদেশের প্রেক্ষাপটে',
+          subcategory: 'ইঞ্জিনিয়ারিং ভার্সিটি',
           google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-hsc-ict-ch1',
-          description: 'বিশ্বব্যাপী ICT এর অবস্থান ও বাংলাদেশ',
+          description: 'বিশ্বব্যাপী ICT এর অবস্থান ও বাংলাদেশ - ইঞ্জিনিয়ারিং প্রস্তুতি',
+          created_at: new Date().toISOString()
+        },
+        // Add some examples with subcategories for class 11-12
+        {
+          id: '11',
+          class_level: '11-12',
+          subject: 'chemistry',
+          chapter_name: 'জৈব রসায়ন',
+          subcategory: 'মেডিকেল',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-medical-organic',
+          description: 'মেডিকেল ভর্তি পরীক্ষার জন্য জৈব রসায়ন প্রশ্ন',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '12',
+          class_level: '11-12',
+          subject: 'chemistry',
+          chapter_name: 'জৈব রসায়ন',
+          subcategory: 'মূল বইয়ের প্রশ্ন',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-textbook-organic',
+          description: 'পাঠ্যবইয়ের অনুশীলনী প্রশ্ন - জৈব রসায়ন',
           created_at: new Date().toISOString()
         }
       ];
@@ -3468,6 +3490,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (subject) {
         filteredData = filteredData.filter(item => item.subject === subject);
+      }
+      if (chapter_name) {
+        filteredData = filteredData.filter(item => item.chapter_name === chapter_name);
+      }
+      if (subcategory) {
+        filteredData = filteredData.filter(item => item.subcategory === subcategory);
       }
       
       console.log(`✅ Returning ${filteredData.length} resources`);
@@ -3481,7 +3509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Teacher endpoint to add/update chapter resources
   app.post('/api/teacher/chapter-resources', async (req, res) => {
     try {
-      const { class_level, subject, chapter_name, google_drive_link, description } = req.body;
+      const { class_level, subject, chapter_name, subcategory, google_drive_link, description } = req.body;
       
       // For now, just return success - can implement database later
       console.log(`📝 Teacher adding resource: ${chapter_name} -> ${google_drive_link}`);

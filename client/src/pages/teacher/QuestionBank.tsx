@@ -77,9 +77,17 @@ export default function TeacherQuestionBank() {
   const [selectedClass, setSelectedClass] = useState<string>('9-10');
   const [selectedSubject, setSelectedSubject] = useState<string>('chemistry');
   const [selectedChapter, setSelectedChapter] = useState<string>('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [googleDriveLink, setGoogleDriveLink] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [saving, setSaving] = useState(false);
+
+  // Subcategories for class 11-12
+  const subcategories = [
+    'ইঞ্জিনিয়ারিং ভার্সিটি',
+    'মেডিকেল',
+    'মূল বইয়ের প্রশ্ন'
+  ];
 
   useEffect(() => {
     fetchResources();
@@ -114,6 +122,16 @@ export default function TeacherQuestionBank() {
       return;
     }
 
+    // Check subcategory requirement for class 11-12
+    if (selectedClass === '11-12' && !selectedSubcategory) {
+      toast({
+        title: "ত্রুটি",
+        description: "একাদশ-দ্বাদশ শ্রেণীর জন্য উপবিভাগ নির্বাচন করুন",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setSaving(true);
       const response = await fetch('/api/teacher/chapter-resources', {
@@ -123,6 +141,7 @@ export default function TeacherQuestionBank() {
           class_level: selectedClass,
           subject: selectedSubject,
           chapter_name: selectedChapter,
+          subcategory: selectedClass === '11-12' ? selectedSubcategory : null,
           google_drive_link: googleDriveLink.trim(),
           description: description.trim()
         })
@@ -136,6 +155,7 @@ export default function TeacherQuestionBank() {
         
         // Clear form
         setSelectedChapter('');
+        setSelectedSubcategory('');
         setGoogleDriveLink('');
         setDescription('');
         
@@ -260,7 +280,10 @@ export default function TeacherQuestionBank() {
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">অধ্যায় নির্বাচন করুন</label>
-                <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                <Select value={selectedChapter} onValueChange={(value) => {
+                  setSelectedChapter(value);
+                  setSelectedSubcategory(''); // Reset subcategory when chapter changes
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
                   </SelectTrigger>
@@ -273,6 +296,25 @@ export default function TeacherQuestionBank() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Subcategory Selection - Only for Class 11-12 */}
+              {selectedClass === '11-12' && selectedChapter && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">উপবিভাগ নির্বাচন করুন</label>
+                  <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="উপবিভাগ নির্বাচন করুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories.map(subcategory => (
+                        <SelectItem key={subcategory} value={subcategory}>
+                          {subcategory}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Google Drive লিংক</label>
@@ -296,8 +338,8 @@ export default function TeacherQuestionBank() {
 
               <Button 
                 onClick={handleSaveResource}
-                disabled={saving}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={saving || !selectedChapter || (selectedClass === '11-12' && !selectedSubcategory)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400"
               >
                 {saving ? (
                   <>

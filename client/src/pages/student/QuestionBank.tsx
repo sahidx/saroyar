@@ -61,6 +61,7 @@ interface ChapterResource {
   class_level: string;
   subject: string;
   chapter_name: string;
+  subcategory?: string;
   google_drive_link: string;
   description: string;
   created_at: string;
@@ -73,10 +74,19 @@ export default function StudentQuestionBank() {
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedChapter, setSelectedChapter] = useState<string>('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+
+  // Subcategories for class 11-12
+  const subcategories = [
+    'ইঞ্জিনিয়ারিং ভার্সিটি',
+    'মেডিকেল',
+    'মূল বইয়ের প্রশ্ন'
+  ];
 
   useEffect(() => {
     fetchResources();
-  }, [selectedClass, selectedSubject]);
+  }, [selectedClass, selectedSubject, selectedChapter, selectedSubcategory]);
 
   const fetchResources = async () => {
     try {
@@ -84,6 +94,8 @@ export default function StudentQuestionBank() {
       const params = new URLSearchParams();
       if (selectedClass) params.append('class_level', selectedClass);
       if (selectedSubject) params.append('subject', selectedSubject);
+      if (selectedChapter) params.append('chapter_name', selectedChapter);
+      if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
       
       const response = await fetch(`/api/chapter-resources?${params}`, {
         method: 'GET',
@@ -196,7 +208,11 @@ export default function StudentQuestionBank() {
               {/* Subject Selection */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">বিষয়</label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <Select value={selectedSubject} onValueChange={(value) => {
+                  setSelectedSubject(value);
+                  setSelectedChapter('');
+                  setSelectedSubcategory('');
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="বিষয় নির্বাচন করুন" />
                   </SelectTrigger>
@@ -207,6 +223,51 @@ export default function StudentQuestionBank() {
                 </Select>
               </div>
             </div>
+
+            {/* Chapter Selection - Show when class and subject are selected */}
+            {selectedClass && selectedSubject && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">অধ্যায় (ঐচ্ছিক ফিল্টার)</label>
+                  <Select value={selectedChapter} onValueChange={(value) => {
+                    setSelectedChapter(value);
+                    setSelectedSubcategory('');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="সব অধ্যায় দেখুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">সব অধ্যায়</SelectItem>
+                      {getAvailableChapters().map(chapter => (
+                        <SelectItem key={chapter} value={chapter}>
+                          {chapter}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Subcategory Selection - Only for Class 11-12 and when chapter is selected */}
+                {selectedClass === '11-12' && selectedChapter && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">উপবিভাগ (ঐচ্ছিক ফিল্টার)</label>
+                    <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="সব উপবিভাগ দেখুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">সব উপবিভাগ</SelectItem>
+                        {subcategories.map(subcategory => (
+                          <SelectItem key={subcategory} value={subcategory}>
+                            {subcategory}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -274,6 +335,11 @@ export default function StudentQuestionBank() {
                         <Badge className="text-xs bg-green-100 text-green-800">
                           Google Drive
                         </Badge>
+                        {resource.subcategory && (
+                          <Badge className="text-xs bg-purple-100 text-purple-800">
+                            {resource.subcategory}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -808,7 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Check SMS balance before sending
-        const teacherCredits = await storage.getUserSMSCredits(teacherId);
+        const teacherCredits = await storage.getUserSmsCredits(teacherId);
         console.log(`📊 SMS needed: ${totalSMSNeeded}, Available: ${teacherCredits}`);
         
         if (totalSMSNeeded > teacherCredits) {

@@ -67,8 +67,12 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
       console.log('🔍 ExamResults - API Response:', resultsData);
       console.log('🔍 ExamResults - Results Array:', resultsData.results);
       console.log('🔍 ExamResults - Results Length:', resultsData.results?.length || 0);
+      console.log('🔍 ExamResults - Data Structure:', typeof resultsData, Object.keys(resultsData));
     }
-  }, [resultsData]);
+    if (error) {
+      console.log('🔍 ExamResults - Error:', error);
+    }
+  }, [resultsData, error]);
 
   if (isLoading) {
     return (
@@ -107,10 +111,22 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
     );
   }
 
-  const sortedResults = (resultsData.results || []).sort((a: StudentResult, b: StudentResult) => b.marks - a.marks);
+  // Make sure we have the results array - handle both possible data structures
+  const resultsArray = resultsData?.results || resultsData || [];
+  const sortedResults = Array.isArray(resultsArray) 
+    ? resultsArray.sort((a: StudentResult, b: StudentResult) => (b.marks || 0) - (a.marks || 0))
+    : [];
   const totalStudents = sortedResults.length;
 
-  // If no results/marks entered yet, show "Results not published" message
+  // Debug: Log the processing
+  console.log('🔍 ExamResults - Processing Results:', {
+    hasResultsData: !!resultsData,
+    resultsArray,
+    sortedResults,
+    totalStudents
+  });
+
+  // If no results/marks entered yet, show "Results not published" message  
   if (totalStudents === 0) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>

@@ -72,13 +72,13 @@ export default function StudentQuestionBank() {
       trackDownloadMutation.mutate(item.id);
       window.open(item.driveLink, '_blank');
       toast({
-        title: "ডাউনলোড শুরু",
-        description: "প্রশ্নের লিংক খোলা হচ্ছে...",
+        title: "Download Started",
+        description: "Opening question link...",
       });
     } else {
       toast({
-        title: "ত্রুটি",
-        description: "ডাউনলোড লিংক পাওয়া যায়নি",
+        title: "Error",
+        description: "Download link not found",
         variant: "destructive"
       });
     }
@@ -135,9 +135,9 @@ export default function StudentQuestionBank() {
       'hard': 'bg-red-100 text-red-800'
     };
     const labels = {
-      'easy': 'সহজ',
-      'medium': 'মাঝারি',
-      'hard': 'কঠিন'
+      'easy': 'Easy',
+      'medium': 'Medium',
+      'hard': 'Hard'
     };
     
     return (
@@ -152,7 +152,7 @@ export default function StudentQuestionBank() {
   };
 
   const getSubjectName = (subject: string) => {
-    return subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
+    return subject === 'chemistry' ? 'Chemistry' : 'ICT';
   };
 
   if (isLoading) {
@@ -160,7 +160,7 @@ export default function StudentQuestionBank() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-cyan-50">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-600">প্রশ্নব্যাংক লোড হচ্ছে...</p>
+          <p className="text-gray-600">Loading Question Bank...</p>
         </div>
       </div>
     );
@@ -183,14 +183,14 @@ export default function StudentQuestionBank() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
-                <p className="text-xs sm:text-sm text-gray-600">NCTB অনুমোদিত প্রশ্নসমূহ</p>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Question Bank</h1>
+                <p className="text-xs sm:text-sm text-gray-600">NCTB Approved Questions</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
               <Badge variant="outline" className="text-xs">
-                মোট {totalCount}টি
+                Total {totalCount}
               </Badge>
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function StudentQuestionBank() {
           <CardHeader className="pb-4">
             <CardTitle className="text-base flex items-center gap-2">
               <Filter className="w-4 h-4" />
-              ফিল্টার করুন
+              Filter Options
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -211,7 +211,7 @@ export default function StudentQuestionBank() {
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="প্রশ্ন খুঁজুন..."
+                placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -220,35 +220,35 @@ export default function StudentQuestionBank() {
 
             {/* Subject filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">বিষয়</label>
+              <label className="text-sm font-medium text-gray-700">Subject</label>
               <Select value={selectedSubject} onValueChange={(value) => {
                 setSelectedSubject(value);
                 setSelectedChapter('all');
                 handleFilterChange();
               }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="বিষয় নির্বাচন করুন" />
+                  <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">সব বিষয়</SelectItem>
-                  <SelectItem value="chemistry">রসায়ন</SelectItem>
-                  <SelectItem value="ict">তথ্য ও যোগাযোগ প্রযুক্তি</SelectItem>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="chemistry">Chemistry</SelectItem>
+                  <SelectItem value="ict">ICT</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Chapter filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">অধ্যায়</label>
+              <label className="text-sm font-medium text-gray-700">Chapter</label>
               <Select value={selectedChapter} onValueChange={(value) => {
                 setSelectedChapter(value);
                 handleFilterChange();
               }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
+                  <SelectValue placeholder="Select chapter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">সব অধ্যায়</SelectItem>
+                  <SelectItem value="all">All Chapters</SelectItem>
                   {availableChapters.map((chapter: string) => (
                     <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
                   ))}
@@ -258,19 +258,19 @@ export default function StudentQuestionBank() {
 
             {/* Difficulty filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">কঠিনতা</label>
+              <label className="text-sm font-medium text-gray-700">Difficulty</label>
               <Select value={selectedDifficulty} onValueChange={(value) => {
                 setSelectedDifficulty(value);
                 handleFilterChange();
               }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="কঠিনতার মাত্রা নির্বাচন করুন" />
+                  <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">সব ধরনের</SelectItem>
-                  <SelectItem value="easy">সহজ</SelectItem>
-                  <SelectItem value="medium">মাঝারি</SelectItem>
-                  <SelectItem value="hard">কঠিন</SelectItem>
+                  <SelectItem value="all">All Levels</SelectItem>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -283,8 +283,8 @@ export default function StudentQuestionBank() {
             <Card className="border-gray-200">
               <CardContent className="py-8 text-center">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">কোনো প্রশ্ন পাওয়া যায়নি।</p>
-                <p className="text-sm text-gray-500 mt-2">অন্য ফিল্টার ব্যবহার করে দেখুন।</p>
+                <p className="text-gray-600">No questions found.</p>
+                <p className="text-sm text-gray-500 mt-2">Try different filters.</p>
               </CardContent>
             </Card>
           ) : (
@@ -303,7 +303,7 @@ export default function StudentQuestionBank() {
                         </div>
                         {getDifficultyBadge(question.difficulty)}
                         <Badge variant="outline" className="text-xs">
-                          {question.marks} নম্বর
+                          {question.marks} marks
                         </Badge>
                       </div>
                     </div>
@@ -312,7 +312,7 @@ export default function StudentQuestionBank() {
                 <CardContent className="pt-0">
                   <div className="space-y-3">
                     <div className="text-sm text-gray-600">
-                      <span className="font-medium">অধ্যায়:</span> {question.chapter}
+                      <span className="font-medium">Chapter:</span> {question.chapter}
                     </div>
                     
                     {question.description && (
@@ -332,7 +332,7 @@ export default function StudentQuestionBank() {
                         size="sm"
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        ডাউনলোড করুন
+                        Download
                       </Button>
                       {question.driveLink && (
                         <Button
@@ -369,11 +369,11 @@ export default function StudentQuestionBank() {
                   className="flex items-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  আগের
+                  Previous
                 </Button>
                 
                 <span className="text-sm text-gray-600">
-                  পৃষ্ঠা {currentPage} / {totalPages}
+                  Page {currentPage} / {totalPages}
                 </span>
                 
                 <Button
@@ -386,7 +386,7 @@ export default function StudentQuestionBank() {
                   }}
                   className="flex items-center gap-2"
                 >
-                  পরের
+                  Next
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -400,15 +400,15 @@ export default function StudentQuestionBank() {
             <div className="flex items-center justify-between text-center">
               <div>
                 <div className="text-lg font-bold text-green-700">{totalCount}</div>
-                <div className="text-xs text-green-600">মোট প্রশ্ন</div>
+                <div className="text-xs text-green-600">Total</div>
               </div>
               <div>
                 <div className="text-lg font-bold text-blue-700">{filteredQuestions.length}</div>
-                <div className="text-xs text-blue-600">ফিল্টার করা</div>
+                <div className="text-xs text-blue-600">Filtered</div>
               </div>
               <div>
                 <div className="text-lg font-bold text-purple-700">{currentPage}</div>
-                <div className="text-xs text-purple-600">বর্তমান পৃষ্ঠা</div>
+                <div className="text-xs text-purple-600">Current Page</div>
               </div>
             </div>
           </CardContent>

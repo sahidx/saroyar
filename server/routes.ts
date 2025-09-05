@@ -798,11 +798,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const student = await storage.getUser(mark.studentId);
           if (!student) continue;
           
-          // Count student SMS if they have phone number
-          if (student.phoneNumber) totalSMSNeeded++;
+          // Count student SMS if enabled and they have phone number
+          if ((smsOptions.sendToStudents !== false) && student.phoneNumber) totalSMSNeeded++;
           
           // Count parent SMS if enabled and parent has phone number
-          if (smsOptions.sendToParents && student.parentPhoneNumber) totalSMSNeeded++;
+          if (smsOptions.sendToParents && student.parent_phone_number) totalSMSNeeded++;
           
           validStudents.push({ student, mark });
         }
@@ -827,16 +827,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let totalFailed = 0;
             
             for (const { student, mark } of validStudents) {
-              // Fixed SMS format with exam name (65 chars max): "Name: Got 85/100 ExamName -Belal Sir"
+              // Improved SMS format (65 chars max): "Name: Got 85/100 marks in ExamName -Belal Sir"
               const studentName = `${student.firstName} ${student.lastName}`;
-              const scoreText = `Got ${mark.marks}/${exam.totalMarks}`;
+              const scoreText = `Got ${mark.marks}/${exam.totalMarks} marks in`;
               const signature = " -Belal Sir";
               const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
               const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
               const smsMessage = `${studentName}: ${scoreText} ${examName}${signature}`;
               
-              // Send to student
-              if (student.phoneNumber) {
+              // Send to student if enabled
+              if ((smsOptions.sendToStudents !== false) && student.phoneNumber) {
                 const studentResult = await bulkSMSService.sendBulkSMS(
                   [{ id: student.id, name: `${student.firstName} ${student.lastName}`, phoneNumber: student.phoneNumber }],
                   smsMessage,
@@ -851,11 +851,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Send to parent if enabled and parent has phone
-              if (smsOptions.sendToParents && student.parentPhoneNumber) {
+              if (smsOptions.sendToParents && student.parent_phone_number) {
                 const parentMessage = `আপনার সন্তান ${student.firstName} ${student.lastName} এর ${exam.title} পরীক্ষার ফলাফল: ${mark.marks}/${exam.totalMarks} নম্বর। বেলাল স্যার`;
                 
                 const parentResult = await bulkSMSService.sendBulkSMS(
-                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
+                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parent_phone_number }],
                   parentMessage,
                   teacherId,
                   'exam_result'
@@ -1478,7 +1478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const smsRecipients = [];
         for (const record of attendanceData) {
           const student = await storage.getUser(record.studentId);
-          if (student?.parentPhoneNumber) {
+          if (student?.parent_phone_number) {
             const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
             const subjectName = subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
             const message = `${student.firstName} ${student.lastName} ${subjectName} ক্লাসে ${status} ছিল। বেলাল স্যার`;
@@ -1486,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             smsRecipients.push({
               id: student.id,
               name: `${student.firstName}'s Parent`,
-              phoneNumber: student.parentPhoneNumber,
+              phoneNumber: student.parent_phone_number,
               message
             });
           }
@@ -2514,7 +2514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               recipients.push({
                 id: `parent-${student.id}`,
                 name: `${student.firstName} এর অভিভাবক`,
-                phoneNumber: student.parentPhoneNumber,
+                phoneNumber: student.parent_phone_number,
                 type: 'parent'
               });
             }
@@ -2538,7 +2538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             recipients.push({
               id: `parent-${student.id}`,
               name: `${student.firstName} এর অভিভাবক`,
-              phoneNumber: student.parentPhoneNumber,
+              phoneNumber: student.parent_phone_number,
               type: 'parent'
             });
           }
@@ -2678,14 +2678,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (targetType === 'all') {
         const allStudents = await storage.getAllStudents();
         studentCount = allStudents.filter(s => s.phoneNumber).length;
-        parentCount = allStudents.filter(s => s.parentPhoneNumber).length;
+        parentCount = allStudents.filter(s => s.parent_phone_number).length;
       } else if (targetType === 'batches' && batchIds) {
         const batchIdArray = Array.isArray(batchIds) ? batchIds : [batchIds];
         
         for (const batchId of batchIdArray) {
           const students = await storage.getStudentsByBatch(batchId);
           studentCount += students.filter(s => s.phoneNumber).length;
-          parentCount += students.filter(s => s.parentPhoneNumber).length;
+          parentCount += students.filter(s => s.parent_phone_number).length;
         }
       }
 

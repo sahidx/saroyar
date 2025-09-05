@@ -28,6 +28,7 @@ interface StudentMark {
 interface SMSOptions {
   sendSMS: boolean;
   sendToParents: boolean;
+  sendToStudents: boolean;
 }
 
 export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
@@ -35,7 +36,8 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
   const [searchFilter, setSearchFilter] = useState('');
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
     sendSMS: true,
-    sendToParents: false
+    sendToParents: false,
+    sendToStudents: true
   });
   
   const { toast } = useToast();
@@ -149,7 +151,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       if (smsOptions.sendToParents) {
         const studentsWithParents = studentsWithMarks.filter(mark => {
           const student = getStudentInfo(mark.studentId);
-          return student && student.parentPhoneNumber;
+          return student && student.parent_phone_number;
         });
         requiredCredits += studentsWithParents.length;
       }
@@ -187,9 +189,9 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     const student = getStudentInfo(studentMark.studentId);
     if (!student) return '';
 
-    // Fixed SMS format (65 chars max) - teachers cannot edit
+    // Improved SMS format (65 chars max) - teachers cannot edit
     const studentName = `${student.firstName} ${student.lastName}`;
-    const scoreText = `Got ${studentMark.marks}/${exam.totalMarks}`;
+    const scoreText = `Got ${studentMark.marks}/${exam.totalMarks} marks in`;
     const signature = " -Belal Sir";
     const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
     const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
@@ -218,7 +220,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     if (smsOptions.sendToParents) {
       const studentsWithParents = studentsWithMarks.filter(mark => {
         const student = getStudentInfo(mark.studentId);
-        return student && student.parentPhoneNumber;
+        return student && student.parent_phone_number;
       });
       totalSMS += studentsWithParents.length;
     }
@@ -275,28 +277,57 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Simple Send SMS Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-purple-600" />
-                  <Label className="font-semibold">Send Result SMS to Students</Label>
-                </div>
-                <Switch
-                  checked={smsOptions.sendSMS}
-                  onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendSMS: checked})}
-                />
+              <div className="mb-4">
+                <Label className="font-semibold text-lg text-blue-700">📱 SMS Recipients Selection</Label>
+                <p className="text-sm text-gray-600 mt-1">Choose who should receive exam result notifications</p>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-green-600" />
-                  <Label className="font-semibold">Also Send to Parents (Optional)</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <Label className="font-semibold">Send to Students</Label>
+                      <p className="text-xs text-gray-600">
+                        {studentMarks.filter(mark => mark.marks > 0).length} students with marks will receive SMS
+                      </p>
+                      {smsOptions.sendToStudents && (
+                        <div className="mt-1 text-xs text-blue-700 font-mono">
+                          📞 Numbers: {examStudents.filter(s => s.phoneNumber).map(s => s.phoneNumber).join(', ') || 'No phone numbers'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={smsOptions.sendToStudents}
+                    onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToStudents: checked, sendSMS: checked || smsOptions.sendToParents})}
+                  />
                 </div>
-                <Switch
-                  checked={smsOptions.sendToParents}
-                  onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToParents: checked})}
-                  disabled={!smsOptions.sendSMS}
-                />
+                
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-green-600" />
+                    <div>
+                      <Label className="font-semibold">Send to Parents</Label>
+                      <p className="text-xs text-gray-600">
+                        {studentMarks.filter(mark => {
+                          if (mark.marks <= 0) return false;
+                          const student = getStudentInfo(mark.studentId);
+                          return student && student.parent_phone_number;
+                        }).length} parents will receive SMS
+                      </p>
+                      {smsOptions.sendToParents && (
+                        <div className="mt-1 text-xs text-green-700 font-mono">
+                          📞 Numbers: {examStudents.filter(s => s.parent_phone_number).map(s => s.parent_phone_number).join(', ') || 'No parent numbers'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={smsOptions.sendToParents}
+                    onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToParents: checked, sendSMS: smsOptions.sendToStudents || checked})}
+                  />
+                </div>
               </div>
               
               <div className="text-xs text-gray-600 bg-white p-2 rounded border">
@@ -402,7 +433,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                             <div className="text-gray-600 font-mono">
                               {(() => {
                                 const studentName = `${student.firstName} ${student.lastName}`;
-                                const scoreText = `Got ${studentMark?.marks || 0}/${exam?.totalMarks}`;
+                                const scoreText = `Got ${studentMark?.marks || 0}/${exam?.totalMarks} marks in`;
                                 const signature = " -Belal Sir";
                                 const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4;
                                 const examName = exam?.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam?.title;

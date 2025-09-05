@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, Star, TrendingUp, Target, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Award, Star, TrendingUp, Target, Loader2, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface ExamResultsProps {
@@ -100,6 +100,53 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
 
   const sortedResults = (resultsData.results || []).sort((a: StudentResult, b: StudentResult) => b.marks - a.marks);
   const totalStudents = sortedResults.length;
+
+  // If no results/marks entered yet, show "Results not published" message
+  if (totalStudents === 0) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              📋 {exam?.title} - Exam Results
+            </DialogTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              {exam?.subject === 'chemistry' ? 'Chemistry' : 'ICT'} • {new Date(exam?.examDate).toLocaleDateString()} • Total: {exam?.totalMarks} marks
+            </p>
+          </DialogHeader>
+          
+          <div className="text-center py-12">
+            <div className="mb-6">
+              <div className="w-20 h-20 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                <FileText className="w-10 h-10 text-yellow-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                ফলাফল এখনো প্রকাশিত হয়নি
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Results Not Published Yet
+              </p>
+              <div className="max-w-md mx-auto text-sm text-gray-500 space-y-2">
+                <p>• শিক্ষক এখনও এই পরীক্ষার নম্বর দেয়নি</p>
+                <p>• Marks have not been entered by the teacher yet</p>
+                <p>• ফলাফল প্রকাশিত হলে আপনি অবহিত হবেন</p>
+              </div>
+            </div>
+            
+            {userRole === 'teacher' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-blue-800 font-medium mb-2">শিক্ষকের জন্য নোট:</p>
+                <p className="text-blue-700 text-sm">
+                  এই পরীক্ষার ফলাফল প্রকাশ করতে "Enter Marks" বাটনে ক্লিক করুন
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const averageMarks = totalStudents > 0 ? sortedResults.reduce((sum: number, result: StudentResult) => sum + result.marks, 0) / totalStudents : 0;
   const highestMarks = sortedResults[0]?.marks || 0;
   const currentUserResult = currentUserId ? sortedResults.find((r: StudentResult) => r.id === currentUserId) : null;

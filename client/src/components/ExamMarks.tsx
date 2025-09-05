@@ -143,7 +143,16 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     // Check SMS credits if SMS is enabled
     if (smsOptions.sendSMS) {
       const studentsWithMarks = validMarks.filter(mark => mark.marks > 0);
-      const requiredCredits = studentsWithMarks.length;
+      let requiredCredits = studentsWithMarks.length; // Student SMS count
+      
+      // Add parent SMS count if enabled
+      if (smsOptions.sendToParents) {
+        const studentsWithParents = studentsWithMarks.filter(mark => {
+          const student = getStudentInfo(mark.studentId);
+          return student && student.parentPhoneNumber;
+        });
+        requiredCredits += studentsWithParents.length;
+      }
       
       if (currentCredits === 0) {
         toast({
@@ -157,7 +166,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       if (requiredCredits > currentCredits) {
         toast({
           title: "❌ Insufficient SMS Credits",
-          description: `আপনার ${requiredCredits} SMS প্রয়োজন কিন্তু ${currentCredits} আছে। Admin এর সাথে যোগাযোগ করুন।`,
+          description: `আপনার ${requiredCredits} SMS প্রয়োজন (${smsOptions.sendToParents ? 'students + parents' : 'students only'}) কিন্তু ${currentCredits} আছে। Admin এর সাথে যোগাযোগ করুন।`,
           variant: "destructive",
         });
         return;
@@ -193,11 +202,23 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
     );
   });
 
-  // Calculate SMS cost - simplified
+  // Calculate SMS cost - including parents
   const getActiveSMSCount = () => {
     const studentsWithMarks = studentMarks.filter(mark => mark.marks > 0);
     if (!smsOptions.sendSMS) return 0;
-    return studentsWithMarks.length;
+    
+    let totalSMS = studentsWithMarks.length; // Student SMS count
+    
+    // Add parent SMS count if enabled
+    if (smsOptions.sendToParents) {
+      const studentsWithParents = studentsWithMarks.filter(mark => {
+        const student = getStudentInfo(mark.studentId);
+        return student && student.parentPhoneNumber;
+      });
+      totalSMS += studentsWithParents.length;
+    }
+    
+    return totalSMS;
   };
   
   const totalSMSCost = getActiveSMSCount();
@@ -274,7 +295,19 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
               </div>
               
               <div className="text-xs text-gray-600 bg-white p-2 rounded border">
-                📱 SMS Format: "Student Name: 85/100 Chemistry Private -Belal Sir" (Fixed format, cannot edit)
+                <div className="flex justify-between items-center">
+                  <span>📊 SMS Summary:</span>
+                  <span className="font-medium">
+                    Total: {totalSMSCost} SMS 
+                    {smsOptions.sendToParents && " (students + parents)"}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-gray-500">
+                  Available SMS Credits: {(smsCreditsData as any)?.smsCredits || 0}
+                </div>
+                <div className="mt-2 text-xs text-blue-600">
+                  📱 SMS Format: "Student Name: 85/100 ExamName -Belal Sir" (Fixed format, cannot edit)
+                </div>
               </div>
               
               {!smsOptions.sendSMS && (

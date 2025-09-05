@@ -6,13 +6,13 @@ export const DEVELOPER_PROFILE = {
     name: 'Md Sahid Rahman',
     title: 'Founder & CEO of Praggo',
     subtitle: 'Civil Engineering Student',
-    profileImage: '/assets/images/sahid-rahman-profile.svg',
+    profileImage: '/assets/images/sahid-rahman-real-photo.jpg',
     university: 'Gopalganj Science and Technology University',
     degree: 'B.Sc Civil Engineering (ongoing)',
     email: 'sahidrahmanx@gmail.com',
     facebook: 'https://www.facebook.com/share/16qPLuCvu8/',
-    founded: '2020',
-    established: '2020-Present'
+    founded: '2025',
+    established: '2025-Present'
   },
 
   bio: {
@@ -33,16 +33,16 @@ export const DEVELOPER_PROFILE = {
   ],
 
   achievements: [
-    { title: 'Founder & CEO of Praggo', year: '2020-Present', type: 'leadership' },
-    { title: 'Civil Engineering Student', year: '2021-Present', type: 'education' },
-    { title: 'Cyber Security Expert', year: '2019-Present', type: 'professional' },
-    { title: 'Bug Bounty Hunter', year: '2020-Present', type: 'professional' },
-    { title: 'Doubt Solver at ACS', year: '2022-Present', type: 'education' }
+    { title: 'Founder & CEO of Praggo', year: '2025-Present', type: 'leadership' },
+    { title: 'Civil Engineering Student', year: '2022-Present', type: 'education' },
+    { title: 'Cyber Security Expert', year: '2023-Present', type: 'professional' },
+    { title: 'Bug Bounty Hunter', year: '2023-Present', type: 'professional' },
+    { title: 'Doubt Solver at ACS', year: '2024-Present', type: 'education' }
   ],
 
   company: {
     name: 'Praggo Group',
-    founded: '2020',
+    founded: '2025',
     vision: 'Leading technology and innovation for a better future',
     mission: 'Providing comprehensive solutions across multiple industries',
     
@@ -61,7 +61,7 @@ export const DEVELOPER_PROFILE = {
       },
       {
         name: 'Praggo Academy',
-        nameBengali: 'এখানে বুয়েট সহ পাবলিক বিশ্ববিদ্যালয়ের শিক্ষার্থীদের ভর্তি একাডেমিক, চাকুরি এবং চৌকড় প্রস্তুতি বিষয়ক শিক্ষা প্রদান করা হয়',
+        nameBengali: 'এখানে বুয়েট সহ পাবলিক বিশ্ববিদ্যালয়ের শিক্ষার্থীদের ভর্তি একাডেমিক, চাকুরি এবং প্রস্তুতি বিষয়ক শিক্ষা প্রদান করা হয়',
         category: 'education',
         established: '2021'
       },

@@ -385,6 +385,8 @@ export class DatabaseStorage implements IStorage {
     feedback?: string;
     submissionId?: string;
   }>> {
+    console.log(`🔍 getExamResults called for examId: ${examId}`);
+    
     const submissions = await db
       .select({
         studentId: examSubmissions.studentId,
@@ -392,20 +394,27 @@ export class DatabaseStorage implements IStorage {
         manualMarks: examSubmissions.manualMarks,
         feedback: examSubmissions.feedback,
         submissionId: examSubmissions.id,
+        isSubmitted: examSubmissions.isSubmitted,
       })
       .from(examSubmissions)
-      .where(and(
-        eq(examSubmissions.examId, examId),
-        eq(examSubmissions.isSubmitted, true)
-      ));
+      .where(eq(examSubmissions.examId, examId)); // Remove isSubmitted filter temporarily for debugging
     
-    return submissions.map(submission => ({
-      studentId: submission.studentId,
-      // Use manual marks if available (teacher entered), otherwise use auto-calculated score
-      marks: submission.manualMarks ?? submission.score ?? 0,
-      feedback: submission.feedback || '',
-      submissionId: submission.submissionId || '',
-    }));
+    console.log(`🔍 Raw submissions found: ${submissions.length}`, submissions);
+    
+    // Filter for submitted results and map the data
+    const results = submissions
+      .filter(submission => submission.isSubmitted === true)
+      .map(submission => ({
+        studentId: submission.studentId,
+        // Use manual marks if available (teacher entered), otherwise use auto-calculated score
+        marks: submission.manualMarks ?? submission.score ?? 0,
+        feedback: submission.feedback || '',
+        submissionId: submission.submissionId || '',
+      }));
+    
+    console.log(`🔍 Filtered results: ${results.length}`, results);
+    
+    return results;
   }
 
   // Message operations

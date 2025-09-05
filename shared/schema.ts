@@ -113,8 +113,8 @@ export const exams = pgTable("exams", {
   examMode: varchar("exam_mode").notNull(), // online, offline
   batchId: varchar("batch_id").references(() => batches.id),
   targetStudents: jsonb("target_students"), // Array of student IDs for specific targeting
-  questionSource: varchar("question_source").notNull(), // drive_link, image_upload  
-  questionContent: text("question_content"), // Google Drive link or base64 image data (PNG/JPG)
+  questionSource: varchar("question_source").notNull(), // drive_link, file_upload  
+  questionContent: text("question_content"), // Google Drive link or base64 file data (PNG/JPG/PDF)
   totalMarks: integer("total_marks").default(0),
   isActive: boolean("is_active").default(true),
   createdBy: varchar("created_by").notNull().references(() => users.id),
@@ -503,7 +503,7 @@ export const insertExamSchema = createInsertSchema(exams).omit({
 }).extend({
   subject: z.enum(['chemistry', 'ict']),
   examMode: z.enum(['online', 'offline']).default('online'),
-  questionSource: z.enum(['drive_link', 'image_upload']).default('drive_link'),
+  questionSource: z.enum(['drive_link', 'file_upload']).default('drive_link'),
   examDate: z.string().transform((str) => new Date(str)),
   targetStudents: z.array(z.string()).nullable().optional(),
 });

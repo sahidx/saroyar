@@ -23,7 +23,7 @@ const examSchema = z.object({
   examType: z.enum(['mcq', 'written', 'mixed']),
   examMode: z.enum(['online', 'offline']),
   batchId: z.string().min(1, 'Batch selection is required'),
-  questionSource: z.enum(['drive_link', 'image_upload']),
+  questionSource: z.enum(['drive_link', 'file_upload']),
   questionContent: z.string().min(1, 'Question content is required'),
   totalMarks: z.number().min(1, 'Total marks must be at least 1'),
   instructions: z.string().optional(),
@@ -89,7 +89,7 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
         examType: editingExam.examType || 'mcq',
         examMode: editingExam.examMode || 'online',
         batchId: editingExam.batchId || '',
-        questionSource: editingExam.questionSource || 'drive_link',
+        questionSource: editingExam.questionSource === 'image_upload' ? 'file_upload' : (editingExam.questionSource || 'drive_link'),
         questionContent: editingExam.questionContent || '',
         totalMarks: editingExam.totalMarks || 100,
         instructions: editingExam.instructions || '',
@@ -392,10 +392,10 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="image_upload" id="image_upload" />
-                        <Label htmlFor="image_upload" className="flex items-center gap-2">
+                        <RadioGroupItem value="file_upload" id="file_upload" />
+                        <Label htmlFor="file_upload" className="flex items-center gap-2">
                           <Image className="w-4 h-4" />
-                          Image Upload (PNG/JPG)
+                          File Upload (PNG/JPG/PDF)
                         </Label>
                       </div>
                     </RadioGroup>
@@ -414,7 +414,7 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
                   <FormLabel>
                     {questionSource === 'drive_link' 
                       ? 'Google Drive Shareable Link' 
-                      : 'Upload Image (PNG/JPG)'
+                      : 'Upload File (PNG/JPG/PDF)'
                     }
                   </FormLabel>
                   <FormControl>
@@ -427,20 +427,22 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
                     ) : (
                       <Input 
                         type="file" 
-                        accept=".png,.jpg,.jpeg"
+                        accept=".png,.jpg,.jpeg,.pdf"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            // Check file size (increased limit to 5MB for better JPG support)
-                            if (file.size > 5 * 1024 * 1024) {
-                              alert('File too large! Please upload an image smaller than 5MB');
+                            // Check file size - increased limit for PDF support (10MB)
+                            const maxSize = file.type === 'application/pdf' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+                            if (file.size > maxSize) {
+                              const maxSizeMB = file.type === 'application/pdf' ? '10MB' : '5MB';
+                              alert(`File too large! Please upload a ${file.type === 'application/pdf' ? 'PDF' : 'image'} smaller than ${maxSizeMB}`);
                               return;
                             }
                             
-                            // Validate file type
-                            const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+                            // Validate file type - now supports PDF
+                            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
                             if (!validTypes.includes(file.type)) {
-                              alert('Invalid file type! Please upload PNG or JPG files only');
+                              alert('Invalid file type! Please upload PNG, JPG, or PDF files only');
                               return;
                             }
                             
@@ -448,15 +450,17 @@ export function ExamModal({ isOpen, onClose, editingExam }: ExamModalProps) {
                             const reader = new FileReader();
                             reader.onload = () => {
                               const result = reader.result as string;
-                              // Increased size limit for better JPG support (1.5MB base64)
-                              if (result.length > 1500000) {
-                                alert('Image too large after conversion! Please use a smaller image or compress it (max ~1.5MB)');
+                              // Different limits for different file types
+                              const maxBase64Size = file.type === 'application/pdf' ? 8000000 : 1500000; // 8MB for PDF, 1.5MB for images
+                              if (result.length > maxBase64Size) {
+                                const fileTypeDesc = file.type === 'application/pdf' ? 'PDF (~8MB)' : 'image (~1.5MB)';
+                                alert(`File too large after conversion! Please use a smaller ${fileTypeDesc}`);
                                 return;
                               }
                               field.onChange(result);
                             };
                             reader.onerror = () => {
-                              alert('Error reading file! Please try again or use a different image');
+                              alert('Error reading file! Please try again or use a different file');
                             };
                             reader.readAsDataURL(file);
                           }

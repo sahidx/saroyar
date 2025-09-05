@@ -813,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if ((smsOptions.sendToStudents !== false) && student.phoneNumber) totalSMSNeeded++;
           
           // Count parent SMS if enabled and parent has phone number
-          if (smsOptions.sendToParents && student.parent_phone_number) totalSMSNeeded++;
+          if (smsOptions.sendToParents && student.parentPhoneNumber) totalSMSNeeded++;
           
           validStudents.push({ student, mark });
         }
@@ -862,11 +862,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Send to parent if enabled and parent has phone
-              if (smsOptions.sendToParents && student.parent_phone_number) {
+              if (smsOptions.sendToParents && student.parentPhoneNumber) {
                 const parentMessage = `আপনার সন্তান ${student.firstName} ${student.lastName} এর ${exam.title} পরীক্ষার ফলাফল: ${mark.marks}/${exam.totalMarks} নম্বর। বেলাল স্যার`;
                 
                 const parentResult = await bulkSMSService.sendBulkSMS(
-                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parent_phone_number }],
+                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
                   parentMessage,
                   teacherId,
                   'exam_result'
@@ -1489,7 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const smsRecipients = [];
         for (const record of attendanceData) {
           const student = await storage.getUser(record.studentId);
-          if (student?.parent_phone_number) {
+          if (student?.parentPhoneNumber) {
             const status = record.isPresent ? 'উপস্থিত' : 'অনুপস্থিত';
             const subjectName = subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
             const message = `${student.firstName} ${student.lastName} ${subjectName} ক্লাসে ${status} ছিল। বেলাল স্যার`;
@@ -1497,7 +1497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             smsRecipients.push({
               id: student.id,
               name: `${student.firstName}'s Parent`,
-              phoneNumber: student.parent_phone_number,
+              phoneNumber: student.parentPhoneNumber,
               message
             });
           }
@@ -2525,7 +2525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               recipients.push({
                 id: `parent-${student.id}`,
                 name: `${student.firstName} এর অভিভাবক`,
-                phoneNumber: student.parent_phone_number,
+                phoneNumber: student.parentPhoneNumber,
                 type: 'parent'
               });
             }
@@ -2549,7 +2549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             recipients.push({
               id: `parent-${student.id}`,
               name: `${student.firstName} এর অভিভাবক`,
-              phoneNumber: student.parent_phone_number,
+              phoneNumber: student.parentPhoneNumber,
               type: 'parent'
             });
           }
@@ -2689,14 +2689,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (targetType === 'all') {
         const allStudents = await storage.getAllStudents();
         studentCount = allStudents.filter(s => s.phoneNumber).length;
-        parentCount = allStudents.filter(s => s.parent_phone_number).length;
+        parentCount = allStudents.filter(s => s.parentPhoneNumber).length;
       } else if (targetType === 'batches' && batchIds) {
         const batchIdArray = Array.isArray(batchIds) ? batchIds : [batchIds];
         
         for (const batchId of batchIdArray) {
           const students = await storage.getStudentsByBatch(batchId);
           studentCount += students.filter(s => s.phoneNumber).length;
-          parentCount += students.filter(s => s.parent_phone_number).length;
+          parentCount += students.filter(s => s.parentPhoneNumber).length;
         }
       }
 

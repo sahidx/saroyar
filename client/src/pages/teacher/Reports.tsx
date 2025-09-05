@@ -19,11 +19,14 @@ import {
   Phone,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Reports() {
+  const [, setLocation] = useLocation();
   // Fetch student performance reports
   const { data: studentReports = [] } = useQuery({
     queryKey: ["/api/reports/student-performance"],
@@ -67,6 +70,20 @@ export default function Reports() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Header with Back button */}
+      <div className="flex items-center space-x-4 mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => setLocation('/teacher')}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+          data-testid="button-back-to-dashboard"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+      
       {/* Header */}
       <div className="mb-8 flex justify-between items-start">
         <div>

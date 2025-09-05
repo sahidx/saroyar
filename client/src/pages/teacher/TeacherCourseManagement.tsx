@@ -31,8 +31,9 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit3, Trash2, BookOpen, FlaskConical, Monitor, GraduationCap, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit3, Trash2, BookOpen, FlaskConical, Monitor, GraduationCap, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 const courseFormSchema = z.object({
   title: z.string().min(1, "Course title is required"),
@@ -51,6 +52,7 @@ type CourseFormData = z.infer<typeof courseFormSchema>;
 export default function TeacherCourseManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
 
@@ -225,6 +227,20 @@ export default function TeacherCourseManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Back button */}
+      <div className="flex items-center space-x-4 mb-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => setLocation('/teacher')}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+          data-testid="button-back-to-dashboard"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </Button>
+      </div>
+      
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">কোর্স ব্যবস্থাপনা</h2>

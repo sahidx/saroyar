@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Sidebar } from '@/components/Sidebar';
+import { useLocation } from 'wouter';
 import { 
   BookOpen, 
   Plus, 
@@ -20,6 +21,7 @@ import {
   Trash2, 
   ExternalLink,
   ArrowRight,
+  ArrowLeft,
   ChevronLeft,
   GraduationCap,
   BookMarked
@@ -29,6 +31,7 @@ import { CHAPTERS, CATEGORIES } from '@shared/questionBankConstants';
 export default function QuestionBank() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   // Navigation state
   const [currentStep, setCurrentStep] = useState(1);
@@ -191,6 +194,20 @@ export default function QuestionBank() {
       <Sidebar />
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
+          {/* Header with Back button */}
+          <div className="flex items-center space-x-4 mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLocation('/teacher')}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+              data-testid="button-back-to-dashboard"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </Button>
+          </div>
+          
           {/* Mobile-optimized header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
             <div>

@@ -152,6 +152,29 @@ export default function StudentAIHelp() {
                       <span className="font-medium">উদাহরণ:</span> "প্রোগ্রামিং এ লুপ কি?"
                     </div>
                   </div>
+                  
+                  {/* Premium Upgrade Notice */}
+                  <div className={`mt-4 p-4 rounded-lg border-2 border-dashed ${
+                    isDarkMode 
+                      ? 'bg-gradient-to-r from-yellow-900/20 to-orange-900/20 border-yellow-400/50' 
+                      : 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-400/60'
+                  }`}>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <GraduationCap className="w-5 h-5 text-yellow-500" />
+                        <span className={`font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>
+                          প্রিমিয়াম আনলক করুন
+                        </span>
+                      </div>
+                      <p className={`text-sm ${isDarkMode ? 'text-yellow-300' : 'text-yellow-800'} leading-relaxed`}>
+                        সম্পূর্ণ AI শক্তি আনলক করতে চান? মাসিক মাত্র <span className="font-bold">৫ টাকা প্রতি ছাত্রছাত্রী</span> দিয়ে 
+                        প্রিমিয়াম সংস্করণের জন্য আপনার শিক্ষককে জিজ্ঞেস করুন।
+                      </p>
+                      <p className={`text-xs mt-2 ${isDarkMode ? 'text-yellow-400/80' : 'text-yellow-700/80'}`}>
+                        Premium AI features • Unlimited questions • Advanced explanations
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}

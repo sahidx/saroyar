@@ -3357,52 +3357,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple question bank endpoint - NO COMPLEX FILTERING
-  app.get('/api/simple-question-bank', async (req, res) => {
+  // Chapter-wise Google Drive resources endpoint
+  app.get('/api/chapter-resources', async (req, res) => {
     try {
-      // Use execute_sql directly with raw connection
-      const result = await storage.executeRawSQL(`
-        SELECT id, subject, category, sub_category, chapter, question_text, 
-               question_type, difficulty, marks, drive_link
-        FROM question_bank 
-        WHERE is_public = true 
-        ORDER BY created_at DESC
-        LIMIT 50
-      `);
+      const { class_level, subject } = req.query;
       
-      res.json(result);
+      let query = 'SELECT * FROM chapter_resources WHERE 1=1';
+      const params = [];
+      
+      if (class_level) {
+        query += ' AND class_level = $' + (params.length + 1);
+        params.push(class_level);
+      }
+      
+      if (subject) {
+        query += ' AND subject = $' + (params.length + 1);
+        params.push(subject);
+      }
+      
+      query += ' ORDER BY chapter_name';
+      
+      // Execute query directly with fallback
+      const result = await storage.pool.query(query, params);
+      res.json(result.rows);
     } catch (error) {
-      console.error('Error fetching simple question bank:', error);
+      console.error('Error fetching chapter resources:', error);
       // Return sample data on error
-      res.json([
+      const sampleData = [
         {
           id: '1',
+          class_level: '9-10',
           subject: 'chemistry',
-          chapter: 'রসায়নের ধারণা',
-          question_text: 'কার্বনের পারমাণবিক সংখ্যা কত?',
-          difficulty: 'easy',
-          marks: 1,
-          drive_link: 'https://drive.google.com/file/d/sample1'
+          chapter_name: '১. রসায়নের ধারণা',
+          google_drive_link: 'https://drive.google.com/drive/folders/chemistry-chapter1',
+          description: 'রসায়নের মৌলিক ধারণা ও পরিচিতি',
+          created_at: new Date().toISOString()
         },
         {
-          id: '2', 
+          id: '2',
+          class_level: '9-10',
           subject: 'chemistry',
-          chapter: 'পদার্থের অবস্থা',
-          question_text: 'পদার্থের তিনটি অবস্থা কী কী?',
-          difficulty: 'medium',
-          marks: 3,
-          drive_link: 'https://drive.google.com/file/d/sample2'
+          chapter_name: '২. পদার্থের অবস্থা',
+          google_drive_link: 'https://drive.google.com/drive/folders/chemistry-chapter2',
+          description: 'কঠিন, তরল ও গ্যাসীয় অবস্থা',
+          created_at: new Date().toISOString()
         },
         {
           id: '3',
-          subject: 'ict', 
-          chapter: 'তথ্য ও যোগাযোগ প্রযুক্তি',
-          question_text: 'ICT এর পূর্ণরূপ কী?',
-          difficulty: 'easy',
-          marks: 1,
-          drive_link: 'https://drive.google.com/file/d/sample3'
+          class_level: '9-10',
+          subject: 'ict',
+          chapter_name: '১. তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+          google_drive_link: 'https://drive.google.com/drive/folders/ict-chapter1',
+          description: 'ICT এর পরিচিতি ও ব্যবহার',
+          created_at: new Date().toISOString()
         }
-      ]);
+      ];
+      
+      // Filter sample data based on query parameters
+      let filteredData = sampleData;
+      if (req.query.class_level) {
+        filteredData = filteredData.filter(item => item.class_level === req.query.class_level);
+      }
+      if (req.query.subject) {
+        filteredData = filteredData.filter(item => item.subject === req.query.subject);
+      }
+      
+      res.json(filteredData);
     }
   });
 

@@ -2,78 +2,91 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, BookOpen, Download, ExternalLink } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, BookOpen, ExternalLink, FolderOpen, ChevronRight } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { CHAPTERS } from '@shared/questionBankConstants';
 
-interface Question {
+interface ChapterResource {
   id: string;
+  class_level: string;
   subject: string;
-  chapter: string;
-  question_text: string;
-  difficulty: string;
-  marks: number;
-  drive_link: string;
+  chapter_name: string;
+  google_drive_link: string;
+  description: string;
+  created_at: string;
 }
 
 export default function StudentQuestionBank() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [resources, setResources] = useState<ChapterResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
 
   useEffect(() => {
-    fetchQuestions();
-  }, []);
+    fetchResources();
+  }, [selectedClass, selectedSubject]);
 
-  const fetchQuestions = async () => {
+  const fetchResources = async () => {
     try {
-      const response = await fetch('/api/simple-question-bank', {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (selectedClass) params.append('class_level', selectedClass);
+      if (selectedSubject) params.append('subject', selectedSubject);
+      
+      const response = await fetch(`/api/chapter-resources?${params}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
       
       if (response.ok) {
         const data = await response.json();
-        setQuestions(data);
+        setResources(data);
       }
     } catch (error) {
-      console.error('Error loading questions:', error);
+      console.error('Error loading resources:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = (question: Question) => {
-    if (question.drive_link) {
-      window.open(question.drive_link, '_blank');
-      toast({
-        title: "প্রশ্ন ডাউনলোড",
-        description: "প্রশ্নের লিংক খোলা হচ্ছে...",
-      });
-    }
-  };
-
-  const getDifficultyBadge = (difficulty: string) => {
-    const colors = {
-      'easy': 'bg-green-100 text-green-800',
-      'medium': 'bg-yellow-100 text-yellow-800',
-      'hard': 'bg-red-100 text-red-800'
-    };
-    const labels = {
-      'easy': 'সহজ',
-      'medium': 'মাঝারি', 
-      'hard': 'কঠিন'
-    };
-    return (
-      <Badge className={`${colors[difficulty as keyof typeof colors] || 'bg-gray-100 text-gray-800'} text-xs`}>
-        {labels[difficulty as keyof typeof labels] || difficulty}
-      </Badge>
-    );
+  const handleOpenDriveLink = (resource: ChapterResource) => {
+    window.open(resource.google_drive_link, '_blank');
+    toast({
+      title: "Google Drive লিংক",
+      description: `${resource.chapter_name} এর রিসোর্স খোলা হচ্ছে...`,
+    });
   };
 
   const getSubjectName = (subject: string) => {
     return subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
+  };
+
+  const getClassDisplayName = (classLevel: string) => {
+    return classLevel === '9-10' ? 'নবম-দশম শ্রেণী' : 'একাদশ-দ্বাদশ শ্রেণী';
+  };
+
+  // Get available chapters for current selection
+  const getAvailableChapters = () => {
+    if (!selectedClass || !selectedSubject) return [];
+    
+    if (selectedClass === '9-10') {
+      return CHAPTERS['9-10'][selectedSubject] || [];
+    } else {
+      const subject = CHAPTERS['11-12'][selectedSubject];
+      if (selectedSubject === 'ict') {
+        return subject || [];
+      } else if (subject) {
+        // For chemistry, combine both papers
+        const paper1 = subject['paper-1'] || [];
+        const paper2 = subject['paper-2'] || [];
+        return [...paper1, ...paper2];
+      }
+    }
+    return [];
   };
 
   if (loading) {
@@ -89,7 +102,7 @@ export default function StudentQuestionBank() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-cyan-50">
-      {/* Header with back button */}
+      {/* Header */}
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
@@ -111,7 +124,7 @@ export default function StudentQuestionBank() {
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
               <Badge variant="outline" className="text-xs">
-                মোট {questions.length}টি
+                মোট {resources.length}টি
               </Badge>
             </div>
           </div>
@@ -120,62 +133,126 @@ export default function StudentQuestionBank() {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 gap-4">
-          {questions.length === 0 ? (
+        
+        {/* Filters */}
+        <Card className="border-blue-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              শ্রেণী ও বিষয় নির্বাচন করুন
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Class Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">শ্রেণী</label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="শ্রেণী নির্বাচন করুন" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="9-10">নবম-দশম শ্রেণী</SelectItem>
+                    <SelectItem value="11-12">একাদশ-দ্বাদশ শ্রেণী</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subject Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">বিষয়</label>
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="বিষয় নির্বাচন করুন" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="chemistry">রসায়ন</SelectItem>
+                    <SelectItem value="ict">তথ্য ও যোগাযোগ প্রযুক্তি</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Show selection status */}
+        {selectedClass && selectedSubject && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="bg-white">
+                    {getClassDisplayName(selectedClass)}
+                  </Badge>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <Badge variant="outline" className="bg-white">
+                    {getSubjectName(selectedSubject)}
+                  </Badge>
+                </div>
+                <div className="text-sm text-green-600 font-medium">
+                  {resources.length}টি অধ্যায় পাওয়া গেছে
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Resources List */}
+        <div className="space-y-4">
+          {!selectedClass || !selectedSubject ? (
             <Card className="border-gray-200">
               <CardContent className="py-8 text-center">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">কোনো প্রশ্ন পাওয়া যায়নি।</p>
+                <p className="text-gray-600">প্রথমে শ্রেণী ও বিষয় নির্বাচন করুন</p>
+                <p className="text-sm text-gray-500 mt-2">তারপর আপনার প্রয়োজনীয় অধ্যায়ের রিসোর্স দেখুন</p>
+              </CardContent>
+            </Card>
+          ) : resources.length === 0 ? (
+            <Card className="border-gray-200">
+              <CardContent className="py-8 text-center">
+                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">এই শ্রেণী ও বিষয়ের জন্য কোনো রিসোর্স পাওয়া যায়নি</p>
+                <p className="text-sm text-gray-500 mt-2">শীঘ্রই আরো রিসোর্স যোগ করা হবে</p>
               </CardContent>
             </Card>
           ) : (
-            questions.map((question) => (
-              <Card key={question.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+            resources.map((resource) => (
+              <Card key={resource.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-sm sm:text-base font-semibold text-gray-900 mb-2">
-                        {question.question_text}
+                      <CardTitle className="text-base font-semibold text-gray-900 mb-2">
+                        {resource.chapter_name}
                       </CardTitle>
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                      {resource.description && (
+                        <p className="text-sm text-gray-600 mb-3">
+                          {resource.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
-                          {getSubjectName(question.subject)}
+                          {getClassDisplayName(resource.class_level)}
                         </Badge>
-                        {getDifficultyBadge(question.difficulty)}
                         <Badge variant="outline" className="text-xs">
-                          {question.marks} নম্বর
+                          {getSubjectName(resource.subject)}
+                        </Badge>
+                        <Badge className="text-xs bg-green-100 text-green-800">
+                          Google Drive
                         </Badge>
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">অধ্যায়:</span> {question.chapter}
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                      <Button
-                        onClick={() => handleDownload(question)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                        size="sm"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        ডাউনলোড করুন
-                      </Button>
-                      {question.drive_link && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(question.drive_link, '_blank')}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          লিংক দেখুন
-                        </Button>
-                      )}
-                    </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      onClick={() => handleOpenDriveLink(resource)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      size="sm"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Google Drive এ দেখুন
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -184,14 +261,16 @@ export default function StudentQuestionBank() {
         </div>
 
         {/* Stats */}
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="py-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">{questions.length}</div>
-              <div className="text-sm text-green-600">মোট প্রশ্ন উপলব্ধ</div>
-            </div>
-          </CardContent>
-        </Card>
+        {resources.length > 0 && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="py-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-700">{resources.length}</div>
+                <div className="text-sm text-green-600">অধ্যায়ের রিসোর্স উপলব্ধ</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

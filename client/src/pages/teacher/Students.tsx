@@ -375,6 +375,10 @@ export default function Students() {
   const studentsQuery = useQuery({
     queryKey: ['/api/students'],
     retry: false,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: studentsData, isLoading: studentsLoading } = studentsQuery;
@@ -439,11 +443,14 @@ export default function Students() {
       const response = await apiRequest('PATCH', `/api/students/${studentId}/password`, { password });
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Force refresh of student data
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       studentsQuery.refetch();
+      
       toast({
         title: '✅ Password Updated',
-        description: 'Student password has been updated successfully.',
+        description: `Student password has been updated successfully. New password: ${data.password}`,
         variant: 'default',
       });
       setEditingPassword(null);

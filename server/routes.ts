@@ -474,6 +474,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real students data endpoint with fallback
   app.get("/api/students", async (req: any, res) => {
     try {
+      // Prevent caching to ensure fresh password data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       console.log('👥 Fetching students with optimized query...');
       // Use direct database query for better performance
       const students = await db.select({
@@ -490,6 +495,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
       console.log(`👥 Found ${students.length} students`);
       console.log(`📱 Parent numbers found: ${students.filter(s => s.parentPhoneNumber).length}`);
+      console.log(`🔑 Students with passwords: ${students.filter(s => s.studentPassword).length}`);
+      // Log password status for debugging
+      students.forEach(s => {
+        console.log(`🔑 ${s.firstName} ${s.lastName} (${s.studentId}): Password = "${s.studentPassword || 'NOT SET'}"`);
+      });
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -1877,6 +1887,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update password in database
       const updatedStudent = await storage.updateStudentPassword(studentId, password);
       
+      // Log for debugging
+      console.log(`🔑 Password update - Student: ${studentId}, New Password: ${password}, Updated Record:`, updatedStudent);
+      
       // Log activity
       await storage.logActivity({
         type: 'password_updated',
@@ -1888,7 +1901,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         message: "Password updated successfully",
-        password: password
+        password: password,
+        studentPassword: updatedStudent.studentPassword // Include the actual saved password
       });
     } catch (error) {
       console.error("Error updating password:", error);

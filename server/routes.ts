@@ -900,19 +900,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let totalFailed = 0;
             
             for (const { student, mark } of validStudents) {
-              // Improved SMS format (65 chars max): "Name: Got 85/100 marks in ExamName -Belal Sir"
               const studentName = `${student.firstName} ${student.lastName}`;
-              const scoreText = `Got ${mark.marks}/${exam.totalMarks} marks in`;
-              const signature = " -Belal Sir";
-              const maxExamLength = 65 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
-              const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
-              const smsMessage = `${studentName}: ${scoreText} ${examName}${signature}`;
               
-              // Send to student if enabled
+              // Send to student if enabled (67 char limit)
               if ((smsOptions.sendToStudents !== false) && student.phoneNumber) {
+                // Student SMS: "Name: Got 85/100 marks in ExamName -Belal Sir" (under 67 chars)
+                const scoreText = `Got ${mark.marks}/${exam.totalMarks} marks in`;
+                const signature = " -Belal Sir";
+                const maxExamLength = 67 - studentName.length - scoreText.length - signature.length - 4; // 4 for spaces and colon
+                const examName = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
+                const studentMessage = `${studentName}: ${scoreText} ${examName}${signature}`;
+                
                 const studentResult = await bulkSMSService.sendBulkSMS(
-                  [{ id: student.id, name: `${student.firstName} ${student.lastName}`, phoneNumber: student.phoneNumber }],
-                  smsMessage,
+                  [{ id: student.id, name: studentName, phoneNumber: student.phoneNumber }],
+                  studentMessage,
                   teacherId,
                   'exam_result'
                 );
@@ -923,12 +924,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`📱 Student SMS sent to ${student.firstName}: ${studentResult.success}`);
               }
               
-              // Send to parent if enabled and parent has phone
+              // Send to parent if enabled (shorter template under 67 chars)
               if (smsOptions.sendToParents && student.parentPhoneNumber) {
-                const parentMessage = `আপনার সন্তান ${student.firstName} ${student.lastName} এর ${exam.title} পরীক্ষার ফলাফল: ${mark.marks}/${exam.totalMarks} নম্বর। বেলাল স্যার`;
+                // Parent SMS: "safayet: 23/39 নম্বর (z পরীক্ষা) -বেলাল স্যার" (under 67 chars)
+                const firstName = student.firstName || studentName.split(' ')[0];
+                const scoreText = `${mark.marks}/${exam.totalMarks} নম্বর`;
+                const signature = " -বেলাল স্যার";
+                const maxExamLength = 67 - firstName.length - scoreText.length - signature.length - 8; // 8 for ": (পরীক্ষা) "
+                const shortExam = exam.title.length > maxExamLength ? exam.title.substring(0, maxExamLength) : exam.title;
+                const parentMessage = `${firstName}: ${scoreText} (${shortExam} পরীক্ষা)${signature}`;
                 
                 const parentResult = await bulkSMSService.sendBulkSMS(
-                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
+                  [{ id: `parent-${student.id}`, name: `${firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
                   parentMessage,
                   teacherId,
                   'exam_result'

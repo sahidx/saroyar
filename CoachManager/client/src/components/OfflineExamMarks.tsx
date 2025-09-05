@@ -27,7 +27,8 @@ interface StudentMark {
 
 interface SMSOptions {
   sendSMS: boolean;
-  targetRecipients: 'student' | 'parent' | 'both';
+  sendToStudents: boolean;
+  sendToParents: boolean;
   customTemplate: string;
 }
 
@@ -35,7 +36,8 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
   const [studentMarks, setStudentMarks] = useState<StudentMark[]>([]);
   const [smsOptions, setSmsOptions] = useState<SMSOptions>({
     sendSMS: true,
-    targetRecipients: 'student',
+    sendToStudents: true,
+    sendToParents: false,
     customTemplate: `🎯 Exam Result Alert!\n\nDear {student_name},\n\nYour result for "{exam_title}" exam:\n📊 Marks: {marks}/{total_marks}\n📅 Exam Date: {exam_date}\n\n{feedback}\n\nBest of luck for future exams!\n\nChemistry & ICT Care by Belal Sir\n📞 Contact: 01712345678`
   });
   
@@ -133,13 +135,14 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
       .replace('{teacher_phone}', '01712345678');
   };
 
-  // Calculate SMS cost based on options
+  // Calculate SMS cost based on options  
   const getActiveSMSCount = () => {
     const studentsWithMarks = studentMarks.filter(mark => mark.marks > 0);
     if (!smsOptions.sendSMS) return 0;
     
-    let multiplier = 1;
-    if (smsOptions.targetRecipients === 'both') multiplier = 2;
+    let multiplier = 0;
+    if (smsOptions.sendToStudents) multiplier += 1;
+    if (smsOptions.sendToParents) multiplier += 1;
     
     return studentsWithMarks.length * multiplier;
   };
@@ -205,31 +208,56 @@ export function OfflineExamMarks({ exam, isOpen, onClose }: OfflineExamMarksProp
                 />
               </div>
               
-              {/* Target Recipients */}
+              {/* Target Recipients with Character Counting */}
               {smsOptions.sendSMS && (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Label className="font-semibold flex items-center gap-2">
                     <UserCheck className="w-4 h-4" />
                     Send SMS To:
                   </Label>
-                  <Select 
-                    value={smsOptions.targetRecipients} 
-                    onValueChange={(value: 'student' | 'parent' | 'both') => setSmsOptions({...smsOptions, targetRecipients: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">📱 Students Only</SelectItem>
-                      <SelectItem value="parent">👨‍👩‍👧‍👦 Parents Only</SelectItem>
-                      <SelectItem value="both">📱👨‍👩‍👧‍👦 Both Students & Parents</SelectItem>
-                    </SelectContent>
-                  </Select>
                   
-                  <div className="text-xs text-purple-600">
-                    {smsOptions.targetRecipients === 'student' && '📱 SMS will be sent to student phone numbers'}
-                    {smsOptions.targetRecipients === 'parent' && '👨‍👩‍👧‍👦 SMS will be sent to parent phone numbers'}
-                    {smsOptions.targetRecipients === 'both' && '📱👨‍👩‍👧‍👦 SMS will be sent to both student and parent phone numbers (2× cost)'}
+                  {/* Student Option */}
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={smsOptions.sendToStudents}
+                        onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToStudents: checked})}
+                      />
+                      <div>
+                        <Label className="font-medium text-blue-700">📱 Students</Label>
+                        <p className="text-xs text-blue-600">English format: "Name: Got 23/39 marks in z -Belal Sir"</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-blue-600 font-mono">
+                      ~65 chars<br/>
+                      <span className="text-green-600">1 SMS credit</span>
+                    </div>
+                  </div>
+
+                  {/* Parent Option */}
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={smsOptions.sendToParents}
+                        onCheckedChange={(checked) => setSmsOptions({...smsOptions, sendToParents: checked})}
+                      />
+                      <div>
+                        <Label className="font-medium text-green-700">👨‍👩‍👧‍👦 Parents</Label>
+                        <p className="text-xs text-green-600">Shorter format: "safayet: 23/39 নম্বর (z পরীক্ষা) -বেলাল স্যার"</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-green-600 font-mono">
+                      ~50 chars<br/>
+                      <span className="text-green-600">1 SMS credit</span>
+                    </div>
+                  </div>
+                  
+                  {/* Cost Information */}
+                  <div className="text-xs text-purple-600 bg-purple-50 p-2 rounded">
+                    {!smsOptions.sendToStudents && !smsOptions.sendToParents && '⚠️ Select at least one recipient type'}
+                    {smsOptions.sendToStudents && !smsOptions.sendToParents && '📱 SMS will be sent to students only'}
+                    {!smsOptions.sendToStudents && smsOptions.sendToParents && '👨‍👩‍👧‍👦 SMS will be sent to parents only'}
+                    {smsOptions.sendToStudents && smsOptions.sendToParents && '📱👨‍👩‍👧‍👦 SMS will be sent to both students AND parents (2× cost per student)'}
                   </div>
                 </div>
               )}

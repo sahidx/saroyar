@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Clock, Users, Calendar, FileText, Search, Eye, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Clock, Users, Calendar, FileText, Search, Eye, Edit, Trash2, Trophy } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExamModal } from '@/components/ExamModal';
 import { ExamMarks } from '@/components/ExamMarks';
@@ -321,6 +321,16 @@ export default function Exams() {
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1 border-green-200 text-green-700 hover:bg-green-50"
+                        data-testid={`button-results-exam-${exam.id}`}
+                        onClick={() => setSelectedExamForResults(exam)}
+                      >
+                        <Trophy className="w-3 h-3 mr-1" />
+                        Results
                       </Button>
                       <Button 
                         size="sm" 

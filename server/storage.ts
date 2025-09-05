@@ -121,6 +121,14 @@ export interface IStorage {
   createSubmission(submission: InsertSubmission): Promise<ExamSubmission>;
   updateSubmission(id: string, data: Partial<InsertSubmission>): Promise<ExamSubmission>;
   
+  // Exam Results operations  
+  getExamResults(examId: string): Promise<Array<{
+    studentId: string;
+    marks: number;
+    feedback?: string;
+    submissionId?: string;
+  }>>;
+  
   // Message operations
   getMessagesBetweenUsers(userId1: string, userId2: string): Promise<Message[]>;
   getRecentMessagesForUser(userId: string): Promise<Message[]>;
@@ -368,6 +376,34 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubmission(id: string): Promise<void> {
     await db.delete(examSubmissions).where(eq(examSubmissions.id, id));
+  }
+
+  // Exam Results operations
+  async getExamResults(examId: string): Promise<Array<{
+    studentId: string;
+    marks: number;
+    feedback?: string;
+    submissionId?: string;
+  }>> {
+    const submissions = await db
+      .select({
+        studentId: examSubmissions.studentId,
+        marks: examSubmissions.score,
+        feedback: examSubmissions.feedback,
+        submissionId: examSubmissions.id,
+      })
+      .from(examSubmissions)
+      .where(and(
+        eq(examSubmissions.examId, examId),
+        eq(examSubmissions.isSubmitted, true)
+      ));
+    
+    return submissions.map(submission => ({
+      studentId: submission.studentId,
+      marks: submission.marks || 0,
+      feedback: submission.feedback || '',
+      submissionId: submission.submissionId || '',
+    }));
   }
 
   // Message operations

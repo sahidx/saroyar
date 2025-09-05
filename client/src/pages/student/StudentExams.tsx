@@ -19,12 +19,14 @@ import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { QuestionViewer } from '@/components/QuestionViewer';
+import { ExamResults } from '@/components/ExamResults';
 
 export default function StudentExams() {
   const { user } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [, setLocation] = useLocation();
   const [selectedExamForViewing, setSelectedExamForViewing] = useState<any>(null);
+  const [selectedExamForResults, setSelectedExamForResults] = useState<any>(null);
 
   const handleLogout = () => {
     window.location.href = '/api/logout';
@@ -322,6 +324,16 @@ export default function StudentExams() {
             exam={selectedExamForViewing}
             isOpen={!!selectedExamForViewing}
             onClose={() => setSelectedExamForViewing(null)}
+          />
+        )}
+
+        {/* Exam Results Modal */}
+        {selectedExamForResults && (
+          <ExamResults
+            exam={selectedExamForResults}
+            isOpen={!!selectedExamForResults}
+            onClose={() => setSelectedExamForResults(null)}
+            userRole="student"
           />
         )}
       </div>

@@ -4275,5 +4275,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Get exam results with student performance (for result view)
+  app.get('/api/exams/:examId/results', async (req, res) => {
+    try {
+      const examId = req.params.examId;
+      
+      // Get exam details
+      const exam = await storage.getExamById(examId);
+      if (!exam) {
+        return res.status(404).json({ error: 'Exam not found' });
+      }
+
+      // Get all students who took this exam (from examSubmissions)
+      const results = await storage.getExamResults(examId);
+      
+      // Enrich results with student information
+      const enrichedResults = await Promise.all(
+        results.map(async (result) => {
+          const student = await storage.getUser(result.studentId);
+          return {
+            ...result,
+            student: {
+              id: student?.id,
+              firstName: student?.firstName,
+              lastName: student?.lastName,
+              studentId: student?.studentId,
+              phoneNumber: student?.phoneNumber
+            }
+          };
+        })
+      );
+      
+      // Rank students by marks (highest first)
+      const rankedResults = enrichedResults.sort((a, b) => b.marks - a.marks);
+      
+      // Add ranking to results
+      const rankedWithPosition = rankedResults.map((result, index) => ({
+        ...result,
+        rank: index + 1
+      }));
+      
+      // Calculate statistics
+      const totalStudents = rankedResults.length;
+      const totalMarks = exam.totalMarks || 100;
+      const marks = rankedResults.map(r => r.marks);
+      
+      const stats = {
+        totalStudents,
+        averageScore: marks.length > 0 ? marks.reduce((a, b) => a + b, 0) / marks.length : 0,
+        highestScore: marks.length > 0 ? Math.max(...marks) : 0,
+        lowestScore: marks.length > 0 ? Math.min(...marks) : 0,
+        passedStudents: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 60).length,
+        gradeDistribution: {
+          aPlus: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 90).length,
+          a: rankedResults.filter(r => {
+            const percentage = (r.marks / totalMarks) * 100;
+            return percentage >= 80 && percentage < 90;
+          }).length,
+          b: rankedResults.filter(r => {
+            const percentage = (r.marks / totalMarks) * 100;
+            return percentage >= 70 && percentage < 80;
+          }).length,
+          c: rankedResults.filter(r => {
+            const percentage = (r.marks / totalMarks) * 100;
+            return percentage >= 60 && percentage < 70;
+          }).length,
+          fail: rankedResults.filter(r => (r.marks / totalMarks) * 100 < 60).length
+        }
+      };
+
+      res.json({
+        exam,
+        results: rankedWithPosition,
+        stats
+      });
+    } catch (error) {
+      console.error('Error fetching exam results:', error);
+      res.status(500).json({ error: 'Failed to fetch exam results' });
+    }
+  });
+
   return httpServer;
 }

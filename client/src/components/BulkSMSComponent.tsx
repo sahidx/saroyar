@@ -175,6 +175,26 @@ export function BulkSMSComponent({ isDarkMode }: BulkSMSComponentProps) {
               className="min-h-[100px]"
               maxLength={160}
             />
+            
+            {/* SMS Billing Warning */}
+            <div className={`text-xs p-3 rounded-md mt-2 ${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone className="w-3 h-3" />
+                <span className="font-medium">SMS ক্রেডিট তথ্য:</span>
+              </div>
+              <p>• বাংলা SMS: ৬৭ অক্ষরের বেশি হলে ২টি ক্রেডিট কাটবে</p>
+              <p>• ইংরেজি SMS: ১৬০ অক্ষরের বেশি হলে ২টি ক্রেডিট কাটবে</p>
+              {message.length > 0 && (
+                <p>• বর্তমান মেসেজ: {message.length} অক্ষর 
+                  <span className={(/[\u0980-\u09FF]/.test(message) 
+                    ? (message.length > 67 ? ' text-orange-500 font-medium' : '') 
+                    : (message.length > 160 ? ' text-orange-500 font-medium' : '')
+                  )}>
+                    ({Math.max(1, Math.ceil(message.length / (/[\u0980-\u09FF]/.test(message) ? 67 : 160)))} ক্রেডিট প্রয়োজন)
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Send Button */}

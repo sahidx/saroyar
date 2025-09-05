@@ -61,8 +61,8 @@ export class BulkSMSService {
     const hasBengaliChars = /[\u0980-\u09FF]/.test(message);
     const characterType: 'bengali' | 'english' = hasBengaliChars ? 'bengali' : 'english';
     
-    // Character limits per SMS part
-    const charLimit = characterType === 'bengali' ? 70 : 160;
+    // Character limits per SMS part (industry standard)
+    const charLimit = characterType === 'bengali' ? 67 : 160;
     
     // Calculate SMS parts (minimum 1 part)
     const smsParts = Math.max(1, Math.ceil(messageLength / charLimit));

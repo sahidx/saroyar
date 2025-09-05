@@ -82,9 +82,9 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
       // Check if SMS was skipped due to insufficient balance
       if (result.smsSkipped) {
         toast({
-          title: "✅ Marks Saved - SMS Not Sent",
-          description: `নম্বর সংরক্ষিত হয়েছে (${studentMarks.length} students)। SMS ব্যালেন্স অপর্যাপ্ত - SMS পাঠানো হয়নি।`,
-          variant: "default",
+          title: "🔴 নম্বর সংরক্ষিত - SMS পাঠানো হয়নি",
+          description: `${result.marksSaved || studentMarks.length} students এর নম্বর সেভ হয়েছে। SMS ব্যালেন্স অপর্যাপ্ত! অ্যাডমিনের সাথে যোগাযোগ করুন।`,
+          variant: "destructive",
         });
       } else {
         toast({
@@ -384,8 +384,18 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                     {smsOptions.sendToParents && " (students + parents)"}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">
+                <div className={`mt-1 text-xs font-semibold ${
+                  ((smsCreditsData as any)?.smsCredits || 0) === 0 ? 'text-red-600' : 
+                  ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost ? 'text-orange-600' : 
+                  'text-green-600'
+                }`}>
                   Available SMS Credits: {(smsCreditsData as any)?.smsCredits || 0}
+                  {((smsCreditsData as any)?.smsCredits || 0) === 0 && (
+                    <span className="ml-2 text-red-600">⚠️ No Balance!</span>
+                  )}
+                  {((smsCreditsData as any)?.smsCredits || 0) > 0 && ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && (
+                    <span className="ml-2 text-orange-600">⚠️ Insufficient!</span>
+                  )}
                 </div>
                 <div className="mt-2 text-xs text-blue-600">
                   📱 SMS Format: "Student Name: Got 85/100 ExamName -Belal Sir" (Fixed format, cannot edit)
@@ -400,19 +410,56 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
             </CardContent>
           </Card>
 
+          {/* SMS Balance Warning - Show when insufficient */}
+          {((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 && (
+            <Card className="bg-red-50 border-red-300 border-2">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-100 rounded-full">
+                    <MessageSquare className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-red-800 text-lg">🔴 SMS Balance Insufficient!</h3>
+                    <p className="text-red-700 text-sm mt-1">
+                      Need: <span className="font-bold">{totalSMSCost} SMS</span>, Available: <span className="font-bold">{(smsCreditsData as any)?.smsCredits || 0} SMS</span>
+                    </p>
+                    <p className="text-red-600 text-sm font-semibold mt-2">
+                      💾 Marks will be saved but SMS will NOT be sent. Contact admin for SMS credits.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* SMS Cost Info */}
-          <Card className="bg-green-50 border-green-200">
+          <Card className={`${
+            ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 ? 
+            'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'
+          }`}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Smartphone className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-green-700">SMS Cost Estimation</span>
+                  <Smartphone className={`w-5 h-5 ${
+                    ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 ? 
+                    'text-orange-600' : 'text-green-600'
+                  }`} />
+                  <span className={`font-semibold ${
+                    ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 ? 
+                    'text-orange-700' : 'text-green-700'
+                  }`}>SMS Cost Estimation</span>
                 </div>
                 <div className="text-right">
-                  <Badge className="bg-green-600 text-white">
+                  <Badge className={`${
+                    ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 ? 
+                    'bg-orange-600 text-white' : 'bg-green-600 text-white'
+                  }`}>
                     {totalSMSCost} SMS × 1 Credit = {totalSMSCost} Credits
                   </Badge>
-                  <p className="text-xs text-green-600 mt-1">From main SMS balance</p>
+                  <p className={`text-xs mt-1 ${
+                    ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0 ? 
+                    'text-orange-600' : 'text-green-600'
+                  }`}>From main SMS balance</p>
                 </div>
               </div>
             </CardContent>
@@ -556,6 +603,8 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                     String(mark.marks).trim() !== ''
                   )
                     ? "bg-gray-400 cursor-not-allowed text-white"
+                    : ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0
+                    ? "bg-red-600 hover:bg-red-700 text-white"
                     : (smsOptions.sendSMS ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white")
                 }
                 title={!studentMarks.every(mark => 
@@ -568,7 +617,7 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
               >
                 <Send className="w-4 h-4 mr-2" />
                 {updateMarksMutation.isPending 
-                  ? 'Updating...' 
+                  ? 'Saving Marks...' 
                   : !studentMarks.every(mark => 
                       mark.marks !== '' && 
                       mark.marks !== null && 
@@ -577,6 +626,8 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
                       String(mark.marks).trim() !== ''
                     )
                     ? '🔒 সব নম্বর দিন প্রথমে'
+                    : ((smsCreditsData as any)?.smsCredits || 0) < totalSMSCost && totalSMSCost > 0
+                    ? `🔴 Save Marks (SMS Skipped - No Balance)`
                     : (smsOptions.sendSMS ? `Save Marks & Send ${totalSMSCost} SMS` : 'Save Marks Only')
                 }
               </Button>

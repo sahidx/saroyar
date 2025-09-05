@@ -20,7 +20,8 @@ import {
   TrendingUp,
   ShoppingCart,
   CalendarCheck,
-  Settings
+  Settings,
+  Code
 } from 'lucide-react';
 
 interface IconGridItem {
@@ -242,5 +243,11 @@ export const getStudentIcons = (setLocation: (path: string) => void): IconGridIt
     icon: <FileText className="w-full h-full" />,
     label: 'প্রশ্নব্যাংক',
     onClick: () => setLocation('/student/question-bank')
+  },
+  {
+    id: 'developer',
+    icon: <Code className="w-full h-full" />,
+    label: 'Developer',
+    onClick: () => setLocation('/student/developer')
   }
 ];

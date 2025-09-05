@@ -37,6 +37,7 @@ import StudentExamView from "@/pages/student/StudentExamView";
 import StudentResults from "@/pages/student/StudentResults";
 import StudentQuestionBank from "@/pages/student/QuestionBank";
 import StudentAttendance from "@/pages/student/StudentAttendance";
+import StudentDeveloper from "@/pages/student/StudentDeveloper";
 import TeacherQuestionBank from "@/pages/teacher/QuestionBank";
 import TeacherCourseManagement from "@/pages/teacher/TeacherCourseManagement";
 import TeacherProfileManagement from "@/pages/teacher/TeacherProfileManagement";
@@ -125,6 +126,7 @@ function Router() {
               <Route path="/student/results/:examId" component={StudentResults} />
               <Route path="/student/question-bank" component={StudentQuestionBank} />
               <Route path="/student/attendance" component={StudentAttendance} />
+              <Route path="/student/developer" component={StudentDeveloper} />
               <Route path="/attendance" component={Attendance} />
               <Route path="/messages" component={Messages} />
               <Route path="/notices" component={NoticeBoard} />

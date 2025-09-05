@@ -707,53 +707,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update marks for each student with proper error handling
       const markResults = [];
       let savedCount = 0;
+      let failedCount = 0;
+      
+      console.log(`📝 Starting to save marks for ${studentMarks.length} students...`);
       
       for (const mark of studentMarks) {
         if (mark.marks > 0) {
           try {
             const submission = await storage.getSubmissionByUserAndExam(mark.studentId, examId);
+            const submissionData = {
+              score: mark.marks,
+              manualMarks: mark.marks,
+              totalMarks: exam.totalMarks,
+              feedback: mark.feedback || '',
+              isSubmitted: true,
+              submittedAt: new Date(),
+              isManualEntry: true
+            };
             
             if (submission) {
               // Update existing submission
-              const updated = await storage.updateSubmission(submission.id, {
-                score: mark.marks,
-                manualMarks: mark.marks,
-                totalMarks: exam.totalMarks,
-                feedback: mark.feedback || '',
-                isSubmitted: true,
-                submittedAt: new Date(),
-                isManualEntry: true
-              });
+              const updated = await storage.updateSubmission(submission.id, submissionData);
               markResults.push(updated);
-              console.log(`✅ Updated marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks}`);
+              console.log(`✅ UPDATED marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (submission ID: ${submission.id})`);
             } else {
               // Create new submission
               const created = await storage.createSubmission({
                 examId: examId,
                 studentId: mark.studentId,
-                score: mark.marks,
-                manualMarks: mark.marks,
-                totalMarks: exam.totalMarks,
-                feedback: mark.feedback || '',
-                isSubmitted: true,
-                submittedAt: new Date(),
-                isManualEntry: true
+                ...submissionData
               });
               markResults.push(created);
-              console.log(`✅ Created marks for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks}`);
+              console.log(`✅ CREATED new submission for student ${mark.studentId}: ${mark.marks}/${exam.totalMarks} (new ID: ${created.id})`);
             }
             savedCount++;
           } catch (error) {
-            console.error(`❌ Failed to save marks for student ${mark.studentId}:`, error);
+            console.error(`❌ CRITICAL ERROR saving marks for student ${mark.studentId}:`, error);
+            failedCount++;
             // Continue with other students even if one fails
           }
+        } else {
+          console.log(`⏭️  Skipped student ${mark.studentId}: marks = ${mark.marks}`);
         }
       }
 
-      console.log(`📊 Marks saved: ${savedCount}/${studentMarks.length} students`);
+      console.log(`📊 Marks saved: ${savedCount}/${studentMarks.length} students, Failed: ${failedCount}`);
 
-      // Enhanced SMS sending with multiple recipient options
-      let smsPromises: Promise<any>[] = [];
+      // Return early if marks saving failed completely
+      if (savedCount === 0 && failedCount > 0) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to save any marks to database. Please check the logs and try again.",
+          savedCount: 0,
+          failedCount
+        });
+      }
+
+      // Enhanced SMS sending with multiple recipient options (students + parents)
       let totalSMSSent = 0;
       
       if (smsOptions.sendSMS) {
@@ -763,44 +773,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const teacherId = req.session?.user?.id || 'c71a0268-95ab-4ae1-82cf-3fefdf08116d';
         const studentsWithMarks = studentMarks.filter((mark: any) => mark.marks > 0);
 
-        // Prepare SMS recipients and messages
-        const smsRecipients = [];
+        // Calculate total SMS needed BEFORE sending
+        let totalSMSNeeded = 0;
+        const validStudents = [];
+        
         for (const mark of studentsWithMarks) {
           const student = await storage.getUser(mark.studentId);
-          if (!student || !student.phoneNumber) continue;
+          if (!student) continue;
+          
+          // Count student SMS if they have phone number
+          if (student.phoneNumber) totalSMSNeeded++;
+          
+          // Count parent SMS if enabled and parent has phone number
+          if (smsOptions.sendToParents && student.parentPhoneNumber) totalSMSNeeded++;
+          
+          validStudents.push({ student, mark });
+        }
 
-          smsRecipients.push({
-            id: student.id,
-            name: `${student.firstName} ${student.lastName}`,
-            phoneNumber: student.phoneNumber,
-            marks: mark.marks,
-            feedback: mark.feedback || 'চালিয়ে যান!'
+        // Check SMS balance before sending
+        const teacherCredits = await storage.getUserSMSCredits(teacherId);
+        console.log(`📊 SMS needed: ${totalSMSNeeded}, Available: ${teacherCredits}`);
+        
+        if (totalSMSNeeded > teacherCredits) {
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient SMS credits. Need ${totalSMSNeeded} SMS, but only ${teacherCredits} available.`,
+            required: totalSMSNeeded,
+            available: teacherCredits
           });
         }
 
-        // Send SMS using consistent logic exactly like attendance system
-        if (smsRecipients.length > 0) {
+        // Send SMS to students and parents
+        if (validStudents.length > 0) {
           try {
             let totalSent = 0;
             let totalFailed = 0;
             
-            // Send individual SMS for each student result using consistent pattern like attendance
-            for (const recipient of smsRecipients) {
+            for (const { student, mark } of validStudents) {
               // Fixed SMS format (65 chars max): "Name: 85/100 Chemistry Private -Belal Sir"
-              const smsMessage = `${recipient.name}: ${recipient.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
+              const smsMessage = `${student.firstName} ${student.lastName}: ${mark.marks}/${exam.totalMarks} Chemistry Private -Belal Sir`;
               
-              const smsResult = await bulkSMSService.sendBulkSMS(
-                [{ id: recipient.id, name: recipient.name, phoneNumber: recipient.phoneNumber }],
-                smsMessage,
-                teacherId,
-                'exam_result'
-              );
+              // Send to student
+              if (student.phoneNumber) {
+                const studentResult = await bulkSMSService.sendBulkSMS(
+                  [{ id: student.id, name: `${student.firstName} ${student.lastName}`, phoneNumber: student.phoneNumber }],
+                  smsMessage,
+                  teacherId,
+                  'exam_result'
+                );
+                
+                totalSent += studentResult.sentCount;
+                totalFailed += studentResult.failedCount;
+                
+                console.log(`📱 Student SMS sent to ${student.firstName}: ${studentResult.success}`);
+              }
               
-              totalSent += smsResult.sentCount;
-              totalFailed += smsResult.failedCount;
+              // Send to parent if enabled and parent has phone
+              if (smsOptions.sendToParents && student.parentPhoneNumber) {
+                const parentMessage = `আপনার সন্তান ${student.firstName} ${student.lastName} এর ${exam.title} পরীক্ষার ফলাফল: ${mark.marks}/${exam.totalMarks} নম্বর। বেলাল স্যার`;
+                
+                const parentResult = await bulkSMSService.sendBulkSMS(
+                  [{ id: `parent-${student.id}`, name: `${student.firstName} এর অভিভাবক`, phoneNumber: student.parentPhoneNumber }],
+                  parentMessage,
+                  teacherId,
+                  'exam_result'
+                );
+                
+                totalSent += parentResult.sentCount;
+                totalFailed += parentResult.failedCount;
+                
+                console.log(`👨‍👩‍👧‍👦 Parent SMS sent to ${student.firstName}'s parent: ${parentResult.success}`);
+              }
               
-              // Stop if no more credits available (like attendance)
-              if (!smsResult.success && smsResult.sentCount === 0) {
+              // Stop if no more credits available
+              if (totalFailed > 0 && totalSent === 0) {
+                console.log('❌ No more SMS credits, stopping');
                 break;
               }
             }

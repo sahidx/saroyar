@@ -82,9 +82,23 @@ export function ExamMarks({ exam, isOpen, onClose }: ExamMarksProps) {
         description: result.message || `Results saved for ${studentMarks.length} students.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/student-results'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/exams/${exam.id}`] });
       onClose();
     },
     onError: (error: any) => {
+      console.error('Mark saving error:', error);
+      
+      // Handle insufficient SMS credits error specifically
+      if (error.message && error.message.includes('Insufficient SMS credits')) {
+        toast({
+          title: "❌ SMS ব্যালেন্স অপর্যাপ্ত",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "❌ Failed to Update Marks",
         description: error.message || "Something went wrong. Please try again.",

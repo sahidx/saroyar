@@ -11,7 +11,6 @@ import {
   Search,
   Filter,
   ExternalLink,
-  ImageIcon,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -20,13 +19,34 @@ import {
   User,
   Atom,
   Cpu,
-  Download
+  Download,
+  ArrowLeft
 } from 'lucide-react';
-import { MobileWrapper } from '@/components/MobileWrapper';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+
+interface Question {
+  id: string;
+  title: string;
+  description: string;
+  driveLink: string;
+  questionType: string;
+  subject: string;
+  category: string;
+  chapter: string;
+  difficulty: string;
+  marks: number;
+  createdAt: string;
+}
+
+interface QuestionBankResponse {
+  questions: Question[];
+  totalPages: number;
+  totalCount: number;
+  currentPage: number;
+}
 
 export default function StudentQuestionBank() {
   const { user } = useAuth();
@@ -47,7 +67,7 @@ export default function StudentQuestionBank() {
     }
   });
 
-  const handleDownload = (item: any) => {
+  const handleDownload = (item: Question) => {
     if (item.driveLink) {
       trackDownloadMutation.mutate(item.id);
       window.open(item.driveLink, '_blank');
@@ -67,11 +87,26 @@ export default function StudentQuestionBank() {
   // Fetch subjects and chapters for filtering
   const { data: subjectsData } = useQuery({
     queryKey: ['/api/student/question-bank/subjects'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/student/question-bank/subjects');
+      return await response.json();
+    }
   });
 
-  // Fetch question bank with filters
-  const { data: questionBankData, isLoading, refetch } = useQuery({
-    queryKey: [`/api/student/question-bank?subject=${selectedSubject}&chapter=${selectedChapter}&difficulty=${selectedDifficulty}&page=${currentPage}&limit=8`],
+  // Fetch question bank with filters using proper encoding
+  const { data: questionBankData, isLoading, refetch } = useQuery<QuestionBankResponse>({
+    queryKey: ['student-question-bank', selectedSubject, selectedChapter, selectedDifficulty, currentPage],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedSubject !== 'all') params.append('subject', selectedSubject);
+      if (selectedChapter !== 'all') params.append('chapter', selectedChapter);  
+      if (selectedDifficulty !== 'all') params.append('difficulty', selectedDifficulty);
+      params.append('page', currentPage.toString());
+      params.append('limit', '8');
+      
+      const response = await apiRequest('GET', `/api/student/question-bank?${params.toString()}`);
+      return await response.json() as QuestionBankResponse;
+    }
   });
 
   const questions = questionBankData?.questions || [];
@@ -82,18 +117,11 @@ export default function StudentQuestionBank() {
   const availableChapters = (subjectsData as any)?.find((s: any) => s.subject === selectedSubject)?.chapters || [];
 
   // Filter questions based on search query
-  const filteredQuestions = questions.filter((q: any) => 
+  const filteredQuestions = questions.filter((q: Question) => 
     searchQuery === '' || 
-    q.questionText.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     q.chapter.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const toggleAnswer = (questionId: string) => {
-    setShowAnswers(prev => ({
-      ...prev,
-      [questionId]: !prev[questionId]
-    }));
-  };
 
   const handleFilterChange = () => {
     setCurrentPage(1);
@@ -119,373 +147,273 @@ export default function StudentQuestionBank() {
     );
   };
 
+  const getSubjectIcon = (subject: string) => {
+    return subject === 'chemistry' ? <Atom className="w-5 h-5" /> : <Cpu className="w-5 h-5" />;
+  };
+
+  const getSubjectName = (subject: string) => {
+    return subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
+  };
+
   if (isLoading) {
     return (
-      <MobileWrapper>
-        <div className={`min-h-screen flex items-center justify-center ${isDarkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
-          : 'bg-gradient-to-br from-white via-gray-50 to-cyan-50'
-        }`}>
-          <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>প্রশ্নব্যাংক লোড হচ্ছে...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-gray-600">প্রশ্নব্যাংক লোড হচ্ছে...</p>
         </div>
-      </MobileWrapper>
+      </div>
     );
   }
 
   return (
-    <MobileWrapper>
-      <div className={`min-h-screen ${isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800' 
-        : 'bg-gradient-to-br from-white via-gray-50 to-cyan-50'
-      } transition-colors duration-300`}>
-        
-        {/* Header */}
-        <header className={`sticky top-0 z-50 force-mobile-header ${isDarkMode 
-          ? 'bg-slate-800/95 backdrop-blur-sm border-b border-emerald-400/30' 
-          : 'bg-white/95 backdrop-blur-sm border-b border-emerald-200 shadow-sm'
-        }`}>
-          <div className="mobile-header-content force-mobile-padding px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation('/student')}
-                  className={`w-9 h-9 ${isDarkMode 
-                    ? 'hover:bg-slate-700 text-emerald-400' 
-                    : 'hover:bg-gray-100 text-emerald-600'
-                  }`}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <div>
-                  <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                    প্রশ্নব্যাংক
-                  </h1>
-                  <p className={`text-sm ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                    {totalCount}টি প্রশ্ন আছে
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <BookOpen className={`w-5 h-5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+      {/* Mobile-friendly header with back button */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/student')}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                data-testid="button-back-to-dashboard"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
+                <p className="text-xs sm:text-sm text-gray-600">NCTB অনুমোদিত প্রশ্নসমূহ</p>
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <Badge variant="outline" className="text-xs">
+                মোট {totalCount}টি
+              </Badge>
+            </div>
           </div>
-        </header>
+        </div>
+      </div>
 
-        <main className="mobile-main-content force-mobile-padding p-4 space-y-4">
-          
-          {/* Search and Filters */}
-          <Card className={`force-mobile-card ${isDarkMode 
-            ? 'bg-slate-800/80 border-slate-600' 
-            : 'bg-white border-gray-200 shadow-md'
-          }`}>
-            <CardContent className="p-4 space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="প্রশ্ন খুঁজুন..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <div className="p-4 space-y-4">
+        {/* Mobile-optimized filters */}
+        <Card className="border-blue-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              ফিল্টার করুন
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="প্রশ্ন খুঁজুন..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-              {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className={`text-sm font-medium mb-2 block ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    বিষয়
-                  </label>
-                  <Select value={selectedSubject} onValueChange={(value) => {
-                    setSelectedSubject(value);
-                    setSelectedChapter('all');
-                    handleFilterChange();
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="বিষয় নির্বাচন করুন" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">সব বিষয়</SelectItem>
-                      {(subjectsData as any)?.map((subject: any) => (
-                        <SelectItem key={subject.subject} value={subject.subject}>
-                          <div className="flex items-center gap-2">
-                            {subject.subject === 'Chemistry' ? 
-                              <Atom className="w-4 h-4" /> : 
-                              <Cpu className="w-4 h-4" />
-                            }
-                            {subject.subject === 'Chemistry' ? 'রসায়ন' : 'ICT'}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Subject filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">বিষয়</label>
+              <Select value={selectedSubject} onValueChange={(value) => {
+                setSelectedSubject(value);
+                setSelectedChapter('all');
+                handleFilterChange();
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="বিষয় নির্বাচন করুন" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">সব বিষয়</SelectItem>
+                  <SelectItem value="chemistry">রসায়ন</SelectItem>
+                  <SelectItem value="ict">তথ্য ও যোগাযোগ প্রযুক্তি</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div>
-                  <label className={`text-sm font-medium mb-2 block ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    অধ্যায়
-                  </label>
-                  <Select 
-                    value={selectedChapter} 
-                    onValueChange={(value) => {
-                      setSelectedChapter(value);
-                      handleFilterChange();
-                    }}
-                    disabled={!selectedSubject}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">সব অধ্যায়</SelectItem>
-                      {availableChapters.map((chapter: any) => (
-                        <SelectItem key={chapter} value={chapter}>
-                          {chapter}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Chapter filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">অধ্যায়</label>
+              <Select value={selectedChapter} onValueChange={(value) => {
+                setSelectedChapter(value);
+                handleFilterChange();
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="অধ্যায় নির্বাচন করুন" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">সব অধ্যায়</SelectItem>
+                  {availableChapters.map((chapter: string) => (
+                    <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div>
-                  <label className={`text-sm font-medium mb-2 block ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    কঠিনতা
-                  </label>
-                  <Select value={selectedDifficulty} onValueChange={(value) => {
-                    setSelectedDifficulty(value);
-                    handleFilterChange();
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="কঠিনতা নির্বাচন করুন" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">সব লেভেল</SelectItem>
-                      <SelectItem value="easy">সহজ</SelectItem>
-                      <SelectItem value="medium">মাঝারি</SelectItem>
-                      <SelectItem value="hard">কঠিন</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Difficulty filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">কঠিনতা</label>
+              <Select value={selectedDifficulty} onValueChange={(value) => {
+                setSelectedDifficulty(value);
+                handleFilterChange();
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="কঠিনতার মাত্রা নির্বাচন করুন" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">সব ধরনের</SelectItem>
+                  <SelectItem value="easy">সহজ</SelectItem>
+                  <SelectItem value="medium">মাঝারি</SelectItem>
+                  <SelectItem value="hard">কঠিন</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Questions List */}
-          <div className="space-y-4">
-            {filteredQuestions.length > 0 ? (
-              filteredQuestions.map((question: any, index: number) => (
-                <Card key={question.id} className={`force-mobile-card ${isDarkMode 
-                  ? 'bg-slate-800/80 border-slate-600' 
-                  : 'bg-white border-gray-200 shadow-md'
-                }`}>
-                  <CardContent className="p-4">
-                    
-                    {/* Question Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {((currentPage - 1) * 8) + index + 1}
+        {/* Questions List - Mobile optimized */}
+        <div className="space-y-3">
+          {filteredQuestions.length === 0 ? (
+            <Card className="border-gray-200">
+              <CardContent className="py-8 text-center">
+                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">কোনো প্রশ্ন পাওয়া যায়নি।</p>
+                <p className="text-sm text-gray-500 mt-2">অন্য ফিল্টার ব্যবহার করে দেখুন।</p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredQuestions.map((question, index) => (
+              <Card key={question.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-sm sm:text-base font-semibold text-gray-900 mb-2">
+                        {question.title}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1 text-blue-600">
+                          {getSubjectIcon(question.subject)}
+                          <span className="text-xs font-medium">{getSubjectName(question.subject)}</span>
                         </div>
-                        <div>
-                          <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                            {question.subject === 'Chemistry' ? 'রসায়ন' : 'ICT'} • {question.chapter}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
                         {getDifficultyBadge(question.difficulty)}
                         <Badge variant="outline" className="text-xs">
                           {question.marks} নম্বর
                         </Badge>
                       </div>
                     </div>
-
-                    {/* Question Text */}
-                    <div className={`mb-4 text-sm leading-relaxed ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                      {question.questionText}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">অধ্যায়:</span> {question.chapter}
                     </div>
-
-                    {/* Question Image */}
-                    {question.questionImage && (
-                      <div className="mb-4">
-                        <img 
-                          src={question.questionImage} 
-                          alt="প্রশ্নের ছবি"
-                          className="w-full rounded-lg border shadow-sm"
-                          style={{ maxHeight: '250px', objectFit: 'contain' }}
-                        />
+                    
+                    {question.description && (
+                      <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                        {question.description.length > 150 
+                          ? `${question.description.substring(0, 150)}...`
+                          : question.description
+                        }
                       </div>
                     )}
 
-                    {/* Drive Link with Download */}
-                    {question.driveLink && (
-                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Download className="w-4 h-4 text-blue-600" />
-                            <span className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                              প্রশ্নের ফাইল ডাউনলোড করুন
-                            </span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDownload(question)}
-                              disabled={trackDownloadMutation.isPending}
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              ডাউনলোড
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (question.driveLink && question.driveLink.trim()) {
-                                  window.open(question.driveLink, '_blank');
-                                } else {
-                                  console.error('No drive link available for question:', question.id);
-                                  toast({
-                                    title: "লিংক উপলব্ধ নেই",
-                                    description: "এই প্রশ্নের জন্য কোনো লিংক পাওয়া যায়নি",
-                                    variant: "destructive"
-                                  });
-                                }
-                              }}
-                            >
-                              <ExternalLink className="w-3 h-3 mr-1" />
-                              দেখুন
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* MCQ Options */}
-                    {question.questionType === 'mcq' && question.options && (
-                      <div className="mb-4 space-y-2">
-                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          বিকল্পসমূহ:
-                        </p>
-                        {Object.entries(question.options).map(([key, value]: [string, any]) => (
-                          <div 
-                            key={key} 
-                            className={`p-2 rounded border text-sm ${
-                              showAnswers[question.id] && key === question.correctAnswer 
-                                ? isDarkMode 
-                                  ? 'bg-green-900/30 border-green-400 text-green-300' 
-                                  : 'bg-green-50 border-green-300 text-green-700'
-                                : isDarkMode 
-                                  ? 'bg-slate-800 border-slate-600 text-gray-300' 
-                                  : 'bg-gray-50 border-gray-300 text-gray-700'
-                            }`}
-                          >
-                            <span className="font-medium">{key.toUpperCase()})</span> {value}
-                            {showAnswers[question.id] && key === question.correctAnswer && (
-                              <span className="ml-2 text-xs font-medium">✓ সঠিক উত্তর</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Written Question Indicator */}
-                    {question.questionType === 'written' && (
-                      <div className={`mb-4 p-3 rounded border text-sm ${
-                        isDarkMode 
-                          ? 'bg-slate-800 border-slate-600 text-yellow-300' 
-                          : 'bg-yellow-50 border-yellow-300 text-yellow-700'
-                      }`}>
-                        📝 লিখিত প্রশ্ন - নিজে উত্তর দেওয়ার চেষ্টা করুন
-                      </div>
-                    )}
-
-                    {/* Show/Hide Answer Button */}
-                    {question.questionType === 'mcq' && (
-                      <div className="flex justify-center">
+                    {/* Mobile-friendly action buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                      <Button
+                        onClick={() => handleDownload(question)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        ডাউনলোড করুন
+                      </Button>
+                      {question.driveLink && (
                         <Button
                           variant="outline"
+                          onClick={() => window.open(question.driveLink, '_blank')}
+                          className="flex-1 text-sm border-blue-200 hover:bg-blue-50"
                           size="sm"
-                          onClick={() => toggleAnswer(question.id)}
-                          className="text-xs"
                         >
-                          <Eye className="w-4 h-4 mr-2" />
-                          {showAnswers[question.id] ? 'উত্তর লুকান' : 'উত্তর দেখান'}
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Google Drive
                         </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card className={`force-mobile-card ${isDarkMode 
-                ? 'bg-slate-800/80 border-slate-600' 
-                : 'bg-white border-gray-200 shadow-md'
-              }`}>
-                <CardContent className="p-8 text-center">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    কোনো প্রশ্ন পাওয়া যায়নি
-                  </p>
-                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    অন্য ফিল্টার ব্যবহার করে দেখুন
-                  </p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Card className={`force-mobile-card ${isDarkMode 
-              ? 'bg-slate-800/80 border-slate-600' 
-              : 'bg-white border-gray-200 shadow-md'
-            }`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentPage(currentPage - 1);
-                      refetch();
-                    }}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    আগের পেইজ
-                  </Button>
-                  
-                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    পেইজ {currentPage} / {totalPages}
-                  </span>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentPage(currentPage + 1);
-                      refetch();
-                    }}
-                    disabled={currentPage === totalPages}
-                  >
-                    পরের পেইজ
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            ))
           )}
-        </main>
+        </div>
+
+        {/* Mobile-friendly pagination */}
+        {totalPages > 1 && (
+          <Card className="border-gray-200">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage(currentPage - 1);
+                    refetch();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  আগের
+                </Button>
+                
+                <span className="text-sm text-gray-600">
+                  পৃষ্ঠা {currentPage} / {totalPages}
+                </span>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    setCurrentPage(currentPage + 1);
+                    refetch();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  পরের
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stats card */}
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between text-center">
+              <div>
+                <div className="text-lg font-bold text-green-700">{totalCount}</div>
+                <div className="text-xs text-green-600">মোট প্রশ্ন</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-blue-700">{filteredQuestions.length}</div>
+                <div className="text-xs text-blue-600">ফিল্টার করা</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-purple-700">{currentPage}</div>
+                <div className="text-xs text-purple-600">বর্তমান পৃষ্ঠা</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </MobileWrapper>
+    </div>
   );
 }

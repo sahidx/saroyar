@@ -94,8 +94,8 @@ export default function StudentQuestionBank() {
       const params = new URLSearchParams();
       if (selectedClass) params.append('class_level', selectedClass);
       if (selectedSubject) params.append('subject', selectedSubject);
-      if (selectedChapter) params.append('chapter_name', selectedChapter);
-      if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
+      if (selectedChapter && selectedChapter !== 'all') params.append('chapter_name', selectedChapter);
+      if (selectedSubcategory && selectedSubcategory !== 'all') params.append('subcategory', selectedSubcategory);
       
       const response = await fetch(`/api/chapter-resources?${params}`, {
         method: 'GET',
@@ -231,13 +231,13 @@ export default function StudentQuestionBank() {
                   <label className="text-sm font-medium text-gray-700">অধ্যায় (ঐচ্ছিক ফিল্টার)</label>
                   <Select value={selectedChapter} onValueChange={(value) => {
                     setSelectedChapter(value);
-                    setSelectedSubcategory('');
+                    setSelectedSubcategory('all');
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="সব অধ্যায় দেখুন" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">সব অধ্যায়</SelectItem>
+                      <SelectItem value="all">সব অধ্যায়</SelectItem>
                       {getAvailableChapters().map(chapter => (
                         <SelectItem key={chapter} value={chapter}>
                           {chapter}
@@ -256,7 +256,7 @@ export default function StudentQuestionBank() {
                         <SelectValue placeholder="সব উপবিভাগ দেখুন" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">সব উপবিভাগ</SelectItem>
+                        <SelectItem value="all">সব উপবিভাগ</SelectItem>
                         {subcategories.map(subcategory => (
                           <SelectItem key={subcategory} value={subcategory}>
                             {subcategory}

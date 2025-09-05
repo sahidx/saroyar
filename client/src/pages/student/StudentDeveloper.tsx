@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ import DEVELOPER_PROFILE from '@/data/developer-profile';
 export default function StudentDeveloper() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const [imageError, setImageError] = useState(false);
 
   // Get data from permanent profile
   const skills = DEVELOPER_PROFILE.skills.map(skill => ({
@@ -95,21 +96,18 @@ export default function StudentDeveloper() {
           <Card className="border-2 border-blue-200 shadow-lg">
             <CardHeader className="text-center pb-4">
               <div className="mx-auto w-24 h-24 rounded-full mb-4 shadow-lg overflow-hidden">
-                <img 
-                  src={DEVELOPER_PROFILE.personal.profileImage}
-                  alt={DEVELOPER_PROFILE.personal.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to gradient avatar with initials if SVG fails
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement!.innerHTML = `
-                      <div class="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
-                        <span class="text-2xl font-bold text-white">SR</span>
-                      </div>
-                    `;
-                  }}
-                />
+                {!imageError ? (
+                  <img 
+                    src={DEVELOPER_PROFILE.personal.profileImage}
+                    alt={DEVELOPER_PROFILE.personal.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">SR</span>
+                  </div>
+                )}
               </div>
               <CardTitle className="text-2xl font-bold text-gray-800">
                 {DEVELOPER_PROFILE.personal.name}

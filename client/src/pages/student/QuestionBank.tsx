@@ -1,503 +1,198 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { ArrowLeft, BookOpen, Download, ExternalLink } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  BookOpen, 
-  Search, 
-  Download, 
-  ExternalLink,
-  ArrowRight,
-  ChevronLeft,
-  GraduationCap,
-  BookMarked,
-  FileText,
-  Clock,
-  Users
-} from 'lucide-react';
-import { CHAPTERS, CATEGORIES } from '@shared/questionBankConstants';
+
+interface Question {
+  id: string;
+  subject: string;
+  chapter: string;
+  question_text: string;
+  difficulty: string;
+  marks: number;
+  drive_link: string;
+}
 
 export default function StudentQuestionBank() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
-  // Navigation state
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedPaper, setSelectedPaper] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get available chapters for current selection
-  const getAvailableChapters = () => {
-    if (!selectedClass || !selectedSubject) return [];
-    
-    if (selectedClass === '9-10') {
-      return CHAPTERS['9-10'][selectedSubject] || [];
-    } else {
-      const subject = CHAPTERS['11-12'][selectedSubject];
-      if (selectedSubject === 'ict') {
-        // ICT doesn't have papers, return chapters directly
-        return subject || [];
-      } else if (subject && selectedPaper) {
-        return subject[selectedPaper] || [];
-      }
-    }
-    return [];
-  };
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
 
-  // Fetch question items for current selection
-  const { data: questionItems = [], isLoading } = useQuery({
-    queryKey: ['student-question-bank-items', selectedClass, selectedSubject, selectedPaper, selectedCategory, selectedChapter],
-    enabled: !!(selectedClass && selectedSubject && selectedCategory && selectedChapter),
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        classLevel: selectedClass,
-        subject: selectedSubject,
-        category: selectedCategory,
-        chapter: selectedChapter
+  const fetchQuestions = async () => {
+    try {
+      const response = await fetch('/api/simple-question-bank', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
       });
-      if (selectedPaper) params.append('paper', selectedPaper);
       
-      return await apiRequest(`/api/question-bank/items?${params}`);
-    }
-  });
-
-  // Track download mutation
-  const trackDownloadMutation = useMutation({
-    mutationFn: async (itemId: string) => {
-      return await apiRequest('POST', `/api/question-bank/items/${itemId}/download`);
-    }
-  });
-
-  // Reset navigation when going back
-  const handleStepChange = (step: number) => {
-    setCurrentStep(step);
-    if (step <= 1) {
-      setSelectedClass('');
-      setSelectedSubject('');
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 2) {
-      setSelectedSubject('');
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 3) {
-      setSelectedPaper('');
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 4) {
-      setSelectedCategory('');
-      setSelectedChapter('');
-    } else if (step <= 5) {
-      setSelectedChapter('');
+      if (response.ok) {
+        const data = await response.json();
+        setQuestions(data);
+      }
+    } catch (error) {
+      console.error('Error loading questions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDownload = (item: any) => {
-    if (item.resourceUrl) {
-      trackDownloadMutation.mutate(item.id);
-      window.open(item.resourceUrl, '_blank');
+  const handleDownload = (question: Question) => {
+    if (question.drive_link) {
+      window.open(question.drive_link, '_blank');
       toast({
-        title: "ডাউনলোড শুরু",
-        description: "প্রশ্নটি নতুন ট্যাবে খোলা হচ্ছে"
-      });
-    } else {
-      toast({
-        title: "ত্রুটি",
-        description: "ডাউনলোড লিংক পাওয়া যায়নি",
-        variant: "destructive"
+        title: "প্রশ্ন ডাউনলোড",
+        description: "প্রশ্নের লিংক খোলা হচ্ছে...",
       });
     }
   };
 
-  // Filter items based on search term
-  const filteredItems = questionItems.filter((item: any) =>
-    !searchTerm || 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getDifficultyBadge = (difficulty: string) => {
+    const colors = {
+      'easy': 'bg-green-100 text-green-800',
+      'medium': 'bg-yellow-100 text-yellow-800',
+      'hard': 'bg-red-100 text-red-800'
+    };
+    const labels = {
+      'easy': 'সহজ',
+      'medium': 'মাঝারি', 
+      'hard': 'কঠিন'
+    };
+    return (
+      <Badge className={`${colors[difficulty as keyof typeof colors] || 'bg-gray-100 text-gray-800'} text-xs`}>
+        {labels[difficulty as keyof typeof labels] || difficulty}
+      </Badge>
+    );
+  };
+
+  const getSubjectName = (subject: string) => {
+    return subject === 'chemistry' ? 'রসায়ন' : 'তথ্য ও যোগাযোগ প্রযুক্তি';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-gray-600">প্রশ্নব্যাংক লোড হচ্ছে...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Mobile-optimized header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন ডাউনলোড করুন</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-          <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-4 py-1 sm:py-2">
-            পদক্ষেপ {currentStep}/6
-          </Badge>
-        </div>
-      </div>
-
-      {/* Mobile-responsive breadcrumb with navigation controls */}
-      <div className="space-y-3">
-        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 breadcrumb-mobile">
-          <span className={currentStep >= 1 ? 'font-semibold text-blue-600' : ''}>শ্রেণী</span>
-          {selectedClass && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 2 ? 'font-semibold text-blue-600' : ''}>{selectedClass}</span>
-            </>
-          )}
-          {selectedSubject && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 3 ? 'font-semibold text-blue-600' : ''}>{selectedSubject}</span>
-            </>
-          )}
-          {selectedPaper && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 4 ? 'font-semibold text-blue-600' : ''}>{selectedPaper}</span>
-            </>
-          )}
-          {selectedCategory && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className={currentStep >= 5 ? 'font-semibold text-blue-600' : ''}>{selectedCategory}</span>
-            </>
-          )}
-          {selectedChapter && (
-            <>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="font-semibold text-blue-600">{selectedChapter}</span>
-            </>
-          )}
-        </div>
-        
-        {/* Mobile navigation controls */}
-        {currentStep > 1 && (
-          <div className="flex items-center space-x-2 sm:hidden">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleStepChange(currentStep - 1)}
-              className="flex-1 touch-target"
-              data-testid="button-mobile-nav-back-student"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              পূর্ববর্তী
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleStepChange(1)}
-              className="flex-1 touch-target"
-              data-testid="button-mobile-nav-reset-student"
-            >
-              প্রথম থেকে
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-cyan-50">
+      {/* Header with back button */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation('/student')}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                ফিরে যান
+              </Button>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">প্রশ্ন ব্যাংক</h1>
+                <p className="text-xs sm:text-sm text-gray-600">NCTB কারিকুলাম অনুযায়ী প্রশ্ন ডাউনলোড করুন</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <Badge variant="outline" className="text-xs">
+                মোট {questions.length}টি
+              </Badge>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Step 1: Class Selection */}
-      {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <GraduationCap className="w-5 h-5" />
-              <span>শ্রেণী নির্বাচন করুন</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
-                onClick={() => {
-                  setSelectedClass('9-10');
-                  setCurrentStep(2);
-                }}
-                data-testid="button-select-class-9-10-student"
-              >
-                <div className="text-center">
-                  <div className="font-bold">নবম-দশম শ্রেণী</div>
-                  <div className="text-sm text-gray-600">SSC</div>
-                </div>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-blue-50"
-                onClick={() => {
-                  setSelectedClass('11-12');
-                  setCurrentStep(2);
-                }}
-                data-testid="button-select-class-11-12-student"
-              >
-                <div className="text-center">
-                  <div className="font-bold">একাদশ-দ্বাদশ শ্রেণী</div>
-                  <div className="text-sm text-gray-600">HSC</div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Subject Selection */}
-      {currentStep === 2 && selectedClass && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <BookMarked className="w-5 h-5" />
-                <span>বিষয় নির্বাচন করুন</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(1)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-green-50"
-                onClick={() => {
-                  setSelectedSubject('chemistry');
-                  setCurrentStep(selectedClass === '11-12' ? 3 : 4);
-                }}
-                data-testid="button-select-subject-chemistry-student"
-              >
-                <div className="text-center">
-                  <div className="font-bold">রসায়ন</div>
-                  <div className="text-sm text-gray-600">Chemistry</div>
-                </div>
-              </Button>
-              {selectedClass === '11-12' && (
-                <Button 
-                  variant="outline" 
-                  className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-purple-50"
-                  onClick={() => {
-                    setSelectedSubject('ict');
-                    setCurrentStep(4); // Skip paper selection for ICT
-                  }}
-                  data-testid="button-select-subject-ict-student"
-                >
-                  <div className="text-center">
-                    <div className="font-bold">তথ্য ও যোগাযোগ প্রযুক্তি</div>
-                    <div className="text-sm text-gray-600">ICT</div>
-                  </div>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 3: Paper Selection (only for 11-12) */}
-      {currentStep === 3 && selectedClass === '11-12' && selectedSubject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>পত্র নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(2)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <Button 
-                variant="outline" 
-                className="h-16 sm:h-20 text-base sm:text-lg touch-target hover:bg-orange-50"
-                onClick={() => {
-                  setSelectedPaper('paper-1');
-                  setCurrentStep(4);
-                }}
-                data-testid="button-select-paper-1-student"
-              >
-                <div className="text-center">
-                  <div className="font-bold">প্রথম পত্র</div>
-                  <div className="text-sm text-gray-600">Paper 1</div>
-                </div>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 text-lg hover:bg-pink-50"
-                onClick={() => {
-                  setSelectedPaper('paper-2');
-                  setCurrentStep(4);
-                }}
-              >
-                <div className="text-center">
-                  <div className="font-bold">দ্বিতীয় পত্র</div>
-                  <div className="text-sm text-gray-600">Paper 2</div>
-                </div>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 4: Category Selection */}
-      {currentStep === 4 && selectedClass && selectedSubject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>প্রশ্নের ধরন নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(selectedClass === '11-12' ? 3 : 2)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {CATEGORIES[selectedClass].map((category) => (
-                <Button 
-                  key={category}
-                  variant="outline" 
-                  className="h-16 text-sm hover:bg-indigo-50"
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setCurrentStep(5);
-                  }}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 5: Chapter Selection */}
-      {currentStep === 5 && selectedCategory && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>অধ্যায় নির্বাচন করুন</span>
-              <Button variant="ghost" size="sm" onClick={() => handleStepChange(4)}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                পূর্ববর্তী
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getAvailableChapters().map((chapter) => (
-                <Button 
-                  key={chapter}
-                  variant="outline" 
-                  className="h-16 text-sm hover:bg-teal-50"
-                  onClick={() => {
-                    setSelectedChapter(chapter);
-                    setCurrentStep(6);
-                  }}
-                >
-                  {chapter}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 6: Question List and Download */}
-      {currentStep === 6 && selectedChapter && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{selectedChapter} - প্রশ্ন সমূহ</span>
-              <div className="flex space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => handleStepChange(5)}>
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  পূর্ববর্তী
-                </Button>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="প্রশ্ন খুঁজুন..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">লোড হচ্ছে...</div>
-            ) : (
-              <div className="space-y-4">
-                {filteredItems.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    {questionItems.length === 0 
-                      ? 'এই অধ্যায়ে এখনো কোনো প্রশ্ন যোগ করা হয়নি' 
-                      : 'কোনো প্রশ্ন খুঁজে পাওয়া যায়নি'
-                    }
-                  </div>
-                ) : (
-                  filteredItems.map((item: any) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-all hover:border-blue-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <FileText className="w-5 h-5 text-blue-600" />
-                            <h3 className="font-semibold text-lg">{item.title}</h3>
-                            <Badge variant="outline" className="text-xs">
-                              {item.resourceType || 'PDF'}
-                            </Badge>
-                          </div>
-                          {item.description && (
-                            <p className="text-gray-600 mb-3">{item.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Download className="w-4 h-4" />
-                              <span>{item.downloadCount || 0} ডাউনলোড</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{new Date(item.createdAt).toLocaleDateString('bn-BD')}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {item.resourceUrl && (
-                            <Button 
-                              onClick={() => handleDownload(item)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                              disabled={trackDownloadMutation.isPending}
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              ডাউনলোড
-                            </Button>
-                          )}
-                          {item.resourceUrl && (
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={item.resourceUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            </Button>
-                          )}
-                        </div>
+      {/* Content */}
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          {questions.length === 0 ? (
+            <Card className="border-gray-200">
+              <CardContent className="py-8 text-center">
+                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">কোনো প্রশ্ন পাওয়া যায়নি।</p>
+              </CardContent>
+            </Card>
+          ) : (
+            questions.map((question) => (
+              <Card key={question.id} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-sm sm:text-base font-semibold text-gray-900 mb-2">
+                        {question.question_text}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {getSubjectName(question.subject)}
+                        </Badge>
+                        {getDifficultyBadge(question.difficulty)}
+                        <Badge variant="outline" className="text-xs">
+                          {question.marks} নম্বর
+                        </Badge>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">অধ্যায়:</span> {question.chapter}
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                      <Button
+                        onClick={() => handleDownload(question)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        ডাউনলোড করুন
+                      </Button>
+                      {question.drive_link && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(question.drive_link, '_blank')}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          লিংক দেখুন
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Stats */}
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="py-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-700">{questions.length}</div>
+              <div className="text-sm text-green-600">মোট প্রশ্ন উপলব্ধ</div>
+            </div>
           </CardContent>
         </Card>
-      )}
+      </div>
     </div>
   );
 }

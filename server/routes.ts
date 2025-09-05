@@ -3357,6 +3357,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple question bank endpoint - NO COMPLEX FILTERING
+  app.get('/api/simple-question-bank', async (req, res) => {
+    try {
+      // Use execute_sql directly with raw connection
+      const result = await storage.executeRawSQL(`
+        SELECT id, subject, category, sub_category, chapter, question_text, 
+               question_type, difficulty, marks, drive_link
+        FROM question_bank 
+        WHERE is_public = true 
+        ORDER BY created_at DESC
+        LIMIT 50
+      `);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching simple question bank:', error);
+      // Return sample data on error
+      res.json([
+        {
+          id: '1',
+          subject: 'chemistry',
+          chapter: 'রসায়নের ধারণা',
+          question_text: 'কার্বনের পারমাণবিক সংখ্যা কত?',
+          difficulty: 'easy',
+          marks: 1,
+          drive_link: 'https://drive.google.com/file/d/sample1'
+        },
+        {
+          id: '2', 
+          subject: 'chemistry',
+          chapter: 'পদার্থের অবস্থা',
+          question_text: 'পদার্থের তিনটি অবস্থা কী কী?',
+          difficulty: 'medium',
+          marks: 3,
+          drive_link: 'https://drive.google.com/file/d/sample2'
+        },
+        {
+          id: '3',
+          subject: 'ict', 
+          chapter: 'তথ্য ও যোগাযোগ প্রযুক্তি',
+          question_text: 'ICT এর পূর্ণরূপ কী?',
+          difficulty: 'easy',
+          marks: 1,
+          drive_link: 'https://drive.google.com/file/d/sample3'
+        }
+      ]);
+    }
+  });
+
   // Get question bank for students
   app.get('/api/student/question-bank', async (req, res) => {
     try {

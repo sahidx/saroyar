@@ -50,18 +50,9 @@ export default function StudentResults() {
     refetchOnMount: true,
   });
 
-  // Debug: Log the API response
-  console.log('🔍 StudentResults - API Response:', resultsData);
-  console.log('🔍 StudentResults - User ID:', user?.id);
-
   const exam = examData;
-  // Fix: Extract results array from API response properly
   const results = resultsData?.results || [];
   const currentUserResult = Array.isArray(results) ? results.find((r: any) => r.id === user?.id) : null;
-  
-  // Debug: Log processing results
-  console.log('🔍 StudentResults - Results Array:', results);
-  console.log('🔍 StudentResults - Current User Result:', currentUserResult);
 
   const getGradeColor = (grade: string) => {
     switch (grade) {
@@ -239,7 +230,7 @@ export default function StudentResults() {
             </CardContent>
           </Card>
 
-          {/* Student Result Card - Main Focus */}
+          {/* Your Result Summary */}
           <Card className={`${isDarkMode 
             ? 'bg-gradient-to-r from-blue-500/10 to-green-500/10 border-blue-400/30' 
             : 'bg-gradient-to-r from-blue-50 to-green-50 border-blue-200'
@@ -253,92 +244,143 @@ export default function StudentResults() {
                 {currentUserResult ? getPerformanceMessage(currentUserResult.percentage) : 'ফলাফল প্রস্তুত করা হচ্ছে...'}
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Main Stats Grid */}
-              {currentUserResult && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className={`p-4 rounded-lg text-center ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
-                    <div className={`text-3xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                      {currentUserResult.marks}
-                    </div>
-                    <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      আপনার নম্বর
-                    </div>
-                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {exam?.totalMarks || 100} এর মধ্যে
-                    </div>
+            {currentUserResult && (
+              <CardContent className="grid grid-cols-4 gap-3 text-center">
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
+                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    {currentUserResult.marks}
                   </div>
-
-                  <div className={`p-4 rounded-lg text-center ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
-                    <div className={`text-3xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                      #{currentUserResult.rank}
-                    </div>
-                    <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      র‍্যাঙ্ক
-                    </div>
-                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      ক্লাসে অবস্থান
-                    </div>
-                  </div>
-
-                  <div className={`p-4 rounded-lg text-center ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
-                    <div className={`text-3xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                      {currentUserResult.percentage}%
-                    </div>
-                    <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      শতকরা নম্বর
-                    </div>
-                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      পারফরমেন্স
-                    </div>
-                  </div>
-
-                  <div className={`p-4 rounded-lg text-center ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
-                    <Badge 
-                      className={`${getGradeColor(currentUserResult.grade)} text-2xl px-4 py-2 font-bold`}
-                    >
-                      {currentUserResult.grade}
-                    </Badge>
-                    <div className={`text-sm font-medium mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      গ্রেড
-                    </div>
-                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      মূল্যায়ন
-                    </div>
-                  </div>
+                  <div className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>নম্বর</div>
                 </div>
-              )}
-
-              {/* Teacher Feedback */}
-              {currentUserResult?.feedback && (
-                <div className={`p-4 rounded-lg ${isDarkMode 
-                  ? 'bg-blue-500/10 border border-blue-400/30' 
-                  : 'bg-blue-50 border border-blue-200'
-                }`}>
-                  <h4 className={`font-semibold mb-2 flex items-center gap-2 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                    <Star className="w-4 h-4" />
-                    শিক্ষকের মন্তব্য
-                  </h4>
-                  <p className={`text-sm ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-                    {currentUserResult?.feedback}
-                  </p>
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
+                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    #{currentUserResult.rank}
+                  </div>
+                  <div className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>র‍্যাঙ্ক</div>
                 </div>
-              )}
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
+                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                    {currentUserResult.percentage}%
+                  </div>
+                  <div className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>শতকরা</div>
+                </div>
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
+                  <Badge className={`${getGradeColor(currentUserResult.grade)} text-lg px-3 py-1 font-bold`}>
+                    {currentUserResult.grade}
+                  </Badge>
+                  <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>গ্রেড</div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
 
-              {/* Performance Encouragement */}
-              <div className={`p-4 rounded-lg text-center ${isDarkMode 
-                ? 'bg-green-500/10 border border-green-400/30' 
-                : 'bg-green-50 border border-green-200'
-              }`}>
-                <Award className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>
-                  {currentUserResult?.percentage && currentUserResult.percentage >= 80 
-                    ? 'চমৎকার পারফরমেন্স! এভাবেই চালিয়ে যান!' 
-                    : 'পরবর্তী পরীক্ষায় আরো ভালো করার চেষ্টা করুন!'}
-                </p>
+          {/* All Students Ranking */}
+          <Card className={`${isDarkMode ? 'bg-slate-800/50 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <CardHeader>
+              <CardTitle className={`flex items-center gap-2 ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>
+                <Trophy className="w-6 h-6" />
+                সকল শিক্ষার্থীর ফলাফল
+              </CardTitle>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                মেধা তালিকা - র‍্যাঙ্ক অনুযায়ী সাজানো
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-hidden">
+                {results.map((result: any, index: number) => (
+                  <div 
+                    key={result.id}
+                    className={`flex items-center justify-between p-4 border-b last:border-b-0 ${
+                      result.id === user?.id 
+                        ? (isDarkMode 
+                            ? 'bg-blue-500/20 border-blue-400/30' 
+                            : 'bg-blue-50 border-blue-200')
+                        : (isDarkMode ? 'border-gray-700' : 'border-gray-100')
+                    } ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-gray-50'} transition-colors`}
+                  >
+                    <div className="flex items-center space-x-4">
+                      {/* Rank with Medal */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                        index === 0 
+                          ? 'bg-yellow-500 text-white' 
+                          : index === 1 
+                            ? 'bg-gray-400 text-white'
+                            : index === 2
+                              ? 'bg-orange-500 text-white'
+                              : (isDarkMode ? 'bg-slate-600 text-gray-300' : 'bg-gray-200 text-gray-700')
+                      }`}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${result.rank}`}
+                      </div>
+
+                      {/* Student Info */}
+                      <div>
+                        <div className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} ${
+                          result.id === user?.id ? 'font-bold' : ''
+                        }`}>
+                          {result.firstName} {result.lastName}
+                          {result.id === user?.id && (
+                            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                              isDarkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-700'
+                            }`}>আপনি</span>
+                          )}
+                        </div>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          আইডি: {result.studentId}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-6">
+                      {/* Marks */}
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                          {result.marks}
+                        </div>
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          /{exam?.totalMarks || 100}
+                        </div>
+                      </div>
+
+                      {/* Percentage */}
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                          {result.percentage}%
+                        </div>
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>শতকরা</div>
+                      </div>
+
+                      {/* Grade */}
+                      <div className="text-center">
+                        <Badge className={`${getGradeColor(result.grade)} font-bold px-3 py-1`}>
+                          {result.grade}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
+
+          {/* Teacher Feedback (if exists) */}
+          {currentUserResult?.feedback && (
+            <Card className={`${isDarkMode 
+              ? 'bg-blue-500/10 border border-blue-400/30' 
+              : 'bg-blue-50 border border-blue-200'
+            }`}>
+              <CardHeader>
+                <CardTitle className={`flex items-center gap-2 text-lg ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                  <Star className="w-5 h-5" />
+                  শিক্ষকের মন্তব্য
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+                  "{currentUserResult?.feedback}"
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Navigation Buttons */}
           <div className="space-y-3 pb-6">

@@ -6,7 +6,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, BookOpen, ExternalLink, FolderOpen, ChevronRight } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { CHAPTERS } from '@shared/questionBankConstants';
+// Updated NCTB Chapter structure from official curriculum
+const CHAPTER_STRUCTURE = {
+  '9-10': {
+    chemistry: [
+      'রসায়নের ধারণা',
+      'পদার্থের গঠন',
+      'পরমাণুর গঠন',
+      'পর্যায় সারণী ও মৌলের পর্যায়বৃত্ত ধর্ম',
+      'রাসায়নিক বন্ধন',
+      'রাসায়নিক বিক্রিয়া',
+      'মোলের ধারণা ও রাসায়নিক গণনা',
+      'অম্ল, ক্ষার ও লবণ',
+      'খনিজ সম্পদ: ধাতু ও অধাতু',
+      'বিদ্যুৎ ও রসায়ন (তড়িৎ রসায়ন)',
+      'আমাদের জীবনে রসায়ন'
+    ],
+    ict: [
+      'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+      'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
+      'তথ্য ও সমাজ',
+      'ICT-এ নৈতিকতা ও ডিজিটাল নাগরিকত্ব',
+      'উদীয়মান প্রযুক্তি প্রবণতা'
+    ]
+  },
+  '11-12': {
+    chemistry: [
+      // 1st Paper
+      'ল্যাবরেটরির নিরাপদ ব্যবহার',
+      'গুণগত রসায়ন',
+      'মৌলের পর্যায়বৃত্ত ধর্ম ও রাসায়নিক বন্ধন',
+      'রাসায়নিক পরিবর্তন',
+      'কর্মমুখী রসায়ন',
+      // 2nd Paper
+      'পরিবেশ রসায়ন',
+      'জৈব রসায়ন',
+      'পরিমাণগত রসায়ন',
+      'তড়িৎ রসায়ন',
+      'অর্থনৈতিক রসায়ন'
+    ],
+    ict: [
+      'তথ্য ও যোগাযোগ প্রযুক্তি — বিশ্ব ও বাংলাদেশের প্রেক্ষাপটে',
+      'কমিউনিকেশন সিস্টেম ও কম্পিউটার নেটওয়ার্কিং',
+      'সংখ্যা পদ্ধতি ও ডিজিটাল ডিভাইস',
+      'ওয়েব ডিজাইন পরিচিতি ও HTML',
+      'প্রোগ্রামিং ভাষার ভিত্তি',
+      'ডেটাবেজ ম্যানেজমেন্ট সিস্টেম'
+    ]
+  }
+};
 
 interface ChapterResource {
   id: string;
@@ -73,20 +121,7 @@ export default function StudentQuestionBank() {
   const getAvailableChapters = () => {
     if (!selectedClass || !selectedSubject) return [];
     
-    if (selectedClass === '9-10') {
-      return CHAPTERS['9-10'][selectedSubject] || [];
-    } else {
-      const subject = CHAPTERS['11-12'][selectedSubject];
-      if (selectedSubject === 'ict') {
-        return subject || [];
-      } else if (subject) {
-        // For chemistry, combine both papers
-        const paper1 = subject['paper-1'] || [];
-        const paper2 = subject['paper-2'] || [];
-        return [...paper1, ...paper2];
-      }
-    }
-    return [];
+    return CHAPTER_STRUCTURE[selectedClass as keyof typeof CHAPTER_STRUCTURE]?.[selectedSubject as 'chemistry' | 'ict'] || [];
   };
 
   if (loading) {

@@ -3363,15 +3363,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { class_level, subject } = req.query;
       console.log(`📚 Fetching resources for class: ${class_level}, subject: ${subject}`);
       
-      // Return sample data with chapter structure - ALWAYS WORKS
+      // Updated sample data with NCTB curriculum chapter names
       const sampleData = [
-        // Class 9-10 Chemistry
+        // Class 9-10 Chemistry - Updated NCTB names
         {
           id: '1',
           class_level: '9-10',
           subject: 'chemistry',
           chapter_name: 'রসায়নের ধারণা',
-          google_drive_link: 'https://drive.google.com/drive/folders/chemistry-chapter1',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-chemistry-ch1',
           description: 'রসায়নের মৌলিক ধারণা ও পরিচিতি',
           created_at: new Date().toISOString()
         },
@@ -3379,55 +3379,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: '2',
           class_level: '9-10',
           subject: 'chemistry',
-          chapter_name: 'পদার্থের অবস্থা',
-          google_drive_link: 'https://drive.google.com/drive/folders/chemistry-chapter2',
-          description: 'কঠিন, তরল ও গ্যাসীয় অবস্থা',
+          chapter_name: 'পদার্থের গঠন',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-chemistry-ch2',
+          description: 'পদার্থের গঠন ও উপাদান',
           created_at: new Date().toISOString()
         },
         {
           id: '3',
           class_level: '9-10',
           subject: 'chemistry',
-          chapter_name: 'পদার্থের গঠন',
-          google_drive_link: 'https://drive.google.com/drive/folders/chemistry-chapter3',
-          description: 'পরমাণু ও অণুর গঠন',
+          chapter_name: 'পরমাণুর গঠন',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-chemistry-ch3',
+          description: 'পরমাণুর অভ্যন্তরীণ গঠন',
           created_at: new Date().toISOString()
         },
         {
           id: '4',
           class_level: '9-10',
           subject: 'chemistry',
-          chapter_name: 'পর্যায় সারণি',
+          chapter_name: 'রাসায়নিক বন্ধন',
           google_drive_link: '',
-          description: 'মৌলের পর্যায় সারণি',
+          description: 'আয়নিক ও সমযোজী বন্ধন',
           created_at: new Date().toISOString()
         },
-        // Class 9-10 ICT
         {
           id: '5',
           class_level: '9-10',
-          subject: 'ict',
-          chapter_name: 'তথ্য ও যোগাযোগ প্রযুক্তির জগৎ',
-          google_drive_link: 'https://drive.google.com/drive/folders/ict-chapter1',
-          description: 'ICT এর পরিচিতি ও ব্যবহার',
+          subject: 'chemistry',
+          chapter_name: 'অম্ল, ক্ষার ও লবণ',
+          google_drive_link: '',
+          description: 'অম্ল-ক্ষার সমতা ও লবণের গঠন',
           created_at: new Date().toISOString()
         },
+        // Class 9-10 ICT - Updated names
         {
           id: '6',
           class_level: '9-10',
           subject: 'ict',
-          chapter_name: 'কমিউনিকেশন সিস্টেম ও নেটওয়ার্কিং',
-          google_drive_link: '',
-          description: 'যোগাযোগ ব্যবস্থা ও নেটওয়ার্ক',
+          chapter_name: 'তথ্য ও যোগাযোগ প্রযুক্তি পরিচিতি',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-ict-ch1',
+          description: 'ICT এর পরিচিতি ও ব্যবহার',
           created_at: new Date().toISOString()
         },
         {
           id: '7',
           class_level: '9-10',
           subject: 'ict',
-          chapter_name: 'সংখ্যা পদ্ধতি ও ডিজিটাল ডিভাইস',
+          chapter_name: 'ICT-এর ভূমিকা ও প্রয়োজনীয়তা',
           google_drive_link: '',
-          description: 'বাইনারি ও ডিজিটাল সিস্টেম',
+          description: 'আধুনিক জীবনে ICT এর গুরুত্ব',
+          created_at: new Date().toISOString()
+        },
+        // Class 11-12 Chemistry samples
+        {
+          id: '8',
+          class_level: '11-12',
+          subject: 'chemistry',
+          chapter_name: 'ল্যাবরেটরির নিরাপদ ব্যবহার',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-hsc-ch1',
+          description: 'রসায়ন ল্যাবের নিরাপত্তা ব্যবস্থা',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '9',
+          class_level: '11-12',
+          subject: 'chemistry',
+          chapter_name: 'গুণগত রসায়ন',
+          google_drive_link: '',
+          description: 'গুণগত বিশ্লেষণ ও পরীক্ষা',
+          created_at: new Date().toISOString()
+        },
+        // Class 11-12 ICT samples
+        {
+          id: '10',
+          class_level: '11-12',
+          subject: 'ict',
+          chapter_name: 'তথ্য ও যোগাযোগ প্রযুক্তি — বিশ্ব ও বাংলাদেশের প্রেক্ষাপটে',
+          google_drive_link: 'https://drive.google.com/drive/folders/1a2b3c4d5e6f7g8h9i0j-hsc-ict-ch1',
+          description: 'বিশ্বব্যাপী ICT এর অবস্থান ও বাংলাদেশ',
           created_at: new Date().toISOString()
         }
       ];

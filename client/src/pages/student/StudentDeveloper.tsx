@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import MobileWrapper from '@/components/MobileWrapper';
 import { 
   ArrowLeft, 
-  Github, 
+  Facebook,
   Mail, 
   Phone, 
   MapPin, 
@@ -17,7 +17,10 @@ import {
   BookOpen,
   FlaskConical,
   Monitor,
-  Heart
+  Heart,
+  Building2,
+  Target,
+  Eye
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -26,19 +29,28 @@ export default function StudentDeveloper() {
   const [location, setLocation] = useLocation();
 
   const skills = [
-    { name: 'Chemistry', icon: FlaskConical, color: 'bg-green-500' },
-    { name: 'ICT', icon: Monitor, color: 'bg-blue-500' },
+    { name: 'Civil Engineering', icon: Building2, color: 'bg-indigo-500' },
     { name: 'Web Development', icon: Code, color: 'bg-purple-500' },
+    { name: 'Project Management', icon: Award, color: 'bg-green-500' },
     { name: 'React', icon: Code, color: 'bg-cyan-500' },
     { name: 'TypeScript', icon: Code, color: 'bg-blue-600' },
     { name: 'Educational Technology', icon: BookOpen, color: 'bg-orange-500' }
   ];
 
   const achievements = [
-    { title: 'Chemistry & ICT Educator', year: '2020-Present', icon: GraduationCap },
-    { title: 'Coaching Center Founder', year: '2022', icon: Award },
+    { title: 'Founder & CEO of Praggo', year: '2020-Present', icon: Award },
+    { title: 'Civil Engineering Student', year: '2021-Present', icon: GraduationCap },
     { title: 'Full Stack Developer', year: '2019-Present', icon: Code },
     { title: 'Educational App Creator', year: '2023', icon: Monitor }
+  ];
+
+  const praggoServices = [
+    { name: 'Praggo Civil Engineering Firm & Interior', icon: Building2 },
+    { name: 'Praggo IT', icon: Monitor },
+    { name: 'Praggo Academy', icon: GraduationCap },
+    { name: 'Praggo Study Abroad', icon: BookOpen },
+    { name: 'Praggo Ad Agency', icon: Target },
+    { name: 'Praggo Agro & Properties', icon: Heart }
   ];
 
   return (
@@ -74,22 +86,23 @@ export default function StudentDeveloper() {
           {/* Profile Card */}
           <Card className="border-2 border-blue-200 shadow-lg">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                <span className="text-2xl font-bold text-white">BS</span>
+              <div className="mx-auto w-24 h-24 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <span className="text-2xl font-bold text-white">SR</span>
               </div>
-              <CardTitle className="text-2xl font-bold text-gray-800">Belal Sir</CardTitle>
-              <CardDescription className="text-lg text-blue-600 font-medium">
-                Chemistry & ICT Teacher • Full Stack Developer
+              <CardTitle className="text-2xl font-bold text-gray-800">Md Sahid Rahman</CardTitle>
+              <CardDescription className="text-lg text-purple-600 font-medium">
+                Founder & CEO of Praggo • Civil Engineering Student
               </CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <GraduationCap className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                  <GraduationCap className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="font-semibold text-gray-800">Education</p>
-                    <p className="text-sm text-gray-600">Chemistry & Computer Science</p>
+                    <p className="text-sm text-gray-600">B.Sc in Civil Engineering (Ongoing)</p>
+                    <p className="text-xs text-gray-500">Gopalganj Science and Technology University</p>
                   </div>
                 </div>
                 
@@ -97,15 +110,15 @@ export default function StudentDeveloper() {
                   <MapPin className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="font-semibold text-gray-800">Location</p>
-                    <p className="text-sm text-gray-600">Bangladesh</p>
+                    <p className="text-sm text-gray-600">Gopalganj, Bangladesh</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                  <Calendar className="w-5 h-5 text-purple-600" />
+                <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
                   <div>
-                    <p className="font-semibold text-gray-800">Teaching Experience</p>
-                    <p className="text-sm text-gray-600">5+ Years</p>
+                    <p className="font-semibold text-gray-800">Position</p>
+                    <p className="text-sm text-gray-600">Founder & CEO of Praggo</p>
                   </div>
                 </div>
               </div>
@@ -113,9 +126,9 @@ export default function StudentDeveloper() {
           </Card>
 
           {/* About Section */}
-          <Card className="border-2 border-green-200 shadow-lg">
+          <Card className="border-2 border-purple-200 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-purple-700">
                 <Heart className="w-5 h-5" />
                 About Me
               </CardTitle>
@@ -123,17 +136,35 @@ export default function StudentDeveloper() {
             <CardContent>
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
-                  আমি বেলাল স্যার, একজন অভিজ্ঞ রসায়ন ও আইসিটি শিক্ষক। আমার লক্ষ্য হলো প্রতিটি ছাত্র-ছাত্রীকে বিজ্ঞানের সৌন্দর্য উপলব্ধি করাতে সাহায্য করা এবং তাদের শিক্ষাগত লক্ষ্য অর্জনে সহায়তা করা।
+                  আমি মোঃ সাহিদ রহমান, প্রাগো গ্রুপের প্রতিষ্ঠাতা ও প্রধান নির্বাহী কর্মকর্তা। আমি গোপালগঞ্জ বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয় থেকে সিভিল ইঞ্জিনিয়ারিং অধ্যয়নরত আছি।
                 </p>
                 
                 <p className="text-gray-700 leading-relaxed">
-                  আমি শুধু একজন শিক্ষক নই, একজন টেকনোলজি প্রেমীও। এই অ্যাপটি আমি নিজেই তৈরি করেছি যাতে আমার ছাত্র-ছাত্রীদের শিক্ষা গ্রহণ আরও সহজ ও আনন্দদায়ক হয়।
+                  আমার লক্ষ্য হলো প্রযুক্তি ও উদ্ভাবনের মাধ্যমে শিক্ষা, ব্যবসা এবং সমাজের উন্নয়নে অবদান রাখা। এই অ্যাপটি আমি ছাত্র-ছাত্রীদের শিক্ষার মানোন্নয়নের জন্য ডিজাইন করেছি।
                 </p>
 
-                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                  <p className="text-blue-800 font-medium italic">
-                    "শিক্ষা হলো জ্ঞানের আলো যা অন্ধকার দূর করে। আমার স্বপ্ন প্রতিটি ছাত্রের মধ্যে সেই আলো জ্বালানো।"
+                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                  <p className="text-purple-800 font-medium italic">
+                    "উদ্ভাবন ও প্রযুক্তির মাধ্যমে আমরা একটি উন্নত ভবিষ্যৎ গড়তে পারি।"
                   </p>
+                </div>
+
+                {/* Contact Info */}
+                <div className="grid grid-cols-1 gap-3 mt-4">
+                  <a 
+                    href="https://facebook.com/sahidrahmanx" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Facebook className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-700 font-medium">Facebook Profile</span>
+                  </a>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <Mail className="w-5 h-5 text-green-600" />
+                    <span className="text-gray-700">sahidrahmanx@gmail.com</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -155,6 +186,31 @@ export default function StudentDeveloper() {
                       <skill.icon className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-sm font-medium text-gray-700">{skill.name}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Praggo Group Services */}
+          <Card className="border-2 border-indigo-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-indigo-700">
+                <Building2 className="w-5 h-5" />
+                Our Concern - Praggo Group
+              </CardTitle>
+              <CardDescription>
+                Multiple business divisions under Praggo umbrella
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3">
+                {praggoServices.map((service, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
+                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                      <service.icon className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{service.name}</span>
                   </div>
                 ))}
               </div>
@@ -208,7 +264,42 @@ export default function StudentDeveloper() {
             </CardContent>
           </Card>
 
-          {/* Contact & Message */}
+          {/* Mission & Vision */}
+          <Card className="border-2 border-purple-200 shadow-lg bg-gradient-to-br from-purple-50 to-indigo-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-purple-700">
+                <Target className="w-5 h-5" />
+                Our Mission & Vision
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Mission */}
+                <div className="bg-gradient-to-r from-purple-100 to-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-bold text-purple-800">Mission</h3>
+                  </div>
+                  <p className="text-purple-700 leading-relaxed">
+                    প্রযুক্তি ও উদ্ভাবনের মাধ্যমে শিক্ষা, নির্মাণ, কৃষি এবং ব্যবসায়িক ক্ষেত্রে গুণগত সেবা প্রদান করে সমাজের উন্নয়নে অবদান রাখা এবং দেশের অর্থনৈতিক প্রগতিতে ভূমিকা পালন করা।
+                  </p>
+                </div>
+
+                {/* Vision */}
+                <div className="bg-gradient-to-r from-indigo-100 to-indigo-50 p-4 rounded-lg border-l-4 border-indigo-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Eye className="w-5 h-5 text-indigo-600" />
+                    <h3 className="font-bold text-indigo-800">Vision</h3>
+                  </div>
+                  <p className="text-indigo-700 leading-relaxed">
+                    ২০৩০ সালের মধ্যে বাংলাদেশের একটি নেতৃস্থানীয় বহুমুখী প্রতিষ্ঠান হিসেবে প্রাগো গ্রুপকে প্রতিষ্ঠিত করা, যা শিক্ষা, প্রযুক্তি, নির্মাণ এবং কৃষিতে আন্তর্জাতিক মানের সেবা প্রদান করবে।
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Message for Students */}
           <Card className="border-2 border-rose-200 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-rose-700">
@@ -220,14 +311,13 @@ export default function StudentDeveloper() {
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-rose-50 to-pink-50 p-4 rounded-lg">
                   <p className="text-gray-800 leading-relaxed">
-                    প্রিয় ছাত্র-ছাত্রীরা, মনে রাখবেন - কঠিন পরিশ্রম ও ধৈর্যের মাধ্যমেই সাফল্য অর্জন সম্ভব। 
-                    রসায়ন ও আইসিটি শেখার পথে যেকোনো সমস্যায় আমি সর্বদা তোমাদের পাশে আছি।
+                    প্রিয় ছাত্র-ছাত্রীরা, শিক্ষাই জাতির মেরুদণ্ড। আমাদের এই ডিজিটাল প্ল্যাটফর্মের মাধ্যমে তোমরা আধুনিক শিক্ষা পদ্ধতিতে রসায়ন ও আইসিটি বিষয়ে জ্ঞান অর্জন করতে পারবে।
                   </p>
                 </div>
                 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-blue-800 font-medium text-center">
-                    📚 সুখী হও, শিখতে থাকো, স্বপ্ন দেখতে থাকো! 🌟
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <p className="text-purple-800 font-medium text-center">
+                    🚀 স্বপ্ন দেখো, কাজ করো, সফল হও! 💫
                   </p>
                 </div>
               </div>
@@ -236,7 +326,7 @@ export default function StudentDeveloper() {
           
           {/* Footer */}
           <div className="text-center py-6 text-gray-500 text-sm">
-            <p>Made with ❤️ by Belal Sir for his beloved students</p>
+            <p>Made with ❤️ by Md Sahid Rahman - Founder & CEO, Praggo Group</p>
             <p className="mt-1">Chemistry & ICT Care • 2025</p>
           </div>
         </div>

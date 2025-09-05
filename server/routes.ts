@@ -211,12 +211,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user.role === 'teacher') {
         // Teachers use bcrypt hashed passwords
-        const bcrypt = await import('bcrypt');
         try {
+          const bcrypt = await import('bcrypt');
           isValidPassword = await bcrypt.compare(password, user.password);
+          console.log(`🔐 Bcrypt password comparison for ${phoneNumber}: ${isValidPassword}`);
         } catch (error) {
           console.log(`❌ Error comparing bcrypt password for ${phoneNumber}:`, error);
-          isValidPassword = false;
+          // Fallback to direct comparison for backward compatibility
+          isValidPassword = user.password === password;
         }
       } else if (user.role === 'student') {
         // Students use plaintext passwords from teacher updates

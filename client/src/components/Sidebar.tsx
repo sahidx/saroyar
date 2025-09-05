@@ -45,7 +45,7 @@ const studentMenuItems = [
   { icon: FileText, label: 'My Exams', href: '/student/exams' },
   { icon: CalendarCheck, label: 'Attendance', href: '/student/attendance' },
   { icon: BarChart3, label: 'Reports', href: '/student/reports' },
-  { icon: Bell, label: 'Question Bank', href: '/student/question-bank' },
+  { icon: BookOpen, label: 'Question Bank', href: '/student/question-bank' },
   { icon: Code, label: 'Developer', href: '/student/developer' },
 ];
 

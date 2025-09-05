@@ -104,8 +104,21 @@ export default function StudentQuestionBank() {
       params.append('page', currentPage.toString());
       params.append('limit', '8');
       
-      const response = await apiRequest('GET', `/api/student/question-bank?${params.toString()}`);
-      return await response.json() as QuestionBankResponse;
+      try {
+        const response = await fetch(`/api/student/question-bank?${params.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json() as QuestionBankResponse;
+      } catch (error) {
+        console.error('Question Bank API Error:', error);
+        throw error;
+      }
     }
   });
 

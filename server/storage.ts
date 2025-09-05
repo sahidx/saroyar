@@ -388,7 +388,8 @@ export class DatabaseStorage implements IStorage {
     const submissions = await db
       .select({
         studentId: examSubmissions.studentId,
-        marks: examSubmissions.score,
+        score: examSubmissions.score,
+        manualMarks: examSubmissions.manualMarks,
         feedback: examSubmissions.feedback,
         submissionId: examSubmissions.id,
       })
@@ -400,7 +401,8 @@ export class DatabaseStorage implements IStorage {
     
     return submissions.map(submission => ({
       studentId: submission.studentId,
-      marks: submission.marks || 0,
+      // Use manual marks if available (teacher entered), otherwise use auto-calculated score
+      marks: submission.manualMarks ?? submission.score ?? 0,
       feedback: submission.feedback || '',
       submissionId: submission.submissionId || '',
     }));

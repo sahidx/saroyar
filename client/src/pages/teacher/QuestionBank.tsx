@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { Sidebar } from '@/components/Sidebar';
 import { 
   BookOpen, 
   Plus, 
@@ -186,20 +187,23 @@ export default function QuestionBank() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Mobile-optimized header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক ব্যবস্থাপনা</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন সংগঠন</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-          <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-4 py-1 sm:py-2">
-            পদক্ষেপ {currentStep}/6
-          </Badge>
-        </div>
-      </div>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 overflow-auto">
+        <div className="p-6 space-y-6">
+          {/* Mobile-optimized header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">প্রশ্ন ব্যাংক ব্যবস্থাপনা</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">NCTB কারিকুলাম অনুযায়ী প্রশ্ন সংগঠন</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-4 py-1 sm:py-2">
+                পদক্ষেপ {currentStep}/6
+              </Badge>
+            </div>
+          </div>
 
       {/* Mobile-responsive breadcrumb with navigation controls */}
       <div className="space-y-3">
@@ -599,6 +603,8 @@ export default function QuestionBank() {
           </CardContent>
         </Card>
       )}
+        </div>
+      </div>
     </div>
   );
 }

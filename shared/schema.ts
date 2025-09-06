@@ -104,6 +104,7 @@ export const users = pgTable("users", {
   institution: varchar("institution"), // School/College name
   classLevel: varchar("class_level"), // Class 9, 10, 11, 12, etc.
   batchId: varchar("batch_id"),
+  admissionDate: timestamp("admission_date"), // Date when student was admitted to the batch
   
   // Authentication
   isActive: boolean("is_active").default(true),
@@ -212,7 +213,6 @@ export const notices = pgTable("notices", {
 export const attendance = pgTable("attendance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => users.id),
-  courseId: varchar("course_id").notNull().references(() => courses.id),
   batchId: varchar("batch_id").notNull().references(() => batches.id),
   date: timestamp("date").notNull(),
   isPresent: boolean("is_present").notNull(),

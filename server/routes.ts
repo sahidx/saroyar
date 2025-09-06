@@ -1696,16 +1696,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteAttendanceByBatchAndDate(batchId, attendanceDate);
       
       // Get course ID based on subject and batch - use fallback for now
-      const courseId = 'course-1'; // Default fallback - courses table needs proper schema
+      // Removed courseId dependency - attendance is now purely batch-based
       
       // Create new attendance records
       const attendanceRecords = attendanceData.map((record: any) => ({
         studentId: record.studentId,
-        courseId,
         batchId,
         date: attendanceDate,
         isPresent: record.isPresent,
         subject,
+        notes: record.notes || null,
         createdBy: teacherId
       }));
       

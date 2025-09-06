@@ -499,7 +499,8 @@ function AddStudentForm({ isDarkMode, onSubmit, batches, isLoading }: AddStudent
       email: '',
       address: '',
       institution: '',
-      classLevel: ''
+      classLevel: '',
+      admissionDate: new Date().toISOString().split('T')[0] // Default to today's date
     }
   });
 
@@ -640,6 +641,24 @@ function AddStudentForm({ isDarkMode, onSubmit, batches, isLoading }: AddStudent
                   <SelectItem value="12">Class 12</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="admissionDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>Admission Date</FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  type="date" 
+                  className={isDarkMode ? 'bg-slate-700 border-cyan-400/30 text-white' : 'bg-white'} 
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

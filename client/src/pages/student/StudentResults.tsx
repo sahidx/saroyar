@@ -54,27 +54,50 @@ export default function StudentResults() {
   const results = resultsData?.results || [];
   const currentUserResult = Array.isArray(results) ? results.find((r: any) => r.id === user?.id) : null;
 
-  const getGradeColor = (grade: string) => {
-    switch (grade) {
-      case 'A+': return 'bg-green-500 text-white';
-      case 'A': return 'bg-blue-500 text-white';
-      case 'A-': return 'bg-cyan-500 text-white';
-      case 'B': return 'bg-yellow-500 text-white';
-      case 'C': return 'bg-orange-500 text-white';
-      case 'D': return 'bg-red-400 text-white';
-      default: return 'bg-red-600 text-white'; // F
+  // Dynamic grade color function using grading scheme from API
+  const getDynamicGradeColor = (grade: string, gradingScheme: any) => {
+    if (!gradingScheme?.gradeRanges) {
+      // Fallback to default colors if no scheme available
+      switch (grade) {
+        case 'A+': return 'bg-green-500 text-white';
+        case 'A': return 'bg-blue-500 text-white';
+        case 'A-': return 'bg-cyan-500 text-white';
+        case 'B': return 'bg-yellow-500 text-white';
+        case 'C': return 'bg-orange-500 text-white';
+        case 'D': return 'bg-red-400 text-white';
+        default: return 'bg-red-600 text-white'; // F
+      }
     }
+    
+    // Use grading scheme color
+    const gradeRange = gradingScheme.gradeRanges.find((g: any) => g.letter === grade);
+    return gradeRange?.color || 'bg-gray-500 text-white';
   };
 
-  const getPerformanceMessage = (percentage: number) => {
-    // Updated for Bangladesh Letter Grade System
-    if (percentage >= 80) return '🎉 অসাধারণ! চমৎকার ফলাফল! (A+ - GPA 5.0)';
-    if (percentage >= 70) return '👏 খুবই ভালো! অভিনন্দন! (A - GPA 4.0)';
-    if (percentage >= 60) return '👍 ভালো ফলাফল! আরো চেষ্টা করুন। (A- - GPA 3.5)';
-    if (percentage >= 50) return '📊 গ্রহণযোগ্য ফলাফল! আরো চেষ্টা করুন। (B - GPA 3.0)';
-    if (percentage >= 40) return '📚 পাস! আরো অধ্যয়ন প্রয়োজন। (C - GPA 2.0)';
-    if (percentage >= 33) return '⚠️ মোটামুটি! আরো পড়াশোনা করুন। (D - GPA 1.0)';
-    return '💪 আরো চেষ্টা করুন। পরবর্তীতে ভালো করবেন। (F - GPA 0.0)';
+  // Dynamic performance message using grading scheme
+  const getDynamicPerformanceMessage = (percentage: number, gradingScheme: any) => {
+    if (!gradingScheme?.gradeRanges) {
+      // Fallback messages
+      if (percentage >= 80) return '🎉 অসাধারণ! চমৎকার ফলাফল! (A+ - GPA 5.0)';
+      if (percentage >= 70) return '👏 খুবই ভালো! অভিনন্দন! (A - GPA 4.0)';
+      if (percentage >= 60) return '👍 ভালো ফলাফল! আরো চেষ্টা করুন। (A- - GPA 3.5)';
+      if (percentage >= 50) return '📊 গ্রহণযোগ্য ফলাফল! আরো চেষ্টা করুন। (B - GPA 3.0)';
+      if (percentage >= 40) return '📚 পাস! আরো অধ্যয়ন প্রয়োজন। (C - GPA 2.0)';
+      if (percentage >= 33) return '⚠️ মোটামুটি! আরো পড়াশোনা করুন। (D - GPA 1.0)';
+      return '💪 আরো চেষ্টা করুন। পরবর্তীতে ভালো করবেন। (F - GPA 0.0)';
+    }
+    
+    // Find appropriate grade based on percentage
+    const sortedGrades = [...gradingScheme.gradeRanges].sort((a, b) => b.minPercent - a.minPercent);
+    for (const grade of sortedGrades) {
+      if (percentage >= grade.minPercent && percentage <= grade.maxPercent) {
+        return `${grade.description} (${grade.letter} - GPA ${grade.gpa})`;
+      }
+    }
+    
+    // Fallback to lowest grade
+    const lowestGrade = sortedGrades[sortedGrades.length - 1];
+    return `${lowestGrade.description} (${lowestGrade.letter} - GPA ${lowestGrade.gpa})`;
   };
 
   if (examLoading || resultsLoading) {
@@ -244,7 +267,7 @@ export default function StudentResults() {
                 আপনার ফলাফল
               </CardTitle>
               <p className={`text-lg font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                {currentUserResult ? getPerformanceMessage(currentUserResult.percentage) : 'ফলাফল প্রস্তুত করা হচ্ছে...'}
+                {currentUserResult ? getDynamicPerformanceMessage(currentUserResult.percentage, resultsData?.gradingScheme) : 'ফলাফল প্রস্তুত করা হচ্ছে...'}
               </p>
             </CardHeader>
             {currentUserResult && (
@@ -268,7 +291,7 @@ export default function StudentResults() {
                   <div className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>শতকরা</div>
                 </div>
                 <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-slate-700' : 'bg-white'} border`}>
-                  <Badge className={`${getGradeColor(currentUserResult.grade)} text-lg px-3 py-1 font-bold`}>
+                  <Badge className={`${getDynamicGradeColor(currentUserResult.grade, resultsData?.gradingScheme)} text-lg px-3 py-1 font-bold`}>
                     {currentUserResult.grade}
                   </Badge>
                   <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>গ্রেড</div>
@@ -354,7 +377,7 @@ export default function StudentResults() {
 
                       {/* Grade */}
                       <div className="text-center">
-                        <Badge className={`${getGradeColor(result.grade)} font-bold px-3 py-1`}>
+                        <Badge className={`${getDynamicGradeColor(result.grade, resultsData?.gradingScheme)} font-bold px-3 py-1`}>
                           {result.grade}
                         </Badge>
                       </div>

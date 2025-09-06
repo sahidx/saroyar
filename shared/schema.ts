@@ -43,6 +43,19 @@ export const noteTypeEnum = pgEnum('note_type', ['pdf', 'google_drive', 'link', 
 // Praggo AI API key status enum
 export const apiKeyStatusEnum = pgEnum('api_key_status', ['active', 'quota_exceeded', 'error', 'disabled']);
 
+// Grading scheme table for dynamic grading system
+export const gradingSchemes = pgTable("grading_schemes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // e.g., "Bangladesh NCTB Standard", "International IB"
+  description: text("description"),
+  gradeRanges: jsonb("grade_ranges").notNull(), // Array of grade objects with letter, minPercent, maxPercent, gpa, color
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Batch status enum
 export const batchStatusEnum = pgEnum('batch_status', ['active', 'inactive', 'completed']);
 

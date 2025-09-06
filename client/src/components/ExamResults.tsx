@@ -38,23 +38,35 @@ const getRankIcon = (rank: number) => {
   }
 };
 
-const getGradeColor = (grade: string) => {
-  switch (grade) {
-    case 'A+':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'A':
-      return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'A-':
-      return 'bg-cyan-100 text-cyan-800 border-cyan-300';
-    case 'B':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'C':
-      return 'bg-orange-100 text-orange-800 border-orange-300';
-    case 'D':
-      return 'bg-red-100 text-red-700 border-red-300';
-    default: // F
-      return 'bg-red-200 text-red-900 border-red-400';
+// Dynamic grade color function using grading scheme
+const getDynamicGradeColor = (grade: string, gradingScheme: any) => {
+  if (!gradingScheme?.gradeRanges) {
+    // Fallback to default colors if no scheme available
+    switch (grade) {
+      case 'A+': return 'bg-green-100 text-green-800 border-green-300';
+      case 'A': return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'A-': return 'bg-cyan-100 text-cyan-800 border-cyan-300';
+      case 'B': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'C': return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'D': return 'bg-red-100 text-red-700 border-red-300';
+      default: return 'bg-red-200 text-red-900 border-red-400';
+    }
   }
+  
+  // Find grade in scheme and convert color
+  const gradeRange = gradingScheme.gradeRanges.find((g: any) => g.letter === grade);
+  if (!gradeRange) return 'bg-gray-100 text-gray-800 border-gray-300';
+  
+  // Convert backend color to display format with border
+  const color = gradeRange.color;
+  if (color.includes('green')) return 'bg-green-100 text-green-800 border-green-300';
+  if (color.includes('blue')) return 'bg-blue-100 text-blue-800 border-blue-300';
+  if (color.includes('cyan')) return 'bg-cyan-100 text-cyan-800 border-cyan-300';
+  if (color.includes('yellow')) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+  if (color.includes('orange')) return 'bg-orange-100 text-orange-800 border-orange-300';
+  if (color.includes('red-400')) return 'bg-red-100 text-red-700 border-red-300';
+  if (color.includes('red')) return 'bg-red-200 text-red-900 border-red-400';
+  return 'bg-gray-100 text-gray-800 border-gray-300';
 };
 
 export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: ExamResultsProps) {
@@ -229,7 +241,7 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
                     <div className="text-sm text-gray-600">শতকরা নম্বর</div>
                   </div>
                   <div className="p-4 bg-white rounded-lg border">
-                    <Badge className={getGradeColor(currentUserResult.grade)}>
+                    <Badge className={getDynamicGradeColor(currentUserResult.grade, resultsData?.gradingScheme)}>
                       {currentUserResult.grade}
                     </Badge>
                     <div className="text-sm text-gray-600 mt-2">গ্রেড</div>
@@ -279,50 +291,34 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
                   </div>
                 </div>
                 
-                {/* Grade Distribution - Bangladesh Letter Grade System */}
-                <div className="grid grid-cols-7 gap-1 text-xs">
-                  <div className="text-center p-2 bg-green-100 rounded">
-                    <div className="font-bold text-green-700">{stats.aPlus || 0}</div>
-                    <div className="text-xs text-green-600">A+</div>
-                    <div className="text-xs text-green-500">(80%+)</div>
-                    <div className="text-xs text-green-400">GPA 5.0</div>
-                  </div>
-                  <div className="text-center p-2 bg-blue-100 rounded">
-                    <div className="font-bold text-blue-700">{stats.a || 0}</div>
-                    <div className="text-xs text-blue-600">A</div>
-                    <div className="text-xs text-blue-500">(70-79%)</div>
-                    <div className="text-xs text-blue-400">GPA 4.0</div>
-                  </div>
-                  <div className="text-center p-2 bg-cyan-100 rounded">
-                    <div className="font-bold text-cyan-700">{stats.aMinus || 0}</div>
-                    <div className="text-xs text-cyan-600">A-</div>
-                    <div className="text-xs text-cyan-500">(60-69%)</div>
-                    <div className="text-xs text-cyan-400">GPA 3.5</div>
-                  </div>
-                  <div className="text-center p-2 bg-yellow-100 rounded">
-                    <div className="font-bold text-yellow-700">{stats.b || 0}</div>
-                    <div className="text-xs text-yellow-600">B</div>
-                    <div className="text-xs text-yellow-500">(50-59%)</div>
-                    <div className="text-xs text-yellow-400">GPA 3.0</div>
-                  </div>
-                  <div className="text-center p-2 bg-orange-100 rounded">
-                    <div className="font-bold text-orange-700">{stats.c || 0}</div>
-                    <div className="text-xs text-orange-600">C</div>
-                    <div className="text-xs text-orange-500">(40-49%)</div>
-                    <div className="text-xs text-orange-400">GPA 2.0</div>
-                  </div>
-                  <div className="text-center p-2 bg-red-100 rounded">
-                    <div className="font-bold text-red-700">{stats.d || 0}</div>
-                    <div className="text-xs text-red-600">D</div>
-                    <div className="text-xs text-red-500">(33-39%)</div>
-                    <div className="text-xs text-red-400">GPA 1.0</div>
-                  </div>
-                  <div className="text-center p-2 bg-red-200 rounded">
-                    <div className="font-bold text-red-800">{stats.fail || 0}</div>
-                    <div className="text-xs text-red-700">F</div>
-                    <div className="text-xs text-red-600">(&lt;33%)</div>
-                    <div className="text-xs text-red-500">GPA 0.0</div>
-                  </div>
+                {/* Dynamic Grade Distribution */}
+                <div className={`grid gap-1 text-xs ${resultsData?.gradingScheme?.gradeRanges ? `grid-cols-${resultsData.gradingScheme.gradeRanges.length}` : 'grid-cols-7'}`}>
+                  {resultsData?.gradingScheme?.gradeRanges?.map((gradeRange: any, index: number) => {
+                    // Get count for this grade from stats
+                    const gradeKey = gradeRange.letter.toLowerCase().replace('+', 'Plus').replace('-', 'Minus');
+                    const count = (stats as any)[gradeKey] || 0;
+                    
+                    // Convert backend color format to display classes
+                    const getDisplayColor = (color: string) => {
+                      if (color.includes('green')) return 'bg-green-100 text-green-700';
+                      if (color.includes('blue')) return 'bg-blue-100 text-blue-700';  
+                      if (color.includes('cyan')) return 'bg-cyan-100 text-cyan-700';
+                      if (color.includes('yellow')) return 'bg-yellow-100 text-yellow-700';
+                      if (color.includes('orange')) return 'bg-orange-100 text-orange-700';
+                      if (color.includes('red-400')) return 'bg-red-100 text-red-700';
+                      if (color.includes('red')) return 'bg-red-200 text-red-800';
+                      return 'bg-gray-100 text-gray-700';
+                    };
+                    
+                    return (
+                      <div key={gradeRange.letter} className={`text-center p-2 ${getDisplayColor(gradeRange.color)} rounded`}>
+                        <div className="font-bold">{count}</div>
+                        <div className="text-xs">{gradeRange.letter}</div>
+                        <div className="text-xs">({gradeRange.minPercent}%{gradeRange.maxPercent < 100 ? `-${gradeRange.maxPercent}%` : '+'})</div>
+                        <div className="text-xs">GPA {gradeRange.gpa}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -373,7 +369,7 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
                         <div className="text-sm text-gray-600">{result.percentage}%</div>
                       </div>
                       
-                      <Badge className={getGradeColor(result.grade)}>
+                      <Badge className={getDynamicGradeColor(result.grade, resultsData?.gradingScheme)}>
                         {result.grade}
                       </Badge>
                       

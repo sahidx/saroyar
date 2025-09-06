@@ -62,7 +62,7 @@ export default function StudentResults() {
       case 'B': return 'bg-yellow-500 text-white';
       case 'C': return 'bg-orange-500 text-white';
       case 'D': return 'bg-red-400 text-white';
-      default: return 'bg-red-500 text-white';
+      default: return 'bg-red-600 text-white'; // F
     }
   };
 

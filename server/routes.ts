@@ -4994,11 +4994,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add ranking and format results for frontend
       const formattedResults = rankedResults.map((result, index) => {
         const percentage = Math.round((result.marks / (exam.totalMarks || 100)) * 100);
+        // Bangladesh Letter Grade System (NCTB Standard)
         let grade = 'F';
-        if (percentage >= 90) grade = 'A+';
-        else if (percentage >= 80) grade = 'A';
-        else if (percentage >= 70) grade = 'B';
-        else if (percentage >= 60) grade = 'C';
+        if (percentage >= 80) grade = 'A+';        // 5.0 GPA
+        else if (percentage >= 70) grade = 'A';    // 4.0 GPA  
+        else if (percentage >= 60) grade = 'A-';   // 3.5 GPA
+        else if (percentage >= 50) grade = 'B';    // 3.0 GPA
+        else if (percentage >= 40) grade = 'C';    // 2.0 GPA
+        else if (percentage >= 33) grade = 'D';    // 1.0 GPA
+        // 0-32: F (0.0 GPA)
         
         return {
           id: result.student.id,
@@ -5023,22 +5027,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         averageScore: marks.length > 0 ? marks.reduce((a, b) => a + b, 0) / marks.length : 0,
         highestScore: marks.length > 0 ? Math.max(...marks) : 0,
         lowestScore: marks.length > 0 ? Math.min(...marks) : 0,
-        passedStudents: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 60).length,
+        passedStudents: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 33).length,
         gradeDistribution: {
-          aPlus: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 90).length,
+          aPlus: rankedResults.filter(r => (r.marks / totalMarks) * 100 >= 80).length,     // A+ (80-100%)
           a: rankedResults.filter(r => {
             const percentage = (r.marks / totalMarks) * 100;
-            return percentage >= 80 && percentage < 90;
+            return percentage >= 70 && percentage < 80;                                     // A (70-79%)
+          }).length,
+          aMinus: rankedResults.filter(r => {
+            const percentage = (r.marks / totalMarks) * 100;
+            return percentage >= 60 && percentage < 70;                                     // A- (60-69%)
           }).length,
           b: rankedResults.filter(r => {
             const percentage = (r.marks / totalMarks) * 100;
-            return percentage >= 70 && percentage < 80;
+            return percentage >= 50 && percentage < 60;                                     // B (50-59%)
           }).length,
           c: rankedResults.filter(r => {
             const percentage = (r.marks / totalMarks) * 100;
-            return percentage >= 60 && percentage < 70;
+            return percentage >= 40 && percentage < 50;                                     // C (40-49%)
           }).length,
-          fail: rankedResults.filter(r => (r.marks / totalMarks) * 100 < 60).length
+          d: rankedResults.filter(r => {
+            const percentage = (r.marks / totalMarks) * 100;
+            return percentage >= 33 && percentage < 40;                                     // D (33-39%)
+          }).length,
+          fail: rankedResults.filter(r => (r.marks / totalMarks) * 100 < 33).length        // F (0-32%)
         }
       };
 

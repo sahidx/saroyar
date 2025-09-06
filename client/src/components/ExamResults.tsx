@@ -44,12 +44,16 @@ const getGradeColor = (grade: string) => {
       return 'bg-green-100 text-green-800 border-green-300';
     case 'A':
       return 'bg-blue-100 text-blue-800 border-blue-300';
+    case 'A-':
+      return 'bg-cyan-100 text-cyan-800 border-cyan-300';
     case 'B':
       return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     case 'C':
       return 'bg-orange-100 text-orange-800 border-orange-300';
-    default:
-      return 'bg-red-100 text-red-800 border-red-300';
+    case 'D':
+      return 'bg-red-100 text-red-700 border-red-300';
+    default: // F
+      return 'bg-red-200 text-red-900 border-red-400';
   }
 };
 
@@ -191,7 +195,7 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto sm:max-w-6xl max-w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Trophy className="w-6 h-6 text-yellow-500" />

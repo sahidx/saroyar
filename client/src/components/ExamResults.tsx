@@ -279,27 +279,49 @@ export function ExamResults({ exam, isOpen, onClose, userRole, currentUserId }: 
                   </div>
                 </div>
                 
-                {/* Grade Distribution */}
-                <div className="grid grid-cols-5 gap-2">
+                {/* Grade Distribution - Bangladesh Letter Grade System */}
+                <div className="grid grid-cols-7 gap-1 text-xs">
                   <div className="text-center p-2 bg-green-100 rounded">
-                    <div className="font-bold text-green-700">{stats.aPlus}</div>
-                    <div className="text-xs text-green-600">A+ (90%+)</div>
+                    <div className="font-bold text-green-700">{stats.aPlus || 0}</div>
+                    <div className="text-xs text-green-600">A+</div>
+                    <div className="text-xs text-green-500">(80%+)</div>
+                    <div className="text-xs text-green-400">GPA 5.0</div>
                   </div>
                   <div className="text-center p-2 bg-blue-100 rounded">
-                    <div className="font-bold text-blue-700">{stats.a}</div>
-                    <div className="text-xs text-blue-600">A (80-89%)</div>
+                    <div className="font-bold text-blue-700">{stats.a || 0}</div>
+                    <div className="text-xs text-blue-600">A</div>
+                    <div className="text-xs text-blue-500">(70-79%)</div>
+                    <div className="text-xs text-blue-400">GPA 4.0</div>
+                  </div>
+                  <div className="text-center p-2 bg-cyan-100 rounded">
+                    <div className="font-bold text-cyan-700">{stats.aMinus || 0}</div>
+                    <div className="text-xs text-cyan-600">A-</div>
+                    <div className="text-xs text-cyan-500">(60-69%)</div>
+                    <div className="text-xs text-cyan-400">GPA 3.5</div>
                   </div>
                   <div className="text-center p-2 bg-yellow-100 rounded">
-                    <div className="font-bold text-yellow-700">{stats.b}</div>
-                    <div className="text-xs text-yellow-600">B (70-79%)</div>
+                    <div className="font-bold text-yellow-700">{stats.b || 0}</div>
+                    <div className="text-xs text-yellow-600">B</div>
+                    <div className="text-xs text-yellow-500">(50-59%)</div>
+                    <div className="text-xs text-yellow-400">GPA 3.0</div>
                   </div>
                   <div className="text-center p-2 bg-orange-100 rounded">
-                    <div className="font-bold text-orange-700">{stats.c}</div>
-                    <div className="text-xs text-orange-600">C (60-69%)</div>
+                    <div className="font-bold text-orange-700">{stats.c || 0}</div>
+                    <div className="text-xs text-orange-600">C</div>
+                    <div className="text-xs text-orange-500">(40-49%)</div>
+                    <div className="text-xs text-orange-400">GPA 2.0</div>
                   </div>
                   <div className="text-center p-2 bg-red-100 rounded">
-                    <div className="font-bold text-red-700">{stats.fail}</div>
-                    <div className="text-xs text-red-600">Fail (&lt;60%)</div>
+                    <div className="font-bold text-red-700">{stats.d || 0}</div>
+                    <div className="text-xs text-red-600">D</div>
+                    <div className="text-xs text-red-500">(33-39%)</div>
+                    <div className="text-xs text-red-400">GPA 1.0</div>
+                  </div>
+                  <div className="text-center p-2 bg-red-200 rounded">
+                    <div className="font-bold text-red-800">{stats.fail || 0}</div>
+                    <div className="text-xs text-red-700">F</div>
+                    <div className="text-xs text-red-600">(&lt;33%)</div>
+                    <div className="text-xs text-red-500">GPA 0.0</div>
                   </div>
                 </div>
               </CardContent>

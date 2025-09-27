@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "validate-production": "tsx validate-production.ts",
     "deploy": "npm run validate-production && npm run build",
-    "production-start": "cross-env NODE_ENV=production npm run build && npm start"
+    "production-start": "cross-env NODE_ENV=production npm run build && npm start",
+    "build:production": "npm run build && npm run db:migrate",
+    "vps:deploy": "npm run build:production && pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

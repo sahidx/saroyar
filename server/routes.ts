@@ -1274,55 +1274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json(result);
       } catch (dbError) {
-        // Fallback when database fails - return sample exam result
-        console.log('📝 Database unavailable, returning sample exam result');
-        logTemporaryEndpoint('online exam results');
-        
-        const mockResult = {
-          id: `mock-result-${Date.now()}`,
-          examId: examId,
-          examTitle: 'গণিত - নমুনা অনলাইন পরীক্ষা',
-          subject: 'mathematics',
-          class: '9-10',
-          chapter: 'বীজগণিত',
-          totalMarks: 2,
-          obtainedMarks: 1,
-          percentage: 50,
-          grade: 'B+',
-          timeSpent: 300, // 5 minutes
-          submittedAt: new Date().toISOString(),
-          questions: [
-            {
-              id: 'sample-q1',
-              questionText: 'x² + 5x + 6 = 0 সমীকরণের সমাধান কত?',
-              optionA: 'x = -2, -3',
-              optionB: 'x = 2, 3',
-              optionC: 'x = -1, -6',
-              optionD: 'x = 1, 6',
-              correctAnswer: 'A',
-              userAnswer: 'A',
-              isCorrect: true,
-              marks: 1,
-              explanation: 'x² + 5x + 6 = (x + 2)(x + 3) = 0, তাই x = -2 অথবা x = -3'
-            },
-            {
-              id: 'sample-q2',
-              questionText: 'একটি বৃত্তের ব্যাস 14 সেমি হলে, এর ক্ষেত্রফল কত?',
-              optionA: '154 বর্গ সেমি',
-              optionB: '44 বর্গ সেমি',
-              optionC: '196 বর্গ সেমি',
-              optionD: '308 বর্গ সেমি',
-              correctAnswer: 'A',
-              userAnswer: 'B',
-              isCorrect: false,
-              marks: 1,
-              explanation: 'ব্যাস = 14 সেমি, ব্যাসার্ধ = 7 সেমি। ক্ষেত্রফল = πr² = (22/7) × 7² = 154 বর্গ সেমি'
-            }
-          ]
-        };
-        
-        console.log(`✅ Mock exam result: ${mockResult.obtainedMarks}/${mockResult.totalMarks} (${mockResult.percentage}%) - ${mockResult.grade}`);
-        res.json({ ...mockResult, _fallback: true });
+        console.error('❌ Database error fetching exam results:', dbError);
+        throw new Error(`Failed to fetch exam results: ${dbError.message || 'Database connection error'}`);
       }
     } catch (error) {
       console.error("Error fetching online exam results:", error);
@@ -3070,8 +3023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (dbError) {
         console.error("❌ Error deleting student:", dbError);
         res.status(500).json({ 
-          message: "Failed to delete student. Database error.",
-          _fallback: true // Indicate this is a fallback response
+          message: "Failed to delete student. Database error."
         });
       }
     } catch (error) {
@@ -3137,8 +3089,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (dbError) {
         console.error("❌ Error deleting batch:", dbError);
         res.status(500).json({ 
-          message: "Failed to delete batch. Database error.",
-          _fallback: true
+          message: "Failed to delete batch. Database error."
         });
       }
     } catch (error) {
@@ -3323,34 +3274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password, // Include password in response for teacher to share
         });
       } catch (dbError) {
-        // Fallback when database fails - return mock successful response
-        console.log("📚 Database error creating batch, using fallback:", dbError);
-        logTemporaryEndpoint('batch creation');
-        
-        const mockBatch = {
-          id: `batch-${Date.now()}`,
-          name: batchData.name,
-          subject: batchData.subject,
-          batchCode,
-          password,
-          classTime: batchData.classTime,
-          classDays: batchData.classDays,
-          maxStudents: batchData.maxStudents,
-          currentStudents: 0,
-          startDate: batchData.startDate,
-          endDate: batchData.endDate,
-          status: 'active',
-          createdBy: batchData.createdBy,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-
-        console.log(`✅ Mock batch created: ${mockBatch.name} (${mockBatch.batchCode})`);
-        res.json({
-          ...mockBatch,
-          password,
-          _fallback: true // Indicate this is a fallback response
-        });
+        console.error("❌ Database error creating batch:", dbError);
+        throw new Error(`Failed to create batch: ${dbError.message || 'Database connection error'}`);
       }
     } catch (error: any) {
       console.error("❌ Error creating batch:", error);
@@ -5716,7 +5641,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all courses (public endpoint for landing page)
   app.get('/api/courses', async (req, res) => {
     try {
-      logTemporaryEndpoint('courses');
       res.json(tempCourses.filter(c => c.isActive));
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -5727,7 +5651,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all courses for teacher management (bypass auth for now)
   app.get('/api/teacher/courses', async (req, res) => {
     try {
-      logTemporaryEndpoint('courses');
       res.json(tempCourses);
     } catch (error) {
       console.error('Error fetching courses for teacher:', error);
@@ -5738,8 +5661,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new course
   app.post('/api/teacher/courses', async (req, res) => {
     try {
-      logTemporaryEndpoint('course creation');
-      
       // Create new temporary course
       const newCourse = {
         id: `course-${Date.now()}`,
@@ -5766,8 +5687,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update course
   app.put('/api/teacher/courses/:id', async (req, res) => {
     try {
-      logTemporaryEndpoint('course update');
-      
       const courseId = req.params.id;
       const updateData = req.body;
       
@@ -5802,8 +5721,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete course
   app.delete('/api/teacher/courses/:id', async (req, res) => {
     try {
-      logTemporaryEndpoint('course deletion');
-      
       const courseId = req.params.id;
       
       // Find and remove course from temp array
@@ -5859,7 +5776,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get teacher profile
   app.get('/api/teacher/profile', async (req, res) => {
     try {
-      logTemporaryEndpoint('profile');
       res.json(tempTeacherProfile);
     } catch (error) {
       console.error('Error fetching teacher profile:', error);
@@ -5870,8 +5786,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create or update teacher profile
   app.put('/api/teacher/profile', async (req, res) => {
     try {
-      logTemporaryEndpoint('profile update');
-      
       // Update the temporary profile with new data
       tempTeacherProfile = {
         ...tempTeacherProfile,
@@ -5893,8 +5807,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile picture upload endpoint
   app.post('/api/teacher/profile/upload-picture', async (req, res) => {
     try {
-      logTemporaryEndpoint('picture upload');
-      
       const { imageData } = req.body;
       
       if (!imageData) {
@@ -6046,8 +5958,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile picture delete endpoint
   app.delete('/api/teacher/profile/delete-picture', async (req, res) => {
     try {
-      logTemporaryEndpoint('picture delete');
-      
       // Remove from temporary storage
       const userId = 'teacher-belal-sir';
       tempImageStorage.delete(userId);
@@ -6126,8 +6036,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get public teacher profiles (for landing page)
   app.get('/api/teacher-profiles', async (req, res) => {
     try {
-      logTemporaryEndpoint('teacher profiles');
-      
       // Return public profiles only
       const publicProfiles = tempTeacherProfile.isPublic ? [tempTeacherProfile] : [];
       res.json(publicProfiles);

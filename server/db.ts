@@ -2,47 +2,61 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "@shared/schema";
 
-// PostgreSQL-only Database Configuration for VPS Production
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/saroyar_dev";
+const DATABASE_URL = process.env.DATABASE_URL!;
 
-// Validate DATABASE_URL format
-if (!DATABASE_URL.startsWith("postgresql://") && !DATABASE_URL.startsWith("postgres://")) {
-  throw new Error("DATABASE_URL must be a PostgreSQL connection string (postgresql://...)");
-}
+console.log("🐘 Connecting to PostgreSQL...");
 
-console.log("🐘 Connecting to PostgreSQL database...");
-
-// Initialize PostgreSQL connection
 const client = postgres(DATABASE_URL, {
-  // Connection pool options for production
-  max: 20,                    // Maximum number of connections
-  idle_timeout: 20,           // Close idle connections after 20 seconds
-  connect_timeout: 10,        // Connection timeout in seconds
-  prepare: false,             // Disable prepared statements for compatibility
+  max: 20,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  prepare: false,
 });
 
-// Initialize Drizzle ORM with PostgreSQL
 const db = drizzle(client, { schema });
 
-// Test connection function
-export async function testConnection() {
+export async function initializeDatabase() {
   try {
-    await client`SELECT 1`;
-    console.log("✅ PostgreSQL database connection successful");
-    return true;
-  } catch (error) {
-    console.error("❌ PostgreSQL database connection failed:", error);
-    throw error;
-  }
-}
+    console.log("🔄 Initializing database tables...");
+    
+    await client.unsafe(`
+      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+      
+      CREATE TABLE IF NOT EXISTS users (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "firstName" varchar(255) NOT NULL,
+        "lastName" varchar(255) NOT NULL,
+        phone varchar(20) UNIQUE,
+        email varchar(255) UNIQUE,
+        password varchar(255),
+        role varchar(50) DEFAULT 'student',
+        "batchId" uuid,
+        class varchar(20),
+        "createdAt" timestamp DEFAULT now(),
+        "updatedAt" timestamp DEFAULT now()
+      );
 
-// Graceful shutdown function
-export async function closeConnection() {
-  try {
-    await client.end();
-    console.log("✅ PostgreSQL connection closed gracefully");
+      CREATE TABLE IF NOT EXISTS batches (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name varchar(255) NOT NULL,
+        subject varchar(100) NOT NULL,
+        "batchCode" varchar(20) UNIQUE NOT NULL,
+        password varchar(20) NOT NULL,
+        "maxStudents" integer DEFAULT 50,
+        "currentStudents" integer DEFAULT 0,
+        "startDate" timestamp,
+        "endDate" timestamp,
+        status varchar(20) DEFAULT 'active',
+        "createdBy" uuid NOT NULL,
+        "createdAt" timestamp DEFAULT now(),
+        "updatedAt" timestamp DEFAULT now()
+      );
+    `);
+    
+    console.log("✅ Database tables created successfully");
   } catch (error) {
-    console.error("❌ Error closing PostgreSQL connection:", error);
+    console.error("❌ Database initialization failed:", error);
+    throw error;
   }
 }
 

@@ -181,17 +181,19 @@ app.use(async (req, res, next) => {
 });
 
 (async () => {
-  // Initialize database for production only
-  if (process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+  // Initialize database for production
+  if (process.env.DATABASE_URL) {
     try {
-      const { safeInitializeDatabase } = await import('./production-db');
-      await safeInitializeDatabase();
+      const { initializeDatabase } = await import('./db');
+      await initializeDatabase();
+      log('✅ Database initialized successfully');
     } catch (error) {
       console.error('💥 Failed to initialize database:', error);
-      // Continue startup even if DB init fails - fallback to mock data
+      throw error; // Exit if database fails in production
     }
-  } else if (process.env.NODE_ENV === 'development') {
-    log('🔧 Development mode: Skipping database initialization');
+  } else {
+    console.error('❌ DATABASE_URL is required for production');
+    process.exit(1);
   }
 
   // Register all routes (they can read loginLimiter via app.get('loginLimiter'))

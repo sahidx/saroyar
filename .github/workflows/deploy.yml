@@ -1,4 +1,4 @@
-name: 🚀 Deploy to VPS
+name: Deploy to VPS
 
 on:
   push:
@@ -8,18 +8,62 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 🚀 Deploy over SSH with password
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          password: ${{ secrets.VPS_PASS }}
-          script: |
-            cd /var/www/saroyar
-            git fetch --all
-            git reset --hard origin/main
-            npm ci --legacy-peer-deps
-            npm run build
-            npx drizzle-kit migrate
-            pm2 restart saroyar --update-env
-            pm2 save
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+              set -e
+
+              # Ensure project folder
+              mkdir -p /var/www/saro
+              cd /var/www/saro
+
+              # Pull latest code
+              if [ -d .git ]; then
+                git fetch origin main
+                git reset --hard origin/main
+              else
+                git clone https://github.com/sahidx/saro.git .
+              fi
+
+              # Write .env.production
+              cat > .env.production << 'EOL'
+DATABASE_URL=${{ secrets.DATABASE_URL }}
+NODE_ENV=production
+PORT=5000
+SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+EOL
+
+              # Clean + install dependencies
+              rm -rf node_modules package-lock.json
+              npm install --legacy-peer-deps
+
+              # Build project (frontend + backend)
+              if npm run | grep -q 'build:all'; then
+                npm run build:all
+              else
+                npm run build
+              fi
+
+              # Run DB migrations
+              if npm run | grep -q 'db:push'; then
+                npm run db:push || echo '⚠️ Migration failed, continuing...'
+              fi
+
+              # Restart PM2
+              pm2 delete saro || true
+              pm2 start dist/index.js --name saro --update-env -f
+              pm2 save
+          "

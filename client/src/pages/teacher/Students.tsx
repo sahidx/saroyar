@@ -45,7 +45,6 @@ function CreateBatchForm({ isDarkMode, onSubmit, isLoading }: CreateBatchFormPro
     defaultValues: {
       name: '',
       subject: '',
-      classTime: '',
       classDays: [],
       maxStudents: 50,
       startDate: '',
@@ -68,7 +67,7 @@ function CreateBatchForm({ isDarkMode, onSubmit, isLoading }: CreateBatchFormPro
             <FormItem>
               <FormLabel className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>Batch Name</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="e.g., Chemistry Batch 2025" className={isDarkMode ? 'bg-slate-700 border-purple-400/30 text-white' : 'bg-white'} />
+                <Input {...field} placeholder="e.g., Math Batch 2025" className={isDarkMode ? 'bg-slate-700 border-purple-400/30 text-white' : 'bg-white'} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,25 +87,11 @@ function CreateBatchForm({ isDarkMode, onSubmit, isLoading }: CreateBatchFormPro
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="chemistry">Chemistry</SelectItem>
-                  <SelectItem value="ict">ICT</SelectItem>
-                  <SelectItem value="both">Both (Chemistry & ICT)</SelectItem>
+                  <SelectItem value="math">Math</SelectItem>
+                  <SelectItem value="higher_math">Higher Math</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="classTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className={isDarkMode ? 'text-cyan-300' : 'text-gray-700'}>Class Time</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="e.g., 10:00 AM - 12:00 PM" className={isDarkMode ? 'bg-slate-700 border-purple-400/30 text-white' : 'bg-white'} />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}

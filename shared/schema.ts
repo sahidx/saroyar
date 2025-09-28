@@ -61,9 +61,8 @@ export const monthlyCalendarSummary = pgTable("monthly_calendar_summary", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Subject enum - Re-aligned to NCTB core subjects (science, math)
-// NOTE: Previously used subjects included 'chemistry' and 'ict'. These are now mapped to 'science'.
-export const subjectEnum = pgEnum('subject', ['science', 'math']);
+// Subject enum - Core subjects for coaching center
+export const subjectEnum = pgEnum('subject', ['math', 'higher_math', 'science']);
 
 // Attendance status enum for three-state system
 export const attendanceStatusEnum = pgEnum("attendance_status", [

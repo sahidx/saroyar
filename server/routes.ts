@@ -8,7 +8,6 @@ import { autoResultTrigger } from "./autoResultTrigger";
 import { smsTemplateService } from "./smsTemplateService";
 import session from 'express-session';
 import { insertExamSchema, insertQuestionSchema, insertMessageSchema, insertNoticeSchema, insertSmsTransactionSchema, insertStudentSchema, insertNotesSchema, insertQuestionBankSchema, insertCourseSchema, insertTeacherProfileSchema, insertOnlineExamQuestionSchema, exams, examSubmissions, questions, questionBank, courses, teacherProfiles, users, batches, messages, onlineExamQuestions, attendance, studentFees } from "@shared/schema";
-import { users as sqliteUsers, batches as sqliteBatches } from "@shared/sqlite-schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, and, sql, asc, inArray, gte, lte } from "drizzle-orm";
@@ -24,35 +23,6 @@ function generateRandomPassword(): string {
   }
   return password;
 }
-
-// Helper function to check if we're using SQLite
-const isSQLite = () => process.env.DATABASE_URL?.startsWith('file:');
-
-// Helper functions for SQLite-compatible operations
-const getBatchByIdSQLite = async (id: string) => {
-  if (isSQLite()) {
-    const [batch] = await db.select().from(sqliteBatches).where(eq(sqliteBatches.id, id));
-    return batch;
-  } else {
-    return await storage.getBatchById(id);
-  }
-};
-
-const getStudentsByBatchSQLite = async (batchId: string) => {
-  if (isSQLite()) {
-    return await db.select().from(sqliteUsers).where(eq(sqliteUsers.batchId, batchId));
-  } else {
-    return await storage.getStudentsByBatch(batchId);
-  }
-};
-
-const deleteBatchSQLite = async (id: string) => {
-  if (isSQLite()) {
-    await db.delete(sqliteBatches).where(eq(sqliteBatches.id, id));
-  } else {
-    await storage.deleteBatch(id);
-  }
-};
 
 // Helper function to get formatted time ago with dynamic precision
 function getTimeAgo(date: Date): string {
@@ -3212,7 +3182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new batch - Production ready version
   app.post("/api/batches", requireAuth, async (req: any, res) => {
     try {
-      const { name, subject, classTime, classDays, maxStudents, startDate, endDate } = req.body;
+      const { name, subject, classDays, maxStudents, startDate, endDate } = req.body;
       const user = req.session?.user;
 
       // Only teachers can create batches
@@ -3242,7 +3212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject,
         batchCode,
         password,
-        classTime,
         classDays: JSON.stringify(classDays || []),
         maxStudents: maxStudents || 50,
         startDate: startDate ? new Date(startDate) : null,

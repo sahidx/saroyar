@@ -39,30 +39,30 @@ jobs:
               fi
 
               # Write .env.production
-              cat > .env.production << 'EOL'
+              cat > .env.production <<'EOL'
 DATABASE_URL=${{ secrets.DATABASE_URL }}
 NODE_ENV=production
 PORT=5000
 SESSION_SECRET=${{ secrets.SESSION_SECRET }}
 EOL
 
-              # Clean + install dependencies
+              # Install dependencies
               rm -rf node_modules package-lock.json
               npm install --legacy-peer-deps
 
-              # Build project (frontend + backend)
+              # Build frontend + backend
               if npm run | grep -q 'build:all'; then
                 npm run build:all
               else
                 npm run build
               fi
 
-              # Run DB migrations
+              # Run migrations
               if npm run | grep -q 'db:push'; then
                 npm run db:push || echo '⚠️ Migration failed, continuing...'
               fi
 
-              # Restart PM2
+              # Restart with PM2
               pm2 delete saro || true
               pm2 start dist/index.js --name saro --update-env -f
               pm2 save

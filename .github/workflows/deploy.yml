@@ -1,0 +1,38 @@
+name: 🚀 Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Deploy over SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/saroyar
+
+            echo "📥 Pulling latest code..."
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "📦 Installing dependencies..."
+            npm ci --legacy-peer-deps
+
+            echo "🏗️ Building frontend & backend..."
+            npm run build
+
+            echo "🗄️ Running database migrations..."
+            npx drizzle-kit migrate:latest
+
+            echo "♻️ Restarting PM2 app..."
+            pm2 restart saroyar --update-env || pm2 start dist/index.js --name "saroyar"
+            pm2 save
+
+            echo "✅ Deployment complete!"

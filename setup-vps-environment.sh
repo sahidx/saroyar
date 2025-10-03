@@ -14,20 +14,27 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Default database credentials (update these for your VPS)
+# Default database credentials for VPS PostgreSQL
 DEFAULT_DB_USER="saro"
 DEFAULT_DB_PASSWORD="saro"
 DEFAULT_DB_HOST="localhost"
 DEFAULT_DB_PORT="5432"
 DEFAULT_DB_NAME="saro_db"
+DEFAULT_POSTGRES_URL="postgres://${DEFAULT_DB_USER}:${DEFAULT_DB_PASSWORD}@${DEFAULT_DB_HOST}:${DEFAULT_DB_PORT}/${DEFAULT_DB_NAME}"
 
 # Check if DATABASE_URL is already set
 if [ -n "$DATABASE_URL" ]; then
     echo -e "${GREEN}✅ DATABASE_URL is already set in current session${NC}"
-    CURRENT_DB_URL="$DATABASE_URL"
+    # If it's still pointing to SQLite, override it
+    if [[ "$DATABASE_URL" == *"sqlite"* ]] || [[ "$DATABASE_URL" == "file:"* ]]; then
+        echo -e "${YELLOW}⚠️  DATABASE_URL is set to SQLite, overriding with PostgreSQL${NC}"
+        CURRENT_DB_URL="$DEFAULT_POSTGRES_URL"
+    else
+        CURRENT_DB_URL="$DATABASE_URL"
+    fi
 else
     echo -e "${YELLOW}⚠️  DATABASE_URL not set in current session${NC}"
-    CURRENT_DB_URL="postgresql://${DEFAULT_DB_USER}:${DEFAULT_DB_PASSWORD}@${DEFAULT_DB_HOST}:${DEFAULT_DB_PORT}/${DEFAULT_DB_NAME}"
+    CURRENT_DB_URL="$DEFAULT_POSTGRES_URL"
 fi
 
 # Mask password for display

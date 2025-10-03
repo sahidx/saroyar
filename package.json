@@ -19,6 +19,7 @@
     "production-start": "cross-env NODE_ENV=production npm run build && npm start",
     "build:production": "npm run build && npm run db:migrate-safe",
     "vps:env-setup": "chmod +x setup-vps-environment.sh && ./setup-vps-environment.sh",
+    "vps:fix-env": "chmod +x fix-vps-env.sh && ./fix-vps-env.sh",
     "vps:setup": "npm run vps:env-setup && chmod +x run-migrations.sh && ./run-migrations.sh",
     "vps:deploy": "npm run vps:setup && npm run build && pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js"
   },

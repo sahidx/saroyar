@@ -17,43 +17,86 @@ const db = drizzle(client, { schema });
 
 export async function initializeDatabase() {
   try {
-    console.log("🔄 Initializing database tables...");
+    console.log("🔄 Initializing database tables and enums...");
     
+    // Create all necessary enums and extensions
     await client.unsafe(`
       CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
       
-      CREATE TABLE IF NOT EXISTS users (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        "firstName" varchar(255) NOT NULL,
-        "lastName" varchar(255) NOT NULL,
-        phone varchar(20) UNIQUE,
-        email varchar(255) UNIQUE,
-        password varchar(255),
-        role varchar(50) DEFAULT 'student',
-        "batchId" uuid,
-        class varchar(20),
-        "createdAt" timestamp DEFAULT now(),
-        "updatedAt" timestamp DEFAULT now()
-      );
-
-      CREATE TABLE IF NOT EXISTS batches (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        name varchar(255) NOT NULL,
-        subject varchar(100) NOT NULL,
-        "batchCode" varchar(20) UNIQUE NOT NULL,
-        password varchar(20) NOT NULL,
-        "maxStudents" integer DEFAULT 50,
-        "currentStudents" integer DEFAULT 0,
-        "startDate" timestamp,
-        "endDate" timestamp,
-        status varchar(20) DEFAULT 'active',
-        "createdBy" uuid NOT NULL,
-        "createdAt" timestamp DEFAULT now(),
-        "updatedAt" timestamp DEFAULT now()
-      );
+      -- Create all enum types if they don't exist
+      DO $$ BEGIN
+        CREATE TYPE user_role AS ENUM('teacher', 'student', 'super_user');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE subject AS ENUM('math', 'higher_math', 'science');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE batch_status AS ENUM('active', 'inactive', 'completed');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE attendance_status AS ENUM('present', 'excused', 'absent');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE payment_status AS ENUM('pending', 'completed', 'failed', 'cancelled');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE sms_type AS ENUM('attendance', 'exam_result', 'exam_notification', 'notice', 'reminder');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE note_type AS ENUM('pdf', 'google_drive', 'link', 'text');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE api_key_status AS ENUM('active', 'quota_exceeded', 'error', 'disabled');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE trigger_type AS ENUM('monthly_exam', 'attendance_reminder', 'exam_notification', 'custom_schedule');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE target_audience AS ENUM('students', 'parents', 'both');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+      
+      DO $$ BEGIN
+        CREATE TYPE execution_status AS ENUM('pending', 'in_progress', 'completed', 'failed');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
     `);
+
+    console.log("✅ Database enums created successfully");
     
-    console.log("✅ Database tables created successfully");
+    // Note: Actual table creation will be handled by drizzle migrations
+    // This ensures we have all the necessary enums available
+    
+    console.log("✅ Database initialization completed successfully");
   } catch (error) {
     console.error("❌ Database initialization failed:", error);
     throw error;

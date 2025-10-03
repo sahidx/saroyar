@@ -647,29 +647,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Expires', '0');
       
       try {
-        console.log('👥 Fetching students with optimized query...');
-        // Use direct database query for better performance
-        const students = await db.select({
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          phoneNumber: users.phoneNumber,
-          parentPhoneNumber: users.parentPhoneNumber, // Ensure parent phone number is included
-          batchId: users.batchId,
-          role: users.role,
-          studentId: users.studentId,
-          studentPassword: users.studentPassword, // Include student password for teacher management
-          createdAt: users.createdAt
-        }).from(users).where(eq(users.role, 'student')).orderBy(users.firstName);
+        console.log('👥 Fetching students with batch information...');
         
-        console.log(`👥 Found ${students.length} students`);
-        console.log(`📱 Parent numbers found: ${students.filter(s => s.parentPhoneNumber).length}`);
-        console.log(`🔑 Students with passwords: ${students.filter(s => s.studentPassword).length}`);
-        // Log password status for debugging
-        students.forEach(s => {
-          console.log(`🔑 ${s.firstName} ${s.lastName} (${s.studentId}): Password = "${s.studentPassword || 'NOT SET'}"`);
-        });
-        res.json(students);
+        // Get students with their batch information using a join
+        const studentsWithBatch = await db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            phoneNumber: users.phoneNumber,
+            parentPhoneNumber: users.parentPhoneNumber,
+            batchId: users.batchId,
+            role: users.role,
+            studentId: users.studentId,
+            studentPassword: users.studentPassword,
+            institution: users.institution,
+            classLevel: users.classLevel,
+            createdAt: users.createdAt,
+            // Include batch information
+            batch: {
+              id: batches.id,
+              name: batches.name,
+              batchCode: batches.batchCode,
+              subject: batches.subject,
+            }
+          })
+          .from(users)
+          .leftJoin(batches, eq(users.batchId, batches.id))
+          .where(eq(users.role, 'student'))
+          .orderBy(users.firstName);
+        
+        console.log(`👥 Found ${studentsWithBatch.length} students`);
+        console.log(`📱 Parent numbers found: ${studentsWithBatch.filter(s => s.parentPhoneNumber).length}`);
+        console.log(`🔑 Students with passwords: ${studentsWithBatch.filter(s => s.studentPassword).length}`);
+        
+        res.json(studentsWithBatch);
       } catch (dbError) {
         // Database unavailable - return empty array, no fake data
         console.log('❌ Database unavailable - returning empty student list');
@@ -700,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: req.body.title,
         subject: batch.subject, // Get subject from batch
         targetClass: (batch as any).className || '11-12', // Use batch class or default to HSC level
-        examDate: Math.floor(new Date(req.body.examDate).getTime() / 1000), // Convert to Unix timestamp for SQLite compatibility
+        examDate: new Date(req.body.examDate), // Use proper Date object for PostgreSQL
         totalMarks: parseInt(req.body.totalMarks) || 100,
         batchId: req.body.batchId,
         questionContent: req.body.questionPaperImage, // Store image URL
@@ -713,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instructions: '',
         chapter: '',
         description: '',
-        isActive: 1 // SQLite uses integer for boolean (1 = true, 0 = false)
+        isActive: true // PostgreSQL uses proper boolean
       };
 
       console.log("Processed simplified exam data:", processedData);
@@ -3017,13 +3029,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // First check if batch exists
-        const existingBatch = await getBatchByIdSQLite(batchId);
+        const existingBatch = await storage.getBatchById(batchId);
         if (!existingBatch) {
           return res.status(404).json({ message: "Batch not found" });
         }
         
         // Check if batch has students
-        const studentsInBatch = await getStudentsByBatchSQLite(batchId);
+        const studentsInBatch = await storage.getStudentsByBatch(batchId);
         if (studentsInBatch.length > 0) {
           return res.status(400).json({ 
             message: `Cannot delete batch "${existingBatch.name}". ${studentsInBatch.length} students are still in this batch. Please transfer them first.`,
@@ -3033,18 +3045,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Delete the batch permanently
-        await deleteBatchSQLite(batchId);
+        await storage.deleteBatch(batchId);
         
-        // Log activity (optional for SQLite)
+        // Log activity
         try {
-          if (!isSQLite()) {
-            await storage.logActivity({
-              type: 'batch_deleted',
-              message: `Batch "${existingBatch.name}" permanently deleted`,
-              icon: '🗑️',
-              userId: teacherId || 'unknown-teacher'
-            });
-          }
+          await storage.logActivity({
+            type: 'batch_deleted',
+            message: `Batch "${existingBatch.name}" permanently deleted`,
+            icon: '🗑️',
+            userId: teacherId || 'unknown-teacher'
+          });
         } catch (logError) {
           console.warn('Activity logging failed:', logError);
         }

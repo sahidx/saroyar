@@ -677,6 +677,22 @@ export const insertSmsLogSchema = createInsertSchema(smsLogs).omit({
   createdAt: true,
 });
 
+// Subject normalization for legacy compatibility
+export function normalizeLegacySubject(subject: string): 'science' | 'math' | 'higher_math' {
+  const subjectMap: Record<string, 'science' | 'math' | 'higher_math'> = {
+    'chemistry': 'science',  // Legacy chemistry -> science
+    'ict': 'science',        // Legacy ICT -> science
+    'physics': 'science',    // Legacy physics -> science
+    'biology': 'science',    // Legacy biology -> science
+    'science': 'science',    // Keep science
+    'math': 'math',          // Keep math
+    'higher_math': 'higher_math', // Keep higher_math
+    'mathematics': 'math',   // Alternative math name
+  };
+  
+  return subjectMap[subject.toLowerCase()] || 'science'; // Default to science
+}
+
 export const insertExamSchema = createInsertSchema(exams).omit({
   id: true,
   createdAt: true,
@@ -862,17 +878,8 @@ export const insertPraggoAIUsageSchema = createInsertSchema(praggoAIUsage).omit(
 });
 
 // ============================
-// Legacy Subject Normalization
+// Legacy Subject Normalization (removed duplicate)
 // ============================
-// Maps old subject identifiers to the new enum values.
-export function normalizeLegacySubject(value: string): 'science' | 'math' {
-  const lowered = value.toLowerCase();
-  if (lowered === 'chemistry' || lowered === 'ict' || lowered === 'general_science') return 'science';
-  if (lowered === 'general_math' || lowered === 'higher_math' || lowered === 'math' || lowered === 'mathematics') return 'math';
-  // Default fallback
-  if (lowered === 'science') return 'science';
-  return 'math';
-}
 
 // Question Bank Schema Validations
 export const insertQuestionBankCategorySchema = createInsertSchema(questionBankCategories).omit({

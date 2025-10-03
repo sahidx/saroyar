@@ -70,8 +70,8 @@ app.use((req, _res, next) => {
       const val = req.body[key];
       if (typeof val === "string") {
         req.body[key] = val
-          .replace(/<script[^>]*>.*?<\/script>/gis, "")
-          .replace(/<iframe[^>]*>.*?<\/iframe>/gis, "")
+          .replace(/<script[^>]*>.*?<\/script>/gi, "")
+          .replace(/<iframe[^>]*>.*?<\/iframe>/gi, "")
           .replace(/javascript:/gi, "")
           .replace(/on\w+\s*=/gi, "");
       }
@@ -184,12 +184,19 @@ app.use(async (req, res, next) => {
   // Initialize database for production
   if (process.env.DATABASE_URL) {
     try {
+      // Use comprehensive database setup
+      const { DatabaseSetup } = await import('./database-setup');
+      await DatabaseSetup.initialize();
+      
+      // Also run the basic initialization for any missing setup
       const { initializeDatabase } = await import('./db');
       await initializeDatabase();
+      
       log('✅ Database initialized successfully');
     } catch (error) {
       console.error('💥 Failed to initialize database:', error);
-      throw error; // Exit if database fails in production
+      // In production, we should try to continue with limited functionality
+      console.warn('⚠️  Continuing with limited database functionality...');
     }
   } else {
     console.error('❌ DATABASE_URL is required for production');

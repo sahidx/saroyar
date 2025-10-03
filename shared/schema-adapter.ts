@@ -1,16 +1,5 @@
-// Schema adapter to use the correct schema based on database type
-const isPostgreSQL = process.env.DATABASE_URL?.startsWith('postgresql://') || process.env.DATABASE_URL?.startsWith('postgres://');
-const isSQLite = process.env.DATABASE_URL?.startsWith('file:');
-
-let schemaModule;
-
-if (isPostgreSQL) {
-  schemaModule = await import('@shared/schema');
-} else if (isSQLite) {
-  schemaModule = await import('@shared/sqlite-schema');
-} else {
-  throw new Error('Unsupported database type. Please use PostgreSQL or SQLite.');
-}
+// Schema adapter for PostgreSQL production database
+const schemaModule = await import('@shared/schema');
 
 export const {
   users,

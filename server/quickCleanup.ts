@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import * as schema from '../shared/sqlite-schema';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../shared/schema';
 import { eq, like, or } from 'drizzle-orm';
 
 // Load environment variables
@@ -11,9 +11,9 @@ async function quickCleanup() {
   console.log('🧹 Starting quick demo data cleanup...');
   
   try {
-    // Initialize SQLite database
-    const sqlite = new Database('dev.sqlite');
-    const db = drizzle(sqlite, { schema });
+    // Initialize PostgreSQL database
+    const client = postgres(process.env.DATABASE_URL!);
+    const db = drizzle(client, { schema });
     
     console.log('📊 Checking existing data...');
     
@@ -85,7 +85,7 @@ async function quickCleanup() {
       });
     }
     
-    sqlite.close();
+    await client.end();
     
   } catch (error) {
     console.error('❌ Error during cleanup:', error);

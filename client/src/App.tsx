@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useState, useEffect } from "react";
 import StudentAISolver from './pages/student/StudentAISolver';
 import AITestPage from './pages/AITestPage';
 import { queryClient } from "./lib/queryClient";
@@ -9,6 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { setupMockApi } from "@/lib/mockApi";
 import Landing from "@/pages/Landing";
 import LoginPage from "@/pages/LoginPage";
+import DatabaseModeSelector from "@/components/DatabaseModeSelector";
+import FrontendApp from "@/components/FrontendApp";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import SuperUserDashboard from "@/pages/SuperUserDashboard";
 import StudentDashboard from "@/pages/StudentDashboard";
@@ -53,10 +56,39 @@ import MonthlyResultsManagement from "@/components/MonthlyResultsManagement";
 import StudentMonthlyResults from "@/components/StudentMonthlyResults";
 import Rankings from "@/pages/Rankings";
 
+type DatabaseMode = 'backend' | 'frontend';
+
 function Router() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  const [databaseMode, setDatabaseMode] = useState<DatabaseMode>('backend');
 
-  // Show loading screen while checking authentication
+  // Load database mode from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem('database_mode') as DatabaseMode;
+    if (savedMode && (savedMode === 'backend' || savedMode === 'frontend')) {
+      setDatabaseMode(savedMode);
+    }
+  }, []);
+
+  // Handle mode change
+  const handleModeChange = (mode: DatabaseMode) => {
+    setDatabaseMode(mode);
+  };
+
+  // If frontend mode is selected, show frontend app
+  if (databaseMode === 'frontend') {
+    return (
+      <>
+        <FrontendApp />
+        <DatabaseModeSelector 
+          currentMode={databaseMode} 
+          onModeChange={handleModeChange} 
+        />
+      </>
+    );
+  }
+
+  // Backend mode loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -64,12 +96,17 @@ function Router() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
+        <DatabaseModeSelector 
+          currentMode={databaseMode} 
+          onModeChange={handleModeChange} 
+        />
       </div>
     );
   }
 
   return (
-    <Switch>
+    <>
+      <Switch>
       {/* Always available login route */}
       <Route path="/login" component={LoginPage} />
       
@@ -155,6 +192,11 @@ function Router() {
       {/* Fallback for any unmatched routes */}
       <Route component={NotFound} />
     </Switch>
+      <DatabaseModeSelector 
+        currentMode={databaseMode} 
+        onModeChange={handleModeChange} 
+      />
+    </>
   );
 }
 

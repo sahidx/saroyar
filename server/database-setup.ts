@@ -122,23 +122,61 @@ export class DatabaseSetup {
   }
 
   /**
-   * Run database migrations
+   * Run database migrations using Drizzle
    */
   private static async runMigrations(): Promise<void> {
     console.log('🔄 Running database migrations...');
     
-    try {
-      // Try to import and run migrations
-      const { migrate } = await import('drizzle-orm/postgres-js/migrator');
-      await migrate(db, { migrationsFolder: './migrations' });
-      console.log('✅ Migrations completed successfully');
-    } catch (error) {
-      console.log('⚠️  Migration skipped - tables will be created by ORM');
-      // Don't throw error, let ORM handle table creation
+    // Ensure DATABASE_URL is available
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required for migrations');
     }
-  }
-
-  /**
+    
+    try {
+      // Use drizzle-kit to apply migrations
+      const command = 'npx drizzle-kit migrate';
+      
+      console.log(`Executing: ${command}`);
+      console.log(`Using DATABASE_URL: ${process.env.DATABASE_URL.replace(/:[^:@]*@/, ':***@')}`);
+      
+      const result = execSync(command, { 
+        stdio: 'pipe',
+        cwd: process.cwd(),
+        timeout: 120000, // 2 minute timeout
+        env: {
+          ...process.env,
+          DATABASE_URL: process.env.DATABASE_URL
+        }
+      });
+      
+      console.log('Migration output:', result.toString());
+      console.log('✅ Migrations completed successfully');
+      
+    } catch (error: any) {
+      console.error('❌ Migration failed:', error);
+      
+      // Try drizzle-kit push as fallback
+      try {
+        console.log('🔄 Attempting schema push as fallback...');
+        const pushCommand = 'npx drizzle-kit push';
+        
+        const pushResult = execSync(pushCommand, { 
+          stdio: 'pipe',
+          cwd: process.cwd(),
+          timeout: 120000,
+          env: {
+            ...process.env,
+            DATABASE_URL: process.env.DATABASE_URL
+          }
+        });
+        
+        console.log('Push output:', pushResult.toString());
+        console.log('✅ Schema push succeeded');
+      } catch (pushError: any) {
+        throw new Error(`Migration failed: ${error.message}. Push also failed: ${pushError.message}`);
+      }
+    }
+  }  /**
    * Verify all required tables exist
    */
   private static async verifyTablesExist(): Promise<void> {

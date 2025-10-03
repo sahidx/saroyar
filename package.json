@@ -10,11 +10,14 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:setup": "./setup-vps-database.sh",
+    "db:fix-uuids": "node fix-seed-data.js",
     "validate-production": "tsx validate-production.ts",
     "deploy": "npm run validate-production && npm run build",
     "production-start": "cross-env NODE_ENV=production npm run build && npm start",
     "build:production": "npm run build && npm run db:migrate",
-    "vps:deploy": "npm run build:production && pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs"
+    "vps:setup": "chmod +x setup-vps-database.sh && ./setup-vps-database.sh",
+    "vps:deploy": "npm run vps:setup && npm run build && pm2 restart ecosystem.config.cjs || pm2 start ecosystem.config.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

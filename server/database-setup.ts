@@ -28,11 +28,10 @@ import {
   monthlyCalendarSummary,
   gradingSchemes,
   studentFees,
-  feeSettings,
+  batchFeeSettings,
   monthlyResults,
   praggoAIKeys,
-  smsTemplates,
-  smsScheduledJobs
+  smsTemplates
 } from '@shared/schema';
 
 export class DatabaseSetup {
@@ -75,16 +74,17 @@ export class DatabaseSetup {
   }
 
   /**
-   * Verify database connection
+   * Validate database connection
    */
   private static async validateConnection(): Promise<void> {
     console.log('🔍 Validating database connection...');
+    
     try {
-      await db.execute(sql`SELECT 1`);
-      console.log('✅ Database connection successful');
+      // Simple health check by running a basic query
+      await db.execute(sql`SELECT 1 as health_check`);
+      console.log('✅ Database connection validated');
     } catch (error) {
-      console.error('❌ Database connection failed:', error);
-      throw new Error('Cannot connect to database');
+      throw new Error(`Database health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -165,11 +165,10 @@ export class DatabaseSetup {
       { name: 'monthly_calendar_summary', table: monthlyCalendarSummary },
       { name: 'grading_schemes', table: gradingSchemes },
       { name: 'student_fees', table: studentFees },
-      { name: 'fee_settings', table: feeSettings },
+      { name: 'batch_fee_settings', table: batchFeeSettings },
       { name: 'monthly_results', table: monthlyResults },
       { name: 'praggo_ai_keys', table: praggoAIKeys },
-      { name: 'sms_templates', table: smsTemplates },
-      { name: 'sms_scheduled_jobs', table: smsScheduledJobs }
+      { name: 'sms_templates', table: smsTemplates }
     ];
 
     let successCount = 0;
@@ -286,125 +285,6 @@ export class DatabaseSetup {
     } catch (error) {
       console.error('❌ Failed to create default grading scheme:', error);
     }
-  }
-
-  /**
-   * Validate database connection
-   */
-  private static async validateConnection(): Promise<void> {
-    console.log('🔍 Validating database connection...');
-    
-    const health = await dbHealthCheck();
-    if (health.status !== 'healthy') {
-      throw new Error(`Database health check failed: ${JSON.stringify(health.details)}`);
-    }
-    
-    console.log('✅ Database connection validated');
-  }
-
-  /**
-   * Check if schema exists and create if necessary
-   */
-  private static async checkAndCreateSchema(): Promise<void> {
-    console.log('🔧 Checking database schema...');
-    
-    try {
-      // Check if essential tables exist
-      const result = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'users'
-        )
-      `);
-      
-      const tablesExist = result.rows?.[0]?.exists || result[0]?.exists;
-      
-      if (!tablesExist) {
-        console.log('📋 No existing schema found, will create new schema');
-      } else {
-        console.log('✅ Existing schema detected');
-      }
-      
-    } catch (error) {
-      console.log('⚠️  Schema check failed, proceeding with migration:', error);
-    }
-  }
-
-  /**
-   * Run database migrations using Drizzle
-   */
-  private static async runMigrations(): Promise<void> {
-    console.log('🔄 Running database migrations...');
-    
-    try {
-      // Use drizzle-kit to push schema changes
-      const command = process.env.NODE_ENV === 'production' 
-        ? 'npm run db:push --force'
-        : 'npm run db:push';
-      
-      console.log(`Executing: ${command}`);
-      execSync(command, { 
-        stdio: 'pipe',
-        cwd: process.cwd(),
-        timeout: 60000 // 60 second timeout
-      });
-      
-      console.log('✅ Migrations completed successfully');
-      
-    } catch (error) {
-      console.error('❌ Migration failed:', error);
-      
-      // Try force push as fallback
-      try {
-        console.log('🔄 Attempting force migration...');
-        execSync('npm run db:push --force', { 
-          stdio: 'pipe',
-          cwd: process.cwd(),
-          timeout: 60000
-        });
-        console.log('✅ Force migration succeeded');
-      } catch (forceError) {
-        throw new Error(`Both normal and force migrations failed: ${forceError}`);
-      }
-    }
-  }
-
-  /**
-   * Verify essential tables exist
-   */
-  private static async verifyTablesExist(): Promise<void> {
-    console.log('🔍 Verifying essential tables exist...');
-    
-    const essentialTables = [
-      'users', 'batches', 'exams', 'questions', 'attendance', 
-      'messages', 'notices', 'sms_transactions', 'activity_logs'
-    ];
-    
-    for (const tableName of essentialTables) {
-      try {
-        const result = await db.execute(sql`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = ${tableName}
-          )
-        `);
-        
-        const exists = result.rows?.[0]?.exists || result[0]?.exists;
-        
-        if (!exists) {
-          throw new Error(`Essential table '${tableName}' does not exist`);
-        }
-        
-        console.log(`  ✅ Table '${tableName}' verified`);
-        
-      } catch (error) {
-        throw new Error(`Table verification failed for '${tableName}': ${error}`);
-      }
-    }
-    
-    console.log('✅ All essential tables verified');
   }
 
 

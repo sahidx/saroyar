@@ -37,10 +37,14 @@ log "� Starting universal database migrations..."
 # Load environment variables from multiple sources
 if [ -f .env.production ]; then
     info "Loading environment from .env.production..."
-    export $(cat .env.production | grep -v '^#' | xargs)
+    set -a
+    source .env.production
+    set +a
 elif [ -f .env ]; then
     info "Loading environment from .env..."
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # Fallback DATABASE_URL if not set

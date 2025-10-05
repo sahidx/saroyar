@@ -1,120 +1,100 @@
-# Node.js dependencies
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Build outputs
+# Production builds
 dist/
+dist-ssr/
 build/
+.next/
 out/
+server/public/
 
-# Environment variables
+# Environment files
 .env
-.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# Database files
+*.db
+*.sqlite
+*.db-shm
+*.db-wal
+dev.db*
+data/
+sessions.db
 
 # Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-*.log
-
-# Editor & system files
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*.tmp
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
-
-# Coverage / testing
-coverage/
-.nyc_output/
-
-# Next.js / Vercel / Temp
-.next/
-.vercel/
-.tmp/
-
-# Database files (keep local development only)
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-sessions.db
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+lerna-debug.log*
 
 # Runtime data
-pids
 *.pid
 *.seed
 *.pid.lock
+pids/
 
-# Dependency directories
-jspm_packages/
+# Coverage directory
+coverage/
+*.lcov
+.nyc_output/
 
-# Optional npm cache directory
-.npm
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
 
-# Optional REPL history
-.node_repl_history
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Output of 'npm pack'
-*.tgz
-*.tar.gz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Storybook build outputs
-.out
-.storybook-out
-
-# Temporary folders
+# Temporary files
 tmp/
 temp/
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# IDE - WebStorm
-.idea/
-
-# Runtime configuration files
-ecosystem.config.js
-ecosystem.config.cjs
-
-# Docker
-.dockerignore
-
-# Deployment
-deployment/
-
-# Test files (if you want to keep them out of production)
-test-*.js
-test-*.ts
+*.tmp
+*.temp
 
 # Backup files
-*.backup
+*~
 *.bak
+*.backup
+*_backup.*
+*-backup.*
 
-# Project specific
-server/public
+# Archive files
+*.tgz
+*.tar.gz
+*.zip
+
+# PM2 files
+.pm2/
+
+# Uploads and user content
+uploads/
+files/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Config files
 vite.config.ts.*

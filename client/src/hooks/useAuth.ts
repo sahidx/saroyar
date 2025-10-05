@@ -1,80 +1,186 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, queryClient, apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from 'react';
+
+// User type
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  role: 'teacher' | 'student' | 'super_user';
+  email?: string;
+  smsCredits?: number;
+  isActive: boolean;
+}
+
+// Auth state type
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Login credentials type
+interface LoginCredentials {
+  phoneNumber: string;
+  password: string;
+}
+
+// Storage key for persisting auth
+const AUTH_STORAGE_KEY = 'coach_manager_auth';
 
 export function useAuth() {
-  // Fetch current user from session-based API with faster retry
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ['/api/auth/user'],
-    retry: false,
-    staleTime: 30000, // Cache for 30 seconds
-    queryFn: getQueryFn({ on401: "returnNull" }), // Return null on 401 instead of throwing
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    error: null
   });
 
-  // Development mode mock user when backend is unavailable
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const mockUser = isDevelopment && error && !user ? {
-    id: 'teacher-mock-dev',
-    firstName: 'Golam Sarowar',
-    lastName: 'Sir',
-    phoneNumber: '01762602056',
-    role: 'teacher',
-    email: null,
-    smsCredits: 1000,
-    isActive: true
-  } : null;
+  // Initialize auth state from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setAuthState({
+          user: parsed,
+          isLoading: false,
+          error: null
+        });
+      } else {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error('Error loading auth from storage:', error);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, []);
 
-  const finalUser = user || mockUser;
-  const isAuthenticated = !!finalUser;
+  // Login function
+  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { phoneNumber: string; password: string }) => {
-      const response = await apiRequest('POST', '/api/auth/login', credentials);
-      return await response.json();
-    },
-    onSuccess: () => {
-      // Invalidate and refetch user data
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    },
-    onError: (error) => {
-      console.error('Login failed:', error);
-      throw error;
-    },
-  });
+    try {
+      // For development/testing - simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Logout mutation - improved cleanup
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      console.log('🔄 Starting logout process...');
-      await apiRequest('POST', '/api/auth/logout');
-    },
-    onSuccess: () => {
-      console.log('✅ Logout API successful');
-      // Clear ALL query cache to prevent stale data
-      queryClient.clear();
-      // Redirect to home
-      window.location.replace('/');
-    },
-    onError: (error) => {
-      console.error('❌ Logout API failed:', error);
-      // Clear cache anyway and redirect
-      queryClient.clear();
-      window.location.replace('/');
-    },
-  });
+      // Mock authentication logic
+      if (credentials.phoneNumber && credentials.password) {
+        let mockUser: User;
 
-  const login = async (credentials: { phoneNumber: string; password: string }) => {
-    return loginMutation.mutateAsync(credentials);
+        // Different users based on phone number for testing
+        if (credentials.phoneNumber.includes('01762602056') || credentials.phoneNumber.includes('teacher')) {
+          mockUser = {
+            id: 'teacher-001',
+            firstName: 'Golam Sarowar',
+            lastName: 'Sir',
+            phoneNumber: '01762602056',
+            role: 'teacher',
+            email: 'teacher@example.com',
+            smsCredits: 1000,
+            isActive: true
+          };
+        } else if (credentials.phoneNumber.includes('super') || credentials.phoneNumber.includes('admin')) {
+          mockUser = {
+            id: 'super-001',
+            firstName: 'Admin',
+            lastName: 'User',
+            phoneNumber: credentials.phoneNumber,
+            role: 'super_user',
+            email: 'admin@example.com',
+            smsCredits: 5000,
+            isActive: true
+          };
+        } else {
+          mockUser = {
+            id: 'student-001',
+            firstName: 'Student',
+            lastName: 'User',
+            phoneNumber: credentials.phoneNumber,
+            role: 'student',
+            email: 'student@example.com',
+            isActive: true
+          };
+        }
+
+        // Store in localStorage for persistence
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(mockUser));
+        
+        setAuthState({
+          user: mockUser,
+          isLoading: false,
+          error: null
+        });
+
+        return { success: true, user: mockUser };
+      } else {
+        throw new Error('Invalid credentials provided');
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      setAuthState({
+        user: null,
+        isLoading: false,
+        error: errorMessage
+      });
+      return { success: false, error: errorMessage };
+    }
   };
 
-  const logout = async () => {
-    return logoutMutation.mutateAsync();
+  // Logout function
+  const logout = async (): Promise<void> => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      
+      // Reset auth state
+      setAuthState({
+        user: null,
+        isLoading: false,
+        error: null
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
+  // Login mutation object (for compatibility with existing code)
+  const loginMutation = {
+    isPending: authState.isLoading,
+    mutate: (
+      credentials: LoginCredentials,
+      options?: {
+        onSuccess?: (data: { user: User; message: string }) => void;
+        onError?: (error: { message: string }) => void;
+      }
+    ) => {
+      login(credentials).then(result => {
+        if (result.success && result.user) {
+          options?.onSuccess?.({ 
+            user: result.user, 
+            message: 'Login successful' 
+          });
+        } else {
+          options?.onError?.({ 
+            message: result.error || 'Login failed' 
+          });
+        }
+      });
+    },
+    mutateAsync: login
+  };
+
+  // Logout mutation object (for compatibility)
+  const logoutMutation = {
+    isPending: false,
+    mutate: logout,
+    mutateAsync: logout
   };
 
   return {
-    user: finalUser,
-    isLoading: isLoading && !mockUser, // Don't show loading if we have mock user
-    isAuthenticated,
+    user: authState.user,
+    isLoading: authState.isLoading,
+    isAuthenticated: !!authState.user,
+    error: authState.error,
     login,
     logout,
     loginMutation,

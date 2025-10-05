@@ -2,6 +2,17 @@
 import { ALL_SUBJECTS, ALL_CLASSES } from '@/../../shared/educationSystem';
 
 export const mockApiResponses: Record<string, any> = {
+  '/api/auth/user': {
+    id: 'teacher-mock-dev',
+    firstName: 'Golam Sarowar',
+    lastName: 'Sir',
+    phoneNumber: '01762602056',
+    role: 'teacher',
+    email: null,
+    smsCredits: 1000,
+    isActive: true
+  },
+  
   '/api/user/sms-credits': {
     smsCredits: 1000,
     currentBalance: 1000,
@@ -376,6 +387,41 @@ export function setupMockApi() {
       // Handle exam endpoints
       if (mockExamData[urlString]) {
         return new Response(JSON.stringify(mockExamData[urlString]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Handle login
+      if (urlString === '/api/auth/login' && options?.method === 'POST') {
+        console.log('🔧 [Mock API] Mock login attempt');
+        const body = JSON.parse(options?.body as string || '{}');
+        const { phoneNumber, password } = body;
+        
+        // Mock authentication - accept any credentials for development
+        if (phoneNumber && password) {
+          return new Response(JSON.stringify({
+            success: true,
+            user: mockApiResponses['/api/auth/user']
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } else {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Phone number and password are required'
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      
+      // Handle logout
+      if (urlString === '/api/auth/logout' && options?.method === 'POST') {
+        console.log('🔧 [Mock API] Mock logout');
+        return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });

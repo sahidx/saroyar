@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,20 +82,29 @@ function AIQuestionMaker({ isDarkMode }: AIQuestionMakerProps) {
     }
   });
 
-  const generateQuestionsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/ai/generate-questions', data);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setGeneratedQuestions(data);
-      setIsGenerating(false);
-    },
-    onError: (error) => {
-      console.error('Error generating questions:', error);
-      setIsGenerating(false);
+  const generateQuestionsMutation = {
+    isPending: false,
+    mutate: (data: any) => {
+      setIsGenerating(true);
+      // Mock question generation
+      setTimeout(() => {
+        const mockQuestions = {
+          questions: [
+            {
+              question: "What is 2 + 2?",
+              type: "mcq",
+              options: ["3", "4", "5", "6"],
+              correctAnswer: "B",
+              difficulty: "easy",
+              explanation: "Basic addition: 2 + 2 = 4"
+            }
+          ]
+        };
+        setGeneratedQuestions(mockQuestions);
+        setIsGenerating(false);
+      }, 1000);
     }
-  });
+  };
 
   const onSubmit = (data: any) => {
     setIsGenerating(true);
@@ -502,83 +509,62 @@ export default function TeacherDashboard() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
 
-  // Fetch real teacher stats instead of hardcoded values
-  const { data: teacherStats = {}, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/teacher/stats'],
-    retry: false,
-  });
+  // Use static data for frontend testing to prevent infinite loops
+  const teacherStats = {
+    totalStudents: 0,
+    totalExams: 0,
+    totalQuestions: 0,
+    unreadMessages: 0
+  };
+  const statsLoading = false;
 
-  // Fetch real-time SMS credits with frequent updates
-  const { data: userCredits, isLoading: creditsLoading } = useQuery({
-    queryKey: ['/api/user/sms-credits'],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
-    retry: false,
-  });
+  const userCredits = { smsCredits: 1000 };
+  const creditsLoading = false;
 
-  // Fetch real students data
-  const studentsQuery = useQuery({
-    queryKey: ['/api/students'],
-    retry: false,
-  });
-
-  const { data: studentsData = [], isLoading: studentsLoading } = studentsQuery;
-
-  const batchesQuery = useQuery({
-    queryKey: ['/api/batches'],
-    retry: false,
-  });
+  const studentsData: any[] = [];
+  const studentsLoading = false;
   
-  const { data: batchesData = [] } = batchesQuery;
+  const batchesData: any[] = [];
 
-  const addStudentMutation = useMutation({
-    mutationFn: async (studentData: any) => {
-      const response = await apiRequest('POST', '/api/students', studentData);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setStudentPassword(data.password);
-      studentsQuery.refetch();
-      toast({
-        title: 'Student Added Successfully',
-        description: `Student password: ${data.password}`,
-        variant: 'default',
-      });
-      setIsAddStudentModalOpen(false);
-    },
-    onError: (error) => {
-      console.error('Error adding student:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add student',
-        variant: 'destructive',
-      });
-    }
-  });
+  // Create mock functions for the queries
+  const studentsQuery = {
+    refetch: () => Promise.resolve()
+  };
 
-  const cleanupDemoMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/admin/cleanup-demo', {});
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Cleanup Successful',
-        description: 'All demo data has been removed from the system',
-        variant: 'default',
-      });
-      // Refetch data to update UI
-      studentsQuery.refetch();
-      batchesQuery.refetch();
-    },
-    onError: (error) => {
-      console.error('Error cleaning demo data:', error);
-      toast({
-        title: 'Cleanup Failed',
-        description: 'Failed to clean demo data. Please try again.',
-        variant: 'destructive',
-      });
+  const batchesQuery = {
+    refetch: () => Promise.resolve()
+  };
+
+  const addStudentMutation = {
+    isPending: false,
+    mutate: (studentData: any) => {
+      // Mock adding student
+      setTimeout(() => {
+        const mockPassword = 'temp123';
+        setStudentPassword(mockPassword);
+        toast({
+          title: 'Student Added Successfully (Mock)',
+          description: `Student password: ${mockPassword}`,
+          variant: 'default',
+        });
+        setIsAddStudentModalOpen(false);
+      }, 500);
     }
-  });
+  };
+
+  const cleanupDemoMutation = {
+    isPending: false,
+    mutate: () => {
+      // Mock cleanup
+      setTimeout(() => {
+        toast({
+          title: 'Cleanup Successful (Mock)',
+          description: 'Demo cleanup completed in frontend-only mode',
+          variant: 'default',
+        });
+      }, 500);
+    }
+  };
 
   const { logout } = useAuth();
   

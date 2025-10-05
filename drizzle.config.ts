@@ -1,19 +1,20 @@
 import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+  throw new Error("DATABASE_URL environment variable is required. Please set your PostgreSQL connection string.");
 }
 
-const isPostgreSQL = process.env.DATABASE_URL.startsWith('postgresql://') || process.env.DATABASE_URL.startsWith('postgres://');
-const isSQLite = process.env.DATABASE_URL.startsWith('file:');
+if (!process.env.DATABASE_URL.startsWith('postgresql://') && !process.env.DATABASE_URL.startsWith('postgres://')) {
+  throw new Error("Only PostgreSQL is supported in production. DATABASE_URL must start with 'postgresql://' or 'postgres://'");
+}
 
 export default defineConfig({
   out: "./migrations",
-  schema: isPostgreSQL ? "./shared/schema.ts" : "./shared/sqlite-schema.ts",
-  dialect: isPostgreSQL ? "postgresql" : "sqlite",
-  dbCredentials: isPostgreSQL ? {
+  schema: "./shared/schema.ts",
+  dialect: "postgresql",
+  dbCredentials: {
     url: process.env.DATABASE_URL,
-  } : {
-    url: process.env.DATABASE_URL.replace('file:', ''),
   },
+  verbose: true,
+  strict: true,
 });

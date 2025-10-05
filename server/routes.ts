@@ -148,14 +148,9 @@ async function handleQuestionContent(content: string, source: string): Promise<s
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database with real data - handle errors gracefully
-  try {
-    const { seedDatabase } = await import('./seedData');
-    await seedDatabase();
-  } catch (error) {
-    console.log("⚠️  Database seeding skipped due to endpoint issue - continuing with server start...");
-    console.log("📝 Note: You can manually add courses through the course management interface.");
-  }
+  // Production ready - Database initialized without seeding
+  console.log("🏭 Production mode: Database ready for manual data entry");
+  console.log("📝 Add teachers, batches, and students through the admin interface");
 
   // Skip Replit authentication - use only custom session-based auth
   console.log("🔧 Using custom session-based authentication for coach management system");
@@ -2955,9 +2950,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      // Validate required fields before processing
+      const { firstName, lastName, phoneNumber, batchId } = req.body;
+      
+      if (!firstName?.trim()) {
+        return res.status(400).json({ message: "First name is required" });
+      }
+      
+      if (!lastName?.trim()) {
+        return res.status(400).json({ message: "Last name is required" });
+      }
+      
+      if (!phoneNumber?.trim()) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+      
+      if (!batchId) {
+        return res.status(400).json({ message: "Batch selection is required" });
+      }
+      
+      // Validate phone number format (basic validation)
+      const phoneRegex = /^[0-9+\-\s()]+$/;
+      if (!phoneRegex.test(phoneNumber.trim())) {
+        return res.status(400).json({ message: "Invalid phone number format" });
+      }
+      
       // Add role to the request data before validation
       const requestData = {
         ...req.body,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phoneNumber: phoneNumber.trim(),
         role: 'student'
       };
       
@@ -3277,6 +3300,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!subject) {
         return res.status(400).json({ message: "Subject is required" });
       }
+      
+      // Validate batch name length and format
+      if (name.trim().length < 3) {
+        return res.status(400).json({ message: "Batch name must be at least 3 characters long" });
+      }
+      
+      if (name.trim().length > 50) {
+        return res.status(400).json({ message: "Batch name must be less than 50 characters" });
+      }
+      
+      // Validate maxStudents
+      if (maxStudents && (maxStudents < 1 || maxStudents > 200)) {
+        return res.status(400).json({ message: "Maximum students must be between 1 and 200" });
+      }
 
       // Generate unique batch code (subject prefix + timestamp)
       const subjectPrefix = subject.substring(0, 3).toUpperCase();
@@ -3323,33 +3360,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password, // Include password in response for teacher to share
         });
       } catch (dbError) {
-        // Fallback when database fails - return mock successful response
-        console.log("📚 Database error creating batch, using fallback:", dbError);
-        logTemporaryEndpoint('batch creation');
+        // Production: Proper error handling without fallbacks
+        console.error("❌ Database error creating batch:", dbError);
         
-        const mockBatch = {
-          id: `batch-${Date.now()}`,
-          name: batchData.name,
-          subject: batchData.subject,
-          batchCode,
-          password,
-          classTime: batchData.classTime,
-          classDays: batchData.classDays,
-          maxStudents: batchData.maxStudents,
-          currentStudents: 0,
-          startDate: batchData.startDate,
-          endDate: batchData.endDate,
-          status: 'active',
-          createdBy: batchData.createdBy,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-
-        console.log(`✅ Mock batch created: ${mockBatch.name} (${mockBatch.batchCode})`);
-        res.json({
-          ...mockBatch,
-          password,
-          _fallback: true // Indicate this is a fallback response
+        // Check if it's a specific constraint error
+        if (dbError instanceof Error) {
+          if (dbError.message.includes('duplicate') || dbError.message.includes('unique')) {
+            return res.status(400).json({ 
+              message: "Batch with this name or code already exists" 
+            });
+          }
+          if (dbError.message.includes('foreign key')) {
+            return res.status(400).json({ 
+              message: "Invalid data provided. Please check all fields." 
+            });
+          }
+        }
+        
+        return res.status(500).json({ 
+          message: "Failed to create batch. Please check database connection and try again." 
         });
       }
     } catch (error: any) {
@@ -7774,32 +7803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Production cleanup endpoint - Remove demo data
-  app.post('/api/admin/cleanup-demo', requireAuth, async (req: any, res) => {
-    try {
-      const user = req.session?.user;
-
-      // Only superUsers can run cleanup
-      if (user?.role !== 'superUser' && user?.role !== 'teacher') {
-        return res.status(403).json({ message: 'Access denied. Admin only.' });
-      }
-
-      const { cleanDemoData } = await import('./cleanDemoData');
-      await cleanDemoData();
-
-      res.json({ 
-        success: true, 
-        message: 'Demo data cleanup completed successfully'
-      });
-    } catch (error) {
-      console.error('❌ Error cleaning demo data:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: 'Failed to clean demo data',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  // Production ready - No demo data endpoints needed
 
   return httpServer;
 }

@@ -1,0 +1,275 @@
+#!/bin/bash
+
+# VPS JSON Error Fix Script
+# Fixes the package.json syntax error on VPS
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+echo -e "${BLUE}🔧 VPS Package.json Fix Script${NC}"
+echo "==========================================="
+
+# Step 1: Backup current package.json
+print_status "Creating backup of current package.json..."
+if [ -f "package.json" ]; then
+    cp package.json package.json.backup
+    print_success "Backup created: package.json.backup"
+else
+    print_error "package.json not found!"
+    exit 1
+fi
+
+# Step 2: Create clean package.json
+print_status "Creating clean package.json..."
+
+cat > package.json << 'EOF'
+{
+  "name": "rest-express",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "vite build",
+    "build:backend": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --minify --resolve-extensions=.ts,.js --alias:@shared=shared",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "start:pm2": "pm2 start ecosystem.config.cjs",
+    "stop:pm2": "pm2 stop ecosystem.config.cjs",
+    "restart:pm2": "pm2 restart ecosystem.config.cjs",
+    "production": "npm run build && npm run start",
+    "production:install": "npm install --production=false",
+    "production:build": "npm run production:install && npm run build",
+    "production:deploy": "npm run production:build && npm run start:pm2",
+    "check": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:setup": "npm run db:generate && npm run db:migrate",
+    "validate": "tsx validate-production.ts",
+    "deploy": "npm run validate && npm run production",
+    "deploy:vps": "chmod +x deploy-vps.sh && ./deploy-vps.sh",
+    "clean": "rimraf dist node_modules/.cache",
+    "kill-ports": "npx kill-port 3000 5173 8080"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@google-cloud/storage": "^7.17.0",
+    "@google/genai": "^1.16.0",
+    "@hookform/resolvers": "^3.10.0",
+    "@jridgewell/trace-mapping": "^0.3.25",
+    "@neondatabase/serverless": "^0.10.4",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^10.0.0",
+    "esbuild": "^0.25.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.1",
+    "typescript": "5.6.3",
+    "vite": "^5.4.19",
+    "@radix-ui/react-accordion": "^1.2.4",
+    "@radix-ui/react-alert-dialog": "^1.1.7",
+    "@radix-ui/react-aspect-ratio": "^1.1.3",
+    "@radix-ui/react-avatar": "^1.1.4",
+    "@radix-ui/react-checkbox": "^1.1.5",
+    "@radix-ui/react-collapsible": "^1.1.4",
+    "@radix-ui/react-context-menu": "^2.2.7",
+    "@radix-ui/react-dialog": "^1.1.7",
+    "@radix-ui/react-dropdown-menu": "^2.1.7",
+    "@radix-ui/react-hover-card": "^1.1.7",
+    "@radix-ui/react-label": "^2.1.3",
+    "@radix-ui/react-menubar": "^1.1.7",
+    "@radix-ui/react-navigation-menu": "^1.2.6",
+    "@radix-ui/react-popover": "^1.1.7",
+    "@radix-ui/react-progress": "^1.1.3",
+    "@radix-ui/react-radio-group": "^1.2.4",
+    "@radix-ui/react-scroll-area": "^1.2.4",
+    "@radix-ui/react-select": "^2.1.7",
+    "@radix-ui/react-separator": "^1.1.3",
+    "@radix-ui/react-slider": "^1.2.4",
+    "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-switch": "^1.1.4",
+    "@radix-ui/react-tabs": "^1.1.4",
+    "@radix-ui/react-toast": "^1.2.7",
+    "@radix-ui/react-toggle": "^1.1.3",
+    "@radix-ui/react-toggle-group": "^1.1.3",
+    "@radix-ui/react-tooltip": "^1.2.0",
+    "@stripe/react-stripe-js": "^3.9.0",
+    "@stripe/stripe-js": "^7.8.0",
+    "@tanstack/react-query": "^5.60.5",
+    "@types/bcrypt": "^6.0.0",
+    "@types/connect-sqlite3": "^0.9.5",
+    "@types/memoizee": "^0.4.12",
+    "@uppy/aws-s3": "^4.3.2",
+    "@uppy/core": "^4.5.3",
+    "@uppy/dashboard": "^4.4.3",
+    "@uppy/drag-drop": "^4.2.2",
+    "@uppy/file-input": "^4.2.2",
+    "@uppy/progress-bar": "^4.3.2",
+    "@uppy/react": "^4.5.2",
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "connect-pg-simple": "^10.0.0",
+    "connect-sqlite3": "^0.9.16",
+    "date-fns": "^3.6.0",
+    "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.39.1",
+    "drizzle-zod": "^0.7.0",
+    "embla-carousel-react": "^8.6.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.0.1",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "framer-motion": "^11.13.1",
+    "google-auth-library": "^10.3.0",
+    "helmet": "^8.1.0",
+    "html2canvas": "^1.4.1",
+    "input-otp": "^1.4.2",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.453.0",
+    "memoizee": "^0.4.17",
+    "memorystore": "^1.6.7",
+    "nanoid": "^5.1.5",
+    "next-themes": "^0.4.6",
+    "openid-client": "^6.7.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.16.3",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.55.0",
+    "react-icons": "^5.4.0",
+    "react-resizable-panels": "^2.1.7",
+    "recharts": "^2.15.2",
+    "stripe": "^18.4.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.2.5",
+    "vaul": "^1.1.2",
+    "wouter": "^3.3.5",
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.2",
+    "zod-validation-error": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.15",
+    "@tailwindcss/vite": "^4.1.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/connect-pg-simple": "^7.0.3",
+    "@types/express": "4.17.21",
+    "@types/express-session": "^1.18.0",
+    "@types/node": "20.16.11",
+    "@types/passport": "^1.0.16",
+    "@types/passport-local": "^1.0.38",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@types/ws": "^8.5.13",
+    "drizzle-kit": "^0.31.4"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.8"
+  }
+}
+EOF
+
+print_success "Clean package.json created"
+
+# Step 3: Validate JSON
+print_status "Validating JSON syntax..."
+if node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8')); console.log('✅ JSON is valid')"; then
+    print_success "JSON validation passed"
+else
+    print_error "JSON validation failed"
+    exit 1
+fi
+
+# Step 4: Stop PM2 processes
+print_status "Stopping PM2 processes..."
+pm2 stop all 2>/dev/null || echo "No PM2 processes to stop"
+
+# Step 5: Clean npm cache
+print_status "Cleaning npm cache..."
+npm cache clean --force
+
+# Step 6: Remove node_modules
+print_status "Removing node_modules..."
+rm -rf node_modules package-lock.json
+
+# Step 7: Install dependencies
+print_status "Installing dependencies..."
+npm install --production=false
+
+if [ $? -eq 0 ]; then
+    print_success "Dependencies installed successfully"
+else
+    print_error "Dependency installation failed"
+    exit 1
+fi
+
+# Step 8: Build application
+print_status "Building application..."
+npm run build
+
+if [ $? -eq 0 ]; then
+    print_success "Build completed successfully"
+else
+    print_error "Build failed"
+    exit 1
+fi
+
+# Step 9: Start PM2
+print_status "Starting application with PM2..."
+npm run start:pm2
+
+if [ $? -eq 0 ]; then
+    print_success "Application started successfully"
+else
+    print_error "Failed to start application"
+    exit 1
+fi
+
+# Step 10: Show status
+print_status "Application status:"
+pm2 status
+
+echo ""
+echo "==========================================="
+print_success "🎉 VPS Fix completed successfully!"
+echo ""
+print_status "Application URLs:"
+echo "  • Main: http://your-server-ip:3000"
+echo "  • Login: http://your-server-ip:3000/login"
+echo "  • Health: http://your-server-ip:3000/healthz"
+echo ""
+print_status "Useful commands:"
+echo "  • Check logs: pm2 logs"
+echo "  • Restart: pm2 restart all"
+echo "  • Monitor: pm2 monit"

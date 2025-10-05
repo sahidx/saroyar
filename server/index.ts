@@ -70,8 +70,8 @@ app.use((req, _res, next) => {
       const val = req.body[key];
       if (typeof val === "string") {
         req.body[key] = val
-          .replace(/<script[^>]*>.*?<\/script>/gis, "")
-          .replace(/<iframe[^>]*>.*?<\/iframe>/gis, "")
+          .replace(/<script[^>]*>.*?<\/script>/gi, "")
+          .replace(/<iframe[^>]*>.*?<\/iframe>/gi, "")
           .replace(/javascript:/gi, "")
           .replace(/on\w+\s*=/gi, "");
       }
@@ -181,17 +181,26 @@ app.use(async (req, res, next) => {
 });
 
 (async () => {
-  // Initialize database for production only
-  if (process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+  // Initialize database for production
+  if (process.env.DATABASE_URL) {
     try {
-      const { safeInitializeDatabase } = await import('./production-db');
-      await safeInitializeDatabase();
+      // Use comprehensive database setup
+      const { DatabaseSetup } = await import('./database-setup');
+      await DatabaseSetup.initialize();
+      
+      // Also run the basic initialization for any missing setup
+      const { initializeDatabase } = await import('./db');
+      await initializeDatabase();
+      
+      log('✅ Database initialized successfully');
     } catch (error) {
       console.error('💥 Failed to initialize database:', error);
-      // Continue startup even if DB init fails - fallback to mock data
+      // In production, we should try to continue with limited functionality
+      console.warn('⚠️  Continuing with limited database functionality...');
     }
-  } else if (process.env.NODE_ENV === 'development') {
-    log('🔧 Development mode: Skipping database initialization');
+  } else {
+    console.error('❌ DATABASE_URL is required for production');
+    process.exit(1);
   }
 
   // Register all routes (they can read loginLimiter via app.get('loginLimiter'))

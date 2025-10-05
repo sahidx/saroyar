@@ -201,7 +201,6 @@ export class AutomatedMonthlyResultsService {
       finalScore,
       rank: 0, // Will be set after sorting
       totalStudents: 0, // Will be set after counting
-      presentDays: attendanceData.presentDays,
       workingDays,
       totalExams: examData.totalExams,
       processedDate: new Date()

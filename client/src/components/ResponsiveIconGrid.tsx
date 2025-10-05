@@ -182,12 +182,6 @@ export const getTeacherIcons = (setLocation: (path: string) => void, setActiveTa
     onClick: () => setLocation('/teacher/monthly-results')
   },
   {
-    id: 'api-settings',
-    icon: <Settings className="w-full h-full" />,
-    label: 'API Keys',
-    onClick: () => setLocation('/teacher/api-settings')
-  },
-  {
     id: 'question-bank',
     icon: <FileText className="w-full h-full" />,
     label: 'প্রশ্নব্যাংক',

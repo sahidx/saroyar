@@ -277,157 +277,27 @@ export class DatabaseStorage implements IStorage {
       return this.getAllActiveExams();
     }
     
-    const isSQLite = process.env.DATABASE_URL?.startsWith('file:');
-    
-    if (isSQLite) {
-      // For SQLite, use direct SQL to avoid schema issues
-      const sqlite = (db as any)._.session.db;
-      
-      const results = sqlite.prepare(`
-        SELECT * FROM exams 
-        WHERE created_by = ? 
-        ORDER BY created_at DESC
-      `).all(teacherId);
-      
-      // Convert SQLite results to expected format
-      return results.map((result: any) => ({
-        id: result.id,
-        title: result.title,
-        subject: result.subject,
-        chapter: result.chapter,
-        targetClass: result.target_class,
-        description: result.description,
-        instructions: result.instructions,
-        examDate: result.exam_date ? new Date(result.exam_date * 1000) : null,
-        duration: result.duration,
-        examType: result.exam_type,
-        examMode: result.exam_mode,
-        batchId: result.batch_id,
-        targetStudents: result.target_students ? JSON.parse(result.target_students) : null,
-        questionSource: result.question_source,
-        questionContent: result.question_content,
-        questionPaperImage: result.question_paper_image,
-        totalMarks: result.total_marks,
-        isActive: result.is_active === 1,
-        createdBy: result.created_by,
-        createdAt: result.created_at ? new Date(result.created_at * 1000) : new Date(),
-        updatedAt: result.updated_at ? new Date(result.updated_at * 1000) : new Date()
-      }));
-    } else {
-      // For PostgreSQL, use ORM
-      return await db
-        .select()
-        .from(exams)
-        .where(eq(exams.createdBy, teacherId))
-        .orderBy(desc(exams.createdAt));
-    }
+    // Use PostgreSQL with ORM
+    return await db
+      .select()
+      .from(exams)
+      .where(eq(exams.createdBy, teacherId))
+      .orderBy(desc(exams.createdAt));
   }
 
   async getAllActiveExams(): Promise<Exam[]> {
-    const isSQLite = process.env.DATABASE_URL?.startsWith('file:');
-    
-    if (isSQLite) {
-      // For SQLite, use direct SQL
-      const sqlite = (db as any)._.session.db;
-      
-      const results = sqlite.prepare(`
-        SELECT * FROM exams 
-        WHERE is_active = 1 
-        ORDER BY created_at DESC
-      `).all();
-      
-      // Convert SQLite results to expected format
-      return results.map((result: any) => ({
-        id: result.id,
-        title: result.title,
-        subject: result.subject,
-        chapter: result.chapter,
-        targetClass: result.target_class,
-        description: result.description,
-        instructions: result.instructions,
-        examDate: result.exam_date ? new Date(result.exam_date * 1000) : null,
-        duration: result.duration,
-        examType: result.exam_type,
-        examMode: result.exam_mode,
-        batchId: result.batch_id,
-        targetStudents: result.target_students ? JSON.parse(result.target_students) : null,
-        questionSource: result.question_source,
-        questionContent: result.question_content,
-        questionPaperImage: result.question_paper_image,
-        totalMarks: result.total_marks,
-        isActive: result.is_active === 1,
-        createdBy: result.created_by,
-        createdAt: result.created_at ? new Date(result.created_at * 1000) : new Date(),
-        updatedAt: result.updated_at ? new Date(result.updated_at * 1000) : new Date()
-      }));
-    } else {
-      // For PostgreSQL, use ORM
-      return await db
-        .select()
-        .from(exams)
-        .where(eq(exams.isActive, true))
-        .orderBy(desc(exams.createdAt));
-    }
+    // Use PostgreSQL with ORM
+    return await db
+      .select()
+      .from(exams)
+      .where(eq(exams.isActive, true))
+      .orderBy(desc(exams.createdAt));
   }
 
   async createExam(exam: InsertExam): Promise<Exam> {
-    // Check if we're using SQLite
-    const isSQLite = process.env.DATABASE_URL?.startsWith('file:');
-    
-    if (isSQLite) {
-      // For SQLite, use direct SQL to avoid schema compatibility issues
-      const sqlite = (db as any)._.session.db; // Access underlying SQLite database
-      
-      const stmt = sqlite.prepare(`
-        INSERT INTO exams (title, subject, chapter, target_class, description, instructions, exam_date, duration, exam_type, exam_mode, batch_id, target_students, question_source, question_content, question_paper_image, total_marks, is_active, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        RETURNING *
-      `);
-      
-      const result = stmt.get(
-        exam.title,
-        exam.subject,
-        exam.chapter || null,
-        exam.targetClass || null,
-        exam.description || null,
-        exam.instructions || null,
-        exam.examDate ? Math.floor(new Date(exam.examDate).getTime() / 1000) : null,
-        exam.duration,
-        exam.examType,
-        exam.examMode,
-        exam.batchId || null,
-        exam.targetStudents ? JSON.stringify(exam.targetStudents) : null,
-        exam.questionSource || null,
-        exam.questionContent || null,
-        exam.questionPaperImage || null,
-        exam.totalMarks || 0,
-        exam.isActive ? 1 : 0,
-        exam.createdBy
-      );
-      
-      // Convert SQLite result back to expected format
-      return {
-        ...result,
-        examDate: result.exam_date ? new Date(result.exam_date * 1000) : null,
-        targetClass: result.target_class,
-        examType: result.exam_type,
-        examMode: result.exam_mode,
-        batchId: result.batch_id,
-        targetStudents: result.target_students ? JSON.parse(result.target_students) : null,
-        questionSource: result.question_source,
-        questionContent: result.question_content,
-        questionPaperImage: result.question_paper_image,
-        totalMarks: result.total_marks,
-        isActive: result.is_active === 1,
-        createdBy: result.created_by,
-        createdAt: result.created_at ? new Date(result.created_at * 1000) : new Date(),
-        updatedAt: result.updated_at ? new Date(result.updated_at * 1000) : new Date()
-      } as Exam;
-    } else {
-      // For PostgreSQL, use the ORM as usual
-      const [newExam] = await db.insert(exams).values(exam).returning();
-      return newExam;
-    }
+    // Use PostgreSQL with ORM
+    const [newExam] = await db.insert(exams).values(exam).returning();
+    return newExam;
   }
 
   async getExamById(id: string): Promise<Exam | undefined> {
@@ -783,10 +653,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllStudents(): Promise<User[]> {
-    // Optimized with index hint for better performance
+    // Return students with basic fields
     return await db
       .select()
       .from(users)
+      .where(eq(users.role, 'student'))
+      .orderBy(users.firstName);
+  }
+  
+  async getAllStudentsWithBatch(): Promise<any[]> {
+    // Return students with batch information for frontend
+    return await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phoneNumber: users.phoneNumber,
+        parentPhoneNumber: users.parentPhoneNumber,
+        batchId: users.batchId,
+        role: users.role,
+        studentId: users.studentId,
+        studentPassword: users.studentPassword,
+        institution: users.institution,
+        classLevel: users.classLevel,
+        createdAt: users.createdAt,
+        batch: {
+          id: batches.id,
+          name: batches.name,
+          batchCode: batches.batchCode,
+          subject: batches.subject,
+        }
+      })
+      .from(users)
+      .leftJoin(batches, eq(users.batchId, batches.id))
       .where(eq(users.role, 'student'))
       .orderBy(users.firstName);
   }

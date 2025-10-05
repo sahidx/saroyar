@@ -38,10 +38,10 @@ module.exports = {
       host: ['your-server-ip'],
       ref: 'origin/main',
       repo: 'https://github.com/sahidx/saroyar.git',
-      path: '/var/www/coach-manager',
+      path: '/var/www/saroyar',
       'pre-deploy-local': '',
-      'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.cjs --env production && pm2 save',
-      'pre-setup': 'mkdir -p /var/www/coach-manager/logs'
+      'post-deploy': 'npm install --production=false && npm run build && pm2 reload ecosystem.config.cjs --env production && pm2 save',
+      'pre-setup': 'mkdir -p /var/www/saroyar/logs'
     }
   }
 }

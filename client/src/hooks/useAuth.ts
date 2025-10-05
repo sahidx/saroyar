@@ -55,73 +55,65 @@ export function useAuth() {
     }
   }, []);
 
-  // Login function
+  // Login function - Real API call
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // For development/testing - simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🔐 Attempting real API login for:', credentials.phoneNumber);
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      });
 
-      // Mock authentication logic
-      if (credentials.phoneNumber && credentials.password) {
-        let mockUser: User;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Login failed' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
-        // Different users based on phone number for testing
-        if (credentials.phoneNumber.includes('01762602056') || credentials.phoneNumber.includes('teacher')) {
-          mockUser = {
-            id: 'teacher-001',
-            firstName: 'Golam Sarowar',
-            lastName: 'Sir',
-            phoneNumber: '01762602056',
-            role: 'teacher',
-            email: 'teacher@example.com',
-            smsCredits: 1000,
-            isActive: true
-          };
-        } else if (credentials.phoneNumber.includes('super') || credentials.phoneNumber.includes('admin')) {
-          mockUser = {
-            id: 'super-001',
-            firstName: 'Admin',
-            lastName: 'User',
-            phoneNumber: credentials.phoneNumber,
-            role: 'super_user',
-            email: 'admin@example.com',
-            smsCredits: 5000,
-            isActive: true
-          };
-        } else {
-          mockUser = {
-            id: 'student-001',
-            firstName: 'Student',
-            lastName: 'User',
-            phoneNumber: credentials.phoneNumber,
-            role: 'student',
-            email: 'student@example.com',
-            isActive: true
-          };
-        }
+      const data = await response.json();
+      console.log('✅ Login response received:', data);
+      
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          phoneNumber: data.user.phoneNumber,
+          role: data.user.role,
+          email: data.user.email,
+          smsCredits: data.user.smsCredits || 0,
+          isActive: data.user.isActive ?? true
+        };
 
-        // Store in localStorage for persistence
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(mockUser));
-        
+        // Store in localStorage and update state
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
         setAuthState({
-          user: mockUser,
+          user,
           isLoading: false,
           error: null
         });
 
-        return { success: true, user: mockUser };
+        console.log('✅ User authenticated successfully:', user.firstName, user.lastName);
+        return { success: true, user };
       } else {
-        throw new Error('Invalid credentials provided');
+        throw new Error('No user data received from server');
       }
-    } catch (error: any) {
-      const errorMessage = error.message || 'Login failed. Please try again.';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error - please check your connection';
+      console.error('❌ Login error:', errorMessage);
+      
       setAuthState({
         user: null,
         isLoading: false,
         error: errorMessage
       });
+      
       return { success: false, error: errorMessage };
     }
   };

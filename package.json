@@ -7,7 +7,7 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "vite build",
-    "build:backend": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --minify",
+    "build:backend": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --minify --resolve-extensions=.ts,.js --alias:@shared=shared",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:pm2": "pm2 start ecosystem.config.cjs",
     "stop:pm2": "pm2 stop ecosystem.config.cjs",
